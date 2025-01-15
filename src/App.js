@@ -1,10 +1,10 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import Dashboard from './Dashboard';
-import Facturas from './Facturas';
-import Clientes from './Clientes';
-import Productos from './Productos';
-import Sidebar from './Sidebar'; // El menú lateral lo movemos a un componente aparte
+import Dashboard from './components/Dashboard/Dashboard';
+import Invoices from './components/Invoices/Invoices';
+import Clients from './components/Clients/Clients';
+import Products from './components/Products/Products';
+import Sidebar from './components/Sidebar/Sidebar'; // Sidebar ya movido a su nuevo directorio
 
 function App() {
     return (
@@ -16,9 +16,9 @@ function App() {
             <div style={{ flexGrow: 1, padding: '20px' }}>
                 <Routes>
                     <Route path="/" element={<Dashboard />} />
-                    <Route path="/facturas" element={<Facturas />} />
-                    <Route path="/clientes" element={<Clientes />} />
-                    <Route path="/productos" element={<Productos />} />
+                    <Route path="/facturas" element={<Invoices />} />
+                    <Route path="/clientes" element={<Clients />} />
+                    <Route path="/productos" element={<Products />} />
                     <Route path="*" element={<h1>Página no encontrada</h1>} />
                 </Routes>
             </div>
