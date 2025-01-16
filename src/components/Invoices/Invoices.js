@@ -2,18 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { Container, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogActions, DialogContent, DialogTitle, TextField, IconButton, Box } from '@mui/material';
 import { Add, Edit, Delete, Search } from '@mui/icons-material';
 
-function Facturas() {
+function Invoices() {
     const [facturas, setFacturas] = useState([]);
     const [filteredFacturas, setFilteredFacturas] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [open, setOpen] = useState(false);
     const [cliente, setCliente] = useState('');
     const [total, setTotal] = useState('');
-    const [editando, setEditando] = useState(null);
+    const [editing, setEditing] = useState(null);
 
-    // Cargar facturas desde el backend
+    // Fetch invoices from backend
     useEffect(() => {
-        fetch('http://localhost:5002/facturas')
+        fetch('http://localhost:5002/api/invoices')
             .then(response => response.json())
             .then(data => {
                 setFacturas(data);
@@ -22,19 +22,19 @@ function Facturas() {
             .catch(error => console.error('Error:', error));
     }, []);
 
-    // Filtro de búsqueda
+    // Search filter
     const handleSearch = (e) => {
         const term = e.target.value.toLowerCase();
         setSearchTerm(term);
         setFilteredFacturas(facturas.filter(factura =>
-            factura.cliente.toLowerCase().includes(term)
+            factura.client.toLowerCase().includes(term)
         ));
     };
 
-    // Abrir y cerrar el modal
+    // Open and close dialog
     const handleOpen = (factura) => {
-        setEditando(factura);
-        setCliente(factura ? factura.cliente : '');
+        setEditing(factura || null);
+        setCliente(factura ? factura.client : '');
         setTotal(factura ? factura.total : '');
         setOpen(true);
     };
@@ -43,26 +43,33 @@ function Facturas() {
         setOpen(false);
         setCliente('');
         setTotal('');
-        setEditando(null);
+        setEditing(null);
     };
 
-    // Guardar o actualizar una factura
+    // Save or update invoice
     const handleSave = () => {
-        if (!cliente || !total) return alert('Todos los campos son obligatorios.');
+        if (!cliente || !total) {
+            alert('Todos los campos son obligatorios.');
+            return;
+        }
 
-        const nuevaFactura = { cliente, total: parseFloat(total) };
-
-        const url = editando ? `http://localhost:5002/facturas/${editando.id}` : 'http://localhost:5002/facturas';
-        const method = editando ? 'PUT' : 'POST';
+        const updatedInvoice = { client: cliente, total: parseFloat(total) }; // Asegura que total sea numérico
+        const url = editing ? `http://localhost:5002/api/invoices/${editing.id}` : 'http://localhost:5002/api/invoices';
+        const method = editing ? 'PUT' : 'POST';
 
         fetch(url, {
             method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(nuevaFactura),
+            body: JSON.stringify(updatedInvoice),
         })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error al guardar la factura');
+                }
+                return response.json();
+            })
             .then(data => {
-                const updatedFacturas = editando
+                const updatedFacturas = editing
                     ? facturas.map(f => (f.id === data.id ? data : f))
                     : [...facturas, data];
 
@@ -70,12 +77,15 @@ function Facturas() {
                 setFilteredFacturas(updatedFacturas);
                 handleClose();
             })
-            .catch(error => console.error('Error:', error));
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al guardar o actualizar la factura. Por favor, inténtalo de nuevo.');
+            });
     };
 
-    // Eliminar una factura
+    // Delete invoice
     const handleDelete = (id) => {
-        fetch(`http://localhost:5002/facturas/${id}`, { method: 'DELETE' })
+        fetch(`http://localhost:5002/api/invoices/${id}`, { method: 'DELETE' })
             .then(() => {
                 const updatedFacturas = facturas.filter(f => f.id !== id);
                 setFacturas(updatedFacturas);
@@ -116,7 +126,7 @@ function Facturas() {
                         {filteredFacturas.map(factura => (
                             <TableRow key={factura.id}>
                                 <TableCell>{factura.id}</TableCell>
-                                <TableCell>{factura.cliente}</TableCell>
+                                <TableCell>{factura.client}</TableCell>
                                 <TableCell>${factura.total}</TableCell>
                                 <TableCell>
                                     <IconButton onClick={() => handleOpen(factura)} color="primary"><Edit /></IconButton>
@@ -129,7 +139,7 @@ function Facturas() {
             </TableContainer>
 
             <Dialog open={open} onClose={handleClose}>
-                <DialogTitle>{editando ? 'Editar Factura' : 'Nueva Factura'}</DialogTitle>
+                <DialogTitle>{editing ? 'Editar Factura' : 'Nueva Factura'}</DialogTitle>
                 <DialogContent>
                     <TextField
                         autoFocus
@@ -157,4 +167,4 @@ function Facturas() {
     );
 }
 
-export default Facturas;
+export default Invoices;

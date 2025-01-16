@@ -1,112 +1,88 @@
 import React, { useState, useEffect } from 'react';
-import {
-    Container,
-    Typography,
-    Button,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Paper,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-    TextField,
-    IconButton,
-    Box,
-} from '@mui/material';
+import { Container, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogActions, DialogContent, DialogTitle, TextField, IconButton, Box } from '@mui/material';
 import { Add, Edit, Delete, Search } from '@mui/icons-material';
 
-function Clientes() {
-    const [clientes, setClientes] = useState([]);
-    const [filteredClientes, setFilteredClientes] = useState([]);
+function Clients() {
+    const [clients, setClients] = useState([]);
+    const [filteredClients, setFilteredClients] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [open, setOpen] = useState(false);
-    const [nombre, setNombre] = useState('');
+    const [name, setName] = useState('');
     const [email, setEmail] = useState('');
-    const [editando, setEditando] = useState(null);
+    const [editing, setEditing] = useState(null);
 
-    // Cargar clientes desde el backend
+    // Fetch clients from backend
     useEffect(() => {
-        fetch('http://localhost:5002/clientes')
+        fetch('http://localhost:5002/api/clients')  // ✅ Ruta actualizada
             .then(response => response.json())
             .then(data => {
-                setClientes(data);
-                setFilteredClientes(data);
+                setClients(data);
+                setFilteredClients(data);
             })
             .catch(error => console.error('Error:', error));
     }, []);
 
-    // Filtro de búsqueda
+    // Search filter
     const handleSearch = (e) => {
         const term = e.target.value.toLowerCase();
         setSearchTerm(term);
-        setFilteredClientes(clientes.filter(cliente =>
-            cliente.nombre.toLowerCase().includes(term) || cliente.email.toLowerCase().includes(term)
-        ));
+        setFilteredClients(clients.filter(client => client.name.toLowerCase().includes(term) || client.email.toLowerCase().includes(term)));
     };
 
-    // Abrir y cerrar el modal
-    const handleOpen = (cliente) => {
-        setEditando(cliente || null);
-        setNombre(cliente ? cliente.nombre : '');
-        setEmail(cliente ? cliente.email : '');
+    // Open and close dialog
+    const handleOpen = (client) => {
+        setEditing(client || null);
+        setName(client ? client.name : '');
+        setEmail(client ? client.email : '');
         setOpen(true);
     };
 
     const handleClose = () => {
         setOpen(false);
-        setNombre('');
+        setName('');
         setEmail('');
-        setEditando(null);
+        setEditing(null);
     };
 
-    // Guardar o actualizar un cliente
+    // Save or update client
     const handleSave = () => {
-        if (!nombre || !email) {
+        if (!name || !email) {
             alert('Todos los campos son obligatorios.');
             return;
         }
-        if (!/\S+@\S+\.\S+/.test(email)) {
-            alert('El email ingresado no es válido.');
-            return;
-        }
 
-        const nuevoCliente = { nombre, email };
-        const url = editando ? `http://localhost:5002/clientes/${editando.id}` : 'http://localhost:5002/clientes';
-        const method = editando ? 'PUT' : 'POST';
+        const newClient = { name, email };
+        const url = editing ? `http://localhost:5002/api/clients/${editing.id}` : 'http://localhost:5002/api/clients';  // ✅ Ruta actualizada
+        const method = editing ? 'PUT' : 'POST';
 
         fetch(url, {
             method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(nuevoCliente),
+            body: JSON.stringify(newClient),
         })
             .then(response => response.json())
             .then(data => {
-                const updatedClientes = editando
-                    ? clientes.map(c => (c.id === data.id ? data : c))
-                    : [...clientes, data];
+                const updatedClients = editing
+                    ? clients.map(c => (c.id === data.id ? data : c))
+                    : [...clients, data];
 
-                setClientes(updatedClientes);
-                setFilteredClientes(updatedClientes);
+                setClients(updatedClients);
+                setFilteredClients(updatedClients);
                 handleClose();
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Error al guardar los datos. Inténtalo nuevamente.');
+                alert('Error al guardar el cliente. Inténtalo nuevamente.');
             });
     };
 
-    // Eliminar un cliente
+    // Delete client
     const handleDelete = (id) => {
-        fetch(`http://localhost:5002/clientes/${id}`, { method: 'DELETE' })
+        fetch(`http://localhost:5002/api/clients/${id}`, { method: 'DELETE' })  // ✅ Ruta actualizada
             .then(() => {
-                const updatedClientes = clientes.filter(c => c.id !== id);
-                setClientes(updatedClientes);
-                setFilteredClientes(updatedClientes);
+                const updatedClients = clients.filter(c => c.id !== id);
+                setClients(updatedClients);
+                setFilteredClients(updatedClients);
             })
             .catch(error => console.error('Error:', error));
     };
@@ -140,14 +116,14 @@ function Clientes() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {filteredClientes.map(cliente => (
-                            <TableRow key={cliente.id}>
-                                <TableCell>{cliente.id}</TableCell>
-                                <TableCell>{cliente.nombre}</TableCell>
-                                <TableCell>{cliente.email}</TableCell>
+                        {filteredClients.map(client => (
+                            <TableRow key={client.id}>
+                                <TableCell>{client.id}</TableCell>
+                                <TableCell>{client.name}</TableCell>
+                                <TableCell>{client.email}</TableCell>
                                 <TableCell>
-                                    <IconButton onClick={() => handleOpen(cliente)} color="primary"><Edit /></IconButton>
-                                    <IconButton onClick={() => handleDelete(cliente.id)} color="error"><Delete /></IconButton>
+                                    <IconButton onClick={() => handleOpen(client)} color="primary"><Edit /></IconButton>
+                                    <IconButton onClick={() => handleDelete(client.id)} color="error"><Delete /></IconButton>
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -156,15 +132,15 @@ function Clientes() {
             </TableContainer>
 
             <Dialog open={open} onClose={handleClose}>
-                <DialogTitle>{editando ? 'Editar Cliente' : 'Nuevo Cliente'}</DialogTitle>
+                <DialogTitle>{editing ? 'Editar Cliente' : 'Nuevo Cliente'}</DialogTitle>
                 <DialogContent>
                     <TextField
                         autoFocus
                         margin="dense"
                         label="Nombre"
                         fullWidth
-                        value={nombre}
-                        onChange={(e) => setNombre(e.target.value)}
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
                     />
                     <TextField
                         margin="dense"
@@ -183,4 +159,4 @@ function Clientes() {
     );
 }
 
-export default Clientes;
+export default Clients;

@@ -1,23 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-    Container,
-    Typography,
-    Button,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Paper,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-    TextField,
-    IconButton,
-    Box,
-} from '@mui/material';
+import { Container, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogActions, DialogContent, DialogTitle, TextField, IconButton, Box } from '@mui/material';
 import { Add, Edit, Delete, Search } from '@mui/icons-material';
 
 function Productos() {
@@ -27,11 +9,11 @@ function Productos() {
     const [open, setOpen] = useState(false);
     const [nombre, setNombre] = useState('');
     const [precio, setPrecio] = useState('');
-    const [editando, setEditando] = useState(null);
+    const [editing, setEditing] = useState(null);
 
-    // Cargar productos desde el backend
+    // Fetch products from backend
     useEffect(() => {
-        fetch('http://localhost:5002/productos')
+        fetch('http://localhost:5002/api/products')
             .then(response => response.json())
             .then(data => {
                 setProductos(data);
@@ -40,20 +22,18 @@ function Productos() {
             .catch(error => console.error('Error:', error));
     }, []);
 
-    // Filtro de búsqueda
+    // Search filter
     const handleSearch = (e) => {
         const term = e.target.value.toLowerCase();
         setSearchTerm(term);
-        setFilteredProductos(productos.filter(producto =>
-            producto.nombre.toLowerCase().includes(term)
-        ));
+        setFilteredProductos(productos.filter(producto => producto.name.toLowerCase().includes(term)));
     };
 
-    // Abrir y cerrar el modal
+    // Open and close dialog
     const handleOpen = (producto) => {
-        setEditando(producto || null);
-        setNombre(producto ? producto.nombre : '');
-        setPrecio(producto ? producto.precio : '');
+        setEditing(producto || null);
+        setNombre(producto ? producto.name : '');
+        setPrecio(producto ? producto.price : '');
         setOpen(true);
     };
 
@@ -61,32 +41,28 @@ function Productos() {
         setOpen(false);
         setNombre('');
         setPrecio('');
-        setEditando(null);
+        setEditing(null);
     };
 
-    // Guardar o actualizar un producto
+    // Save or update product
     const handleSave = () => {
         if (!nombre || !precio) {
             alert('Todos los campos son obligatorios.');
             return;
         }
-        if (isNaN(precio) || parseFloat(precio) <= 0) {
-            alert('El precio debe ser un número positivo.');
-            return;
-        }
 
-        const nuevoProducto = { nombre, precio };
-        const url = editando ? `http://localhost:5002/productos/${editando.id}` : 'http://localhost:5002/productos';
-        const method = editando ? 'PUT' : 'POST';
+        const newProduct = { name: nombre, price: precio };
+        const url = editing ? `http://localhost:5002/api/products/${editing.id}` : 'http://localhost:5002/api/products';
+        const method = editing ? 'PUT' : 'POST';
 
         fetch(url, {
             method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(nuevoProducto),
+            body: JSON.stringify(newProduct),
         })
             .then(response => response.json())
             .then(data => {
-                const updatedProductos = editando
+                const updatedProductos = editing
                     ? productos.map(p => (p.id === data.id ? data : p))
                     : [...productos, data];
 
@@ -96,13 +72,13 @@ function Productos() {
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Error al guardar los datos. Inténtalo nuevamente.');
+                alert('Error al guardar el producto. Inténtalo nuevamente.');
             });
     };
 
-    // Eliminar un producto
+    // Delete product
     const handleDelete = (id) => {
-        fetch(`http://localhost:5002/productos/${id}`, { method: 'DELETE' })
+        fetch(`http://localhost:5002/api/products/${id}`, { method: 'DELETE' })
             .then(() => {
                 const updatedProductos = productos.filter(p => p.id !== id);
                 setProductos(updatedProductos);
@@ -143,8 +119,8 @@ function Productos() {
                         {filteredProductos.map(producto => (
                             <TableRow key={producto.id}>
                                 <TableCell>{producto.id}</TableCell>
-                                <TableCell>{producto.nombre}</TableCell>
-                                <TableCell>${producto.precio}</TableCell>
+                                <TableCell>{producto.name}</TableCell>
+                                <TableCell>{producto.price}</TableCell>
                                 <TableCell>
                                     <IconButton onClick={() => handleOpen(producto)} color="primary"><Edit /></IconButton>
                                     <IconButton onClick={() => handleDelete(producto.id)} color="error"><Delete /></IconButton>
@@ -156,7 +132,7 @@ function Productos() {
             </TableContainer>
 
             <Dialog open={open} onClose={handleClose}>
-                <DialogTitle>{editando ? 'Editar Producto' : 'Nuevo Producto'}</DialogTitle>
+                <DialogTitle>{editing ? 'Editar Producto' : 'Nuevo Producto'}</DialogTitle>
                 <DialogContent>
                     <TextField
                         autoFocus
@@ -169,8 +145,8 @@ function Productos() {
                     <TextField
                         margin="dense"
                         label="Precio"
-                        fullWidth
                         type="number"
+                        fullWidth
                         value={precio}
                         onChange={(e) => setPrecio(e.target.value)}
                     />

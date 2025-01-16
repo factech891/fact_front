@@ -4,22 +4,24 @@ import { Box, Typography } from '@mui/material';
 
 function Sidebar() {
     return (
-        <Box sx={{ width: '240px', backgroundColor: '#2e3b55', height: '100vh', padding: '20px', color: '#fff' }}>
-            <Typography variant="h6" gutterBottom>
+        <Box sx={{ width: '240px', backgroundColor: '#2a3b4c', color: '#fff', padding: '20px' }}>
+            <Typography variant="h5" gutterBottom>
                 Menú
             </Typography>
-            <NavLink to="/" style={{ color: '#fff', textDecoration: 'none', display: 'block', marginBottom: '10px' }} activeStyle={{ fontWeight: 'bold', color: '#4caf50' }}>
-                Dashboard
-            </NavLink>
-            <NavLink to="/facturas" style={{ color: '#fff', textDecoration: 'none', display: 'block', marginBottom: '10px' }} activeStyle={{ fontWeight: 'bold', color: '#2196f3' }}>
-                Facturas
-            </NavLink>
-            <NavLink to="/clientes" style={{ color: '#fff', textDecoration: 'none', display: 'block', marginBottom: '10px' }} activeStyle={{ fontWeight: 'bold', color: '#ff9800' }}>
-                Clientes
-            </NavLink>
-            <NavLink to="/productos" style={{ color: '#fff', textDecoration: 'none', display: 'block', marginBottom: '10px' }} activeStyle={{ fontWeight: 'bold', color: '#ff5722' }}>
-                Productos
-            </NavLink>
+            <nav>
+                <NavLink to="/" exact activeStyle={{ fontWeight: 'bold' }} style={{ color: '#fff', textDecoration: 'none', display: 'block', marginBottom: '10px' }}>
+                    Dashboard
+                </NavLink>
+                <NavLink to="/invoices" activeStyle={{ fontWeight: 'bold' }} style={{ color: '#fff', textDecoration: 'none', display: 'block', marginBottom: '10px' }}>
+                    Facturas
+                </NavLink>
+                <NavLink to="/clients" activeStyle={{ fontWeight: 'bold' }} style={{ color: '#fff', textDecoration: 'none', display: 'block', marginBottom: '10px' }}>
+                    Clientes
+                </NavLink>
+                <NavLink to="/products" activeStyle={{ fontWeight: 'bold' }} style={{ color: '#fff', textDecoration: 'none', display: 'block', marginBottom: '10px' }}>
+                    Productos
+                </NavLink>
+            </nav>
         </Box>
     );
 }
