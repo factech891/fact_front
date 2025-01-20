@@ -27,9 +27,9 @@ function Invoices() {
     const [open, setOpen] = useState(false);
     const [cliente, setCliente] = useState('');
     const [total, setTotal] = useState('');
+    const [status, setStatus] = useState('pendiente'); // Nuevo estado
     const [editing, setEditing] = useState(null);
 
-    // Fetch invoices from backend
     useEffect(() => {
         fetch('http://localhost:5002/api/invoices')
             .then(response => response.json())
@@ -40,7 +40,6 @@ function Invoices() {
             .catch(error => console.error('Error:', error));
     }, []);
 
-    // Search filter
     const handleSearch = (e) => {
         const term = e.target.value.toLowerCase();
         setSearchTerm(term);
@@ -49,11 +48,11 @@ function Invoices() {
         ));
     };
 
-    // Open and close dialog
     const handleOpen = (factura) => {
         setEditing(factura || null);
         setCliente(factura ? factura.client : '');
         setTotal(factura ? factura.total : '');
+        setStatus(factura ? factura.status : 'pendiente'); // Inicializar status
         setOpen(true);
     };
 
@@ -61,20 +60,24 @@ function Invoices() {
         setOpen(false);
         setCliente('');
         setTotal('');
+        setStatus('pendiente'); // Resetear status
         setEditing(null);
     };
 
-    // Save or update invoice
     const handleSave = () => {
-        if (!cliente || !total) {
+        if (!cliente || !total || !status) {
             alert('Todos los campos son obligatorios.');
             return;
         }
-
-        const updatedInvoice = { client: cliente, total: parseFloat(total) };
-        const url = editing ? `http://localhost:5002/api/invoices/${editing.id}` : 'http://localhost:5002/api/invoices';
+        const updatedInvoice = {
+            client: cliente,
+            total: parseFloat(total),
+            status: status,
+        };
+        const url = editing
+            ? `http://localhost:5002/api/invoices/${editing.id}`
+            : 'http://localhost:5002/api/invoices';
         const method = editing ? 'PUT' : 'POST';
-
         fetch(url, {
             method,
             headers: { 'Content-Type': 'application/json' },
@@ -90,7 +93,6 @@ function Invoices() {
                 const updatedFacturas = editing
                     ? facturas.map(f => (f.id === data.id ? data : f))
                     : [...facturas, data];
-
                 setFacturas(updatedFacturas);
                 setFilteredFacturas(updatedFacturas);
                 handleClose();
@@ -101,7 +103,6 @@ function Invoices() {
             });
     };
 
-    // Delete invoice
     const handleDelete = (id) => {
         fetch(`http://localhost:5002/api/invoices/${id}`, { method: 'DELETE' })
             .then(() => {
@@ -112,7 +113,6 @@ function Invoices() {
             .catch(error => console.error('Error:', error));
     };
 
-    // Download PDF
     const handleDownloadPDF = (id) => {
         fetch(`http://localhost:5002/api/invoices/${id}/pdf`)
             .then((response) => {
@@ -155,18 +155,20 @@ function Invoices() {
                 <Table>
                     <TableHead>
                         <TableRow>
-                            <TableCell>ID</TableCell>
+                            <TableCell>N° de Serie</TableCell>
                             <TableCell>Cliente</TableCell>
                             <TableCell>Total</TableCell>
+                            <TableCell>Estado</TableCell>
                             <TableCell>Acciones</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {filteredFacturas.map(factura => (
                             <TableRow key={factura.id}>
-                                <TableCell>{factura.id}</TableCell>
+                                <TableCell>{factura.series}</TableCell>
                                 <TableCell>{factura.client}</TableCell>
                                 <TableCell>${factura.total}</TableCell>
+                                <TableCell>{factura.status}</TableCell>
                                 <TableCell>
                                     <IconButton onClick={() => handleOpen(factura)} color="primary"><Edit /></IconButton>
                                     <IconButton onClick={() => handleDelete(factura.id)} color="error"><Delete /></IconButton>
@@ -199,6 +201,19 @@ function Invoices() {
                         value={total}
                         onChange={(e) => setTotal(e.target.value)}
                     />
+                    <TextField
+                        margin="dense"
+                        label="Estado"
+                        select
+                        fullWidth
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value)}
+                        SelectProps={{ native: true }}
+                    >
+                        <option value="pendiente">Pendiente</option>
+                        <option value="pagada">Pagada</option>
+                        <option value="vencida">Vencida</option>
+                    </TextField>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleClose}>Cancelar</Button>
