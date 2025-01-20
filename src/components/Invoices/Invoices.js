@@ -1,6 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogActions, DialogContent, DialogTitle, TextField, IconButton, Box } from '@mui/material';
-import { Add, Edit, Delete, Search } from '@mui/icons-material';
+import {
+    Container,
+    Typography,
+    Button,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Paper,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    TextField,
+    IconButton,
+    Box,
+} from '@mui/material';
+import { Add, Edit, Delete, Search, Download } from '@mui/icons-material';
 
 function Invoices() {
     const [facturas, setFacturas] = useState([]);
@@ -53,7 +71,7 @@ function Invoices() {
             return;
         }
 
-        const updatedInvoice = { client: cliente, total: parseFloat(total) }; // Asegura que total sea numérico
+        const updatedInvoice = { client: cliente, total: parseFloat(total) };
         const url = editing ? `http://localhost:5002/api/invoices/${editing.id}` : 'http://localhost:5002/api/invoices';
         const method = editing ? 'PUT' : 'POST';
 
@@ -94,6 +112,27 @@ function Invoices() {
             .catch(error => console.error('Error:', error));
     };
 
+    // Download PDF
+    const handleDownloadPDF = (id) => {
+        fetch(`http://localhost:5002/api/invoices/${id}/pdf`)
+            .then((response) => {
+                if (response.ok) {
+                    return response.blob();
+                } else {
+                    throw new Error('Error generando el PDF');
+                }
+            })
+            .then((blob) => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `factura_${id}.pdf`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => console.error('Error descargando el PDF:', error));
+    };
+
     return (
         <Container>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -131,6 +170,9 @@ function Invoices() {
                                 <TableCell>
                                     <IconButton onClick={() => handleOpen(factura)} color="primary"><Edit /></IconButton>
                                     <IconButton onClick={() => handleDelete(factura.id)} color="error"><Delete /></IconButton>
+                                    <IconButton onClick={() => handleDownloadPDF(factura.id)} color="secondary">
+                                        <Download />
+                                    </IconButton>
                                 </TableCell>
                             </TableRow>
                         ))}
