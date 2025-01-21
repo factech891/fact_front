@@ -18,7 +18,8 @@ import {
     IconButton,
     Box,
 } from '@mui/material';
-import { Add, Edit, Delete, Search, Download } from '@mui/icons-material';
+import { Add, Edit, Delete, Search, Download, Visibility, Close as CloseIcon } from '@mui/icons-material';
+import InvoicePreview from '../InvoicePreview/InvoicePreview';
 
 function Invoices() {
     const [facturas, setFacturas] = useState([]);
@@ -27,8 +28,9 @@ function Invoices() {
     const [open, setOpen] = useState(false);
     const [cliente, setCliente] = useState('');
     const [total, setTotal] = useState('');
-    const [status, setStatus] = useState('pendiente'); // Nuevo estado
     const [editing, setEditing] = useState(null);
+    const [previewOpen, setPreviewOpen] = useState(false);
+    const [selectedInvoice, setSelectedInvoice] = useState(null);
 
     useEffect(() => {
         fetch('http://localhost:5002/api/invoices')
@@ -44,15 +46,17 @@ function Invoices() {
         const term = e.target.value.toLowerCase();
         setSearchTerm(term);
         setFilteredFacturas(facturas.filter(factura =>
-            factura.client.toLowerCase().includes(term)
+            (typeof factura.client === 'string' 
+                ? factura.client 
+                : factura.client.nombre
+            ).toLowerCase().includes(term)
         ));
     };
 
     const handleOpen = (factura) => {
         setEditing(factura || null);
-        setCliente(factura ? factura.client : '');
+        setCliente(factura ? (typeof factura.client === 'string' ? factura.client : factura.client.nombre) : '');
         setTotal(factura ? factura.total : '');
-        setStatus(factura ? factura.status : 'pendiente'); // Inicializar status
         setOpen(true);
     };
 
@@ -60,46 +64,47 @@ function Invoices() {
         setOpen(false);
         setCliente('');
         setTotal('');
-        setStatus('pendiente'); // Resetear status
         setEditing(null);
     };
 
+    const handlePreviewOpen = (factura) => {
+        setSelectedInvoice(factura);
+        setPreviewOpen(true);
+    };
+
+    const handlePreviewClose = () => {
+        setPreviewOpen(false);
+        setSelectedInvoice(null);
+    };
+
     const handleSave = () => {
-        if (!cliente || !total || !status) {
+        if (!cliente || !total) {
             alert('Todos los campos son obligatorios.');
             return;
         }
-        const updatedInvoice = {
-            client: cliente,
-            total: parseFloat(total),
-            status: status,
-        };
-        const url = editing
-            ? `http://localhost:5002/api/invoices/${editing.id}`
-            : 'http://localhost:5002/api/invoices';
+
+        const newInvoice = { client: cliente, total: parseFloat(total) };
+        const url = editing ? `http://localhost:5002/api/invoices/${editing.id}` : 'http://localhost:5002/api/invoices';
         const method = editing ? 'PUT' : 'POST';
+
         fetch(url, {
             method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updatedInvoice),
+            body: JSON.stringify(newInvoice),
         })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Error al guardar la factura');
-                }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
                 const updatedFacturas = editing
                     ? facturas.map(f => (f.id === data.id ? data : f))
                     : [...facturas, data];
+
                 setFacturas(updatedFacturas);
                 setFilteredFacturas(updatedFacturas);
                 handleClose();
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Error al guardar o actualizar la factura. Por favor, inténtalo de nuevo.');
+                alert('Error al guardar la factura. Inténtalo nuevamente.');
             });
     };
 
@@ -155,23 +160,30 @@ function Invoices() {
                 <Table>
                     <TableHead>
                         <TableRow>
-                            <TableCell>N° de Serie</TableCell>
+                            <TableCell>ID</TableCell>
                             <TableCell>Cliente</TableCell>
                             <TableCell>Total</TableCell>
-                            <TableCell>Estado</TableCell>
                             <TableCell>Acciones</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {filteredFacturas.map(factura => (
                             <TableRow key={factura.id}>
-                                <TableCell>{factura.series}</TableCell>
-                                <TableCell>{factura.client}</TableCell>
-                                <TableCell>${factura.total}</TableCell>
-                                <TableCell>{factura.status}</TableCell>
+                                <TableCell>{factura.id}</TableCell>
                                 <TableCell>
-                                    <IconButton onClick={() => handleOpen(factura)} color="primary"><Edit /></IconButton>
-                                    <IconButton onClick={() => handleDelete(factura.id)} color="error"><Delete /></IconButton>
+                                    {typeof factura.client === 'string' ? factura.client : factura.client.nombre}
+                                </TableCell>
+                                <TableCell>${factura.total}</TableCell>
+                                <TableCell>
+                                    <IconButton onClick={() => handlePreviewOpen(factura)} color="info">
+                                        <Visibility />
+                                    </IconButton>
+                                    <IconButton onClick={() => handleOpen(factura)} color="primary">
+                                        <Edit />
+                                    </IconButton>
+                                    <IconButton onClick={() => handleDelete(factura.id)} color="error">
+                                        <Delete />
+                                    </IconButton>
                                     <IconButton onClick={() => handleDownloadPDF(factura.id)} color="secondary">
                                         <Download />
                                     </IconButton>
@@ -201,24 +213,31 @@ function Invoices() {
                         value={total}
                         onChange={(e) => setTotal(e.target.value)}
                     />
-                    <TextField
-                        margin="dense"
-                        label="Estado"
-                        select
-                        fullWidth
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value)}
-                        SelectProps={{ native: true }}
-                    >
-                        <option value="pendiente">Pendiente</option>
-                        <option value="pagada">Pagada</option>
-                        <option value="vencida">Vencida</option>
-                    </TextField>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleClose}>Cancelar</Button>
                     <Button onClick={handleSave} color="primary">Guardar</Button>
                 </DialogActions>
+            </Dialog>
+
+            <Dialog
+                open={previewOpen}
+                onClose={handlePreviewClose}
+                maxWidth="md"
+                fullWidth
+            >
+                <DialogTitle>
+                    Vista Previa de Factura
+                    <IconButton
+                        onClick={handlePreviewClose}
+                        sx={{ position: 'absolute', right: 8, top: 8 }}
+                    >
+                        <CloseIcon />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent>
+                    {selectedInvoice && <InvoicePreview invoice={selectedInvoice} />}
+                </DialogContent>
             </Dialog>
         </Container>
     );
