@@ -21,30 +21,67 @@ const styles = {
         boxShadow: '0 0 10px rgba(0,0,0,0.1)'
     },
     header: {
-        borderBottom: '2px solid #1a237e',
+        borderBottom: '2px solid #002855',
         marginBottom: '20px',
         padding: '20px'
     },
-    companyInfo: {
-        backgroundColor: '#f8f9fa',
-        padding: '15px',
-        borderRadius: '4px'
+    companyName: {
+        color: '#002855',
+        fontWeight: 'bold',
+        fontSize: '24px',
+        marginBottom: '10px'
     },
-    clientInfo: {
-        backgroundColor: '#f8f9fa',
+    companyInfo: {
+        backgroundColor: '#F8F9FA',
         padding: '15px',
         borderRadius: '4px',
-        marginBottom: '20px'
+        border: '1px solid #D4E0F7'
+    },
+    clientInfo: {
+        backgroundColor: '#F8F9FA',
+        padding: '15px',
+        borderRadius: '4px',
+        marginBottom: '20px',
+        border: '1px solid #D4E0F7'
+    },
+    sectionTitle: {
+        color: '#284B8C',
+        fontWeight: 'bold',
+        marginBottom: '10px'
+    },
+    invoiceTitle: {
+        color: '#002855',
+        fontWeight: 'bold',
+        fontSize: '32px',
+        marginBottom: '15px'
+    },
+    tableHeader: {
+        backgroundColor: '#002855',
+        color: 'white'
+    },
+    tableRow: {
+        '&:nth-of-type(odd)': {
+            backgroundColor: '#F8F9FA'
+        }
     },
     totalsSection: {
-        backgroundColor: '#f8f9fa',
-        padding: '15px',
+        backgroundColor: '#F8F9FA',
+        padding: '20px',
         marginTop: '20px',
-        textAlign: 'right'
+        textAlign: 'right',
+        borderRadius: '4px',
+        border: '1px solid #D4E0F7'
     },
-    title: {
-        color: '#1a237e',
-        fontWeight: 'bold'
+    totalAmount: {
+        color: '#002855',
+        fontWeight: 'bold',
+        fontSize: '20px'
+    },
+    footer: {
+        marginTop: '40px',
+        borderTop: '1px solid #D4E0F7',
+        padding: '20px',
+        color: '#666'
     }
 };
 
@@ -55,7 +92,7 @@ const InvoicePreview = ({ invoice }) => {
             <Grid container sx={styles.header} spacing={2}>
                 <Grid item xs={6}>
                     <Box sx={styles.companyInfo}>
-                        <Typography variant="h6" sx={styles.title}>EMPRESA S.A.</Typography>
+                        <Typography sx={styles.companyName}>EMPRESA S.A.</Typography>
                         <Typography>CUIT: 30-12345678-9</Typography>
                         <Typography>Dirección: Calle Principal 123</Typography>
                         <Typography>Tel: (011) 4444-5555</Typography>
@@ -63,16 +100,16 @@ const InvoicePreview = ({ invoice }) => {
                     </Box>
                 </Grid>
                 <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                    <Typography variant="h4" sx={styles.title}>FACTURA</Typography>
-                    <Typography>Serie: {invoice.series || invoice.id}</Typography>
-                    <Typography>Fecha: {new Date().toLocaleDateString()}</Typography>
-                    <Typography>Vencimiento: {new Date(new Date().setDate(new Date().getDate() + 30)).toLocaleDateString()}</Typography>
+                    <Typography sx={styles.invoiceTitle}>FACTURA</Typography>
+                    <Typography><strong>Serie:</strong> {invoice.series || invoice.id}</Typography>
+                    <Typography><strong>Fecha:</strong> {new Date().toLocaleDateString()}</Typography>
+                    <Typography><strong>Vencimiento:</strong> {new Date(new Date().setDate(new Date().getDate() + 30)).toLocaleDateString()}</Typography>
                 </Grid>
             </Grid>
 
             {/* Información del cliente */}
             <Box sx={styles.clientInfo}>
-                <Typography variant="h6" gutterBottom sx={styles.title}>DATOS DEL CLIENTE</Typography>
+                <Typography variant="h6" sx={styles.sectionTitle}>DATOS DEL CLIENTE</Typography>
                 <Grid container spacing={2}>
                     <Grid item xs={6}>
                         <Typography>
@@ -99,11 +136,11 @@ const InvoicePreview = ({ invoice }) => {
             <TableContainer>
                 <Table>
                     <TableHead>
-                        <TableRow sx={{ backgroundColor: '#1a237e' }}>
-                            <TableCell sx={{ color: 'white' }}>Descripción</TableCell>
-                            <TableCell align="center" sx={{ color: 'white' }}>Cantidad</TableCell>
-                            <TableCell align="right" sx={{ color: 'white' }}>Precio Unit.</TableCell>
-                            <TableCell align="right" sx={{ color: 'white' }}>Subtotal</TableCell>
+                        <TableRow>
+                            <TableCell sx={styles.tableHeader}>Descripción</TableCell>
+                            <TableCell align="center" sx={styles.tableHeader}>Cantidad</TableCell>
+                            <TableCell align="right" sx={styles.tableHeader}>Precio Unit.</TableCell>
+                            <TableCell align="right" sx={styles.tableHeader}>Subtotal</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -113,13 +150,11 @@ const InvoicePreview = ({ invoice }) => {
                             precioUnitario: invoice.total, 
                             subtotal: invoice.total 
                         }]).map((item, index) => (
-                            <TableRow key={index} sx={{ 
-                                '&:nth-of-type(odd)': { backgroundColor: '#f8f9fa' }
-                            }}>
+                            <TableRow key={index} sx={styles.tableRow}>
                                 <TableCell>{item.descripcion}</TableCell>
                                 <TableCell align="center">{item.cantidad}</TableCell>
-                                <TableCell align="right">${item.precioUnitario}</TableCell>
-                                <TableCell align="right">${item.subtotal}</TableCell>
+                                <TableCell align="right">${item.precioUnitario.toFixed(2)}</TableCell>
+                                <TableCell align="right">${item.subtotal.toFixed(2)}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -132,13 +167,13 @@ const InvoicePreview = ({ invoice }) => {
                 <Typography>
                     <strong>IVA ({invoice.iva?.tasa || 21}%):</strong> ${invoice.iva?.monto || (invoice.total * 0.21).toFixed(2)}
                 </Typography>
-                <Typography variant="h6" sx={styles.title}>
+                <Typography sx={styles.totalAmount}>
                     TOTAL: ${invoice.total}
                 </Typography>
             </Box>
 
             {/* Pie de página */}
-            <Box sx={{ marginTop: '40px', borderTop: '1px solid #ddd', padding: '20px' }}>
+            <Box sx={styles.footer}>
                 <Typography variant="caption" display="block" gutterBottom>
                     <strong>Información de Pago:</strong> {invoice.infoBancaria || 'Datos bancarios para transferencias'}
                 </Typography>
