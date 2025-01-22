@@ -1,8 +1,8 @@
 :root {
     /* Colores principales */
-    --primary-color: #09b30f; /* Sidebar */
+    --primary-color: #0b0149; /* Sidebar */
     --secondary-color: #0e57be; /* Elementos activos */
-    --background-color: #bf5fb7; /* Fondo general */
+    --background-color: #ffefd5; /* Fondo general */
     --card-background: #ffffff; /* Fondo de tarjetas */
     --text-color: #333333; /* Texto principal */
     --text-light: #666666; /* Texto secundario */

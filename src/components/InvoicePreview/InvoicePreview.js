@@ -10,6 +10,8 @@ import {
     TableHead,
     TableRow,
     Box,
+    Dialog,
+    DialogContent,
 } from '@mui/material';
 
 const styles = {
@@ -85,105 +87,118 @@ const styles = {
     }
 };
 
-const InvoicePreview = ({ invoice }) => {
+const InvoicePreview = ({ open, onClose, invoice }) => {
+    if (!invoice) {
+        return null; // No renderizar si no hay factura
+    }
+
+    // Verificar si invoice.client es un objeto válido
+    const client = invoice.client || { nombre: '', direccion: '', cuit: '', condicionIva: '' };
+
+    // Verificar si invoice.empresa es un objeto válido
+    const empresa = invoice.empresa || { nombre: '', cuit: '', direccion: '' };
+
+    // Verificar si invoice.items es un array válido
+    const items = invoice.items || [];
+
+    // Verificar si invoice.iva es un objeto válido
+    const iva = invoice.iva || { tasa: 0, monto: 0 };
+
     return (
-        <Paper sx={styles.invoiceContainer}>
-            {/* Encabezado */}
-            <Grid container sx={styles.header} spacing={2}>
-                <Grid item xs={6}>
-                    <Box sx={styles.companyInfo}>
-                        <Typography sx={styles.companyName}>EMPRESA S.A.</Typography>
-                        <Typography>CUIT: 30-12345678-9</Typography>
-                        <Typography>Dirección: Calle Principal 123</Typography>
-                        <Typography>Tel: (011) 4444-5555</Typography>
-                        <Typography>Email: contacto@empresa.com</Typography>
+        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+            <DialogContent>
+                <Paper sx={styles.invoiceContainer}>
+                    {/* Encabezado */}
+                    <Grid container sx={styles.header} spacing={2}>
+                        <Grid item xs={6}>
+                            <Box sx={styles.companyInfo}>
+                                <Typography sx={styles.companyName}>{empresa.nombre}</Typography>
+                                <Typography>CUIT: {empresa.cuit}</Typography>
+                                <Typography>Dirección: {empresa.direccion}</Typography>
+                                <Typography>Tel: (011) 4444-5555</Typography>
+                                <Typography>Email: contacto@empresa.com</Typography>
+                            </Box>
+                        </Grid>
+                        <Grid item xs={6} sx={{ textAlign: 'right' }}>
+                            <Typography sx={styles.invoiceTitle}>FACTURA</Typography>
+                            <Typography><strong>Serie:</strong> {invoice.series || invoice.id}</Typography>
+                            <Typography><strong>Fecha:</strong> {new Date(invoice.fechaEmision).toLocaleDateString()}</Typography>
+                            <Typography><strong>Vencimiento:</strong> {new Date(invoice.fechaVencimiento).toLocaleDateString()}</Typography>
+                        </Grid>
+                    </Grid>
+
+                    {/* Información del cliente */}
+                    <Box sx={styles.clientInfo}>
+                        <Typography variant="h6" sx={styles.sectionTitle}>DATOS DEL CLIENTE</Typography>
+                        <Grid container spacing={2}>
+                            <Grid item xs={6}>
+                                <Typography>
+                                    <strong>Cliente:</strong> {client.nombre}
+                                </Typography>
+                                <Typography>
+                                    <strong>CUIT:</strong> {client.cuit || '-'}
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                                <Typography>
+                                    <strong>Dirección:</strong> {client.direccion || '-'}
+                                </Typography>
+                                <Typography>
+                                    <strong>Cond. IVA:</strong> {client.condicionIva || '-'}
+                                </Typography>
+                            </Grid>
+                        </Grid>
                     </Box>
-                </Grid>
-                <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                    <Typography sx={styles.invoiceTitle}>FACTURA</Typography>
-                    <Typography><strong>Serie:</strong> {invoice.series || invoice.id}</Typography>
-                    <Typography><strong>Fecha:</strong> {new Date().toLocaleDateString()}</Typography>
-                    <Typography><strong>Vencimiento:</strong> {new Date(new Date().setDate(new Date().getDate() + 30)).toLocaleDateString()}</Typography>
-                </Grid>
-            </Grid>
 
-            {/* Información del cliente */}
-            <Box sx={styles.clientInfo}>
-                <Typography variant="h6" sx={styles.sectionTitle}>DATOS DEL CLIENTE</Typography>
-                <Grid container spacing={2}>
-                    <Grid item xs={6}>
-                        <Typography>
-                            <strong>Cliente:</strong> {typeof invoice.client === 'string' 
-                                ? invoice.client 
-                                : invoice.client.nombre}
-                        </Typography>
-                        <Typography>
-                            <strong>CUIT:</strong> {invoice.client?.cuit || '-'}
-                        </Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                        <Typography>
-                            <strong>Dirección:</strong> {invoice.client?.direccion || '-'}
-                        </Typography>
-                        <Typography>
-                            <strong>Cond. IVA:</strong> {invoice.client?.condicionIva || '-'}
-                        </Typography>
-                    </Grid>
-                </Grid>
-            </Box>
+                    {/* Tabla de items */}
+                    <TableContainer>
+                        <Table>
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell sx={styles.tableHeader}>Descripción</TableCell>
+                                    <TableCell align="center" sx={styles.tableHeader}>Cantidad</TableCell>
+                                    <TableCell align="right" sx={styles.tableHeader}>Precio Unit.</TableCell>
+                                    <TableCell align="right" sx={styles.tableHeader}>Subtotal</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {items.map((item, index) => (
+                                    <TableRow key={index} sx={styles.tableRow}>
+                                        <TableCell>{item.descripcion}</TableCell>
+                                        <TableCell align="center">{item.cantidad}</TableCell>
+                                        <TableCell align="right">${item.precioUnitario?.toFixed(2)}</TableCell>
+                                        <TableCell align="right">${item.subtotal?.toFixed(2)}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
 
-            {/* Tabla de items */}
-            <TableContainer>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell sx={styles.tableHeader}>Descripción</TableCell>
-                            <TableCell align="center" sx={styles.tableHeader}>Cantidad</TableCell>
-                            <TableCell align="right" sx={styles.tableHeader}>Precio Unit.</TableCell>
-                            <TableCell align="right" sx={styles.tableHeader}>Subtotal</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {(invoice.items || [{ 
-                            descripcion: 'Producto/Servicio', 
-                            cantidad: 1, 
-                            precioUnitario: invoice.total, 
-                            subtotal: invoice.total 
-                        }]).map((item, index) => (
-                            <TableRow key={index} sx={styles.tableRow}>
-                                <TableCell>{item.descripcion}</TableCell>
-                                <TableCell align="center">{item.cantidad}</TableCell>
-                                <TableCell align="right">${item.precioUnitario.toFixed(2)}</TableCell>
-                                <TableCell align="right">${item.subtotal.toFixed(2)}</TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+                    {/* Sección de totales */}
+                    <Box sx={styles.totalsSection}>
+                        <Typography><strong>Subtotal:</strong> ${invoice.subtotal?.toFixed(2)}</Typography>
+                        <Typography>
+                            <strong>IVA ({iva.tasa}%):</strong> ${iva.monto?.toFixed(2)}
+                        </Typography>
+                        <Typography sx={styles.totalAmount}>
+                            TOTAL: ${invoice.total?.toFixed(2)}
+                        </Typography>
+                    </Box>
 
-            {/* Sección de totales */}
-            <Box sx={styles.totalsSection}>
-                <Typography><strong>Subtotal:</strong> ${invoice.subtotal || invoice.total}</Typography>
-                <Typography>
-                    <strong>IVA ({invoice.iva?.tasa || 21}%):</strong> ${invoice.iva?.monto || (invoice.total * 0.21).toFixed(2)}
-                </Typography>
-                <Typography sx={styles.totalAmount}>
-                    TOTAL: ${invoice.total}
-                </Typography>
-            </Box>
-
-            {/* Pie de página */}
-            <Box sx={styles.footer}>
-                <Typography variant="caption" display="block" gutterBottom>
-                    <strong>Información de Pago:</strong> {invoice.infoBancaria || 'Datos bancarios para transferencias'}
-                </Typography>
-                {invoice.observaciones && (
-                    <Typography variant="caption" display="block">
-                        <strong>Observaciones:</strong> {invoice.observaciones}
-                    </Typography>
-                )}
-            </Box>
-        </Paper>
+                    {/* Pie de página */}
+                    <Box sx={styles.footer}>
+                        <Typography variant="caption" display="block" gutterBottom>
+                            <strong>Información de Pago:</strong> {invoice.infoBancaria || '-'}
+                        </Typography>
+                        {invoice.observaciones && (
+                            <Typography variant="caption" display="block">
+                                <strong>Observaciones:</strong> {invoice.observaciones}
+                            </Typography>
+                        )}
+                    </Box>
+                </Paper>
+            </DialogContent>
+        </Dialog>
     );
 };
 
