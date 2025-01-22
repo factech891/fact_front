@@ -1,6 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogActions, DialogContent, DialogTitle, TextField, IconButton, Box } from '@mui/material';
+import {
+    Container,
+    Typography,
+    Button,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Paper,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    TextField,
+    IconButton,
+    Box,
+} from '@mui/material';
 import { Add, Edit, Delete, Search } from '@mui/icons-material';
+import '../../styles/global.css'; // Importar global.css
 
 function Productos() {
     const [productos, setProductos] = useState([]);
@@ -101,7 +120,20 @@ function Productos() {
                 />
             </Box>
 
-            <Button variant="contained" color="primary" onClick={() => handleOpen(null)} startIcon={<Add />} sx={{ marginBottom: '20px' }}>
+            {/* Botón "Nuevo Producto" */}
+            <Button
+                variant="contained"
+                sx={{
+                    backgroundColor: 'var(--primary-color)', // Usamos la variable de global.css
+                    color: '#fff',
+                    marginBottom: '20px',
+                    '&:hover': {
+                        backgroundColor: 'var(--secondary-color)', // Cambia al color secundario en hover
+                    },
+                }}
+                onClick={() => handleOpen(null)}
+                startIcon={<Add />}
+            >
                 Nuevo Producto
             </Button>
 
@@ -120,10 +152,20 @@ function Productos() {
                             <TableRow key={producto.id}>
                                 <TableCell>{producto.id}</TableCell>
                                 <TableCell>{producto.name}</TableCell>
-                                <TableCell>{producto.price}</TableCell>
+                                <TableCell>${producto.price}</TableCell>
                                 <TableCell>
-                                    <IconButton onClick={() => handleOpen(producto)} color="primary"><Edit /></IconButton>
-                                    <IconButton onClick={() => handleDelete(producto.id)} color="error"><Delete /></IconButton>
+                                    <IconButton
+                                        onClick={() => handleOpen(producto)}
+                                        sx={{ color: 'var(--icon-edit)' }} // Verde para editar
+                                    >
+                                        <Edit />
+                                    </IconButton>
+                                    <IconButton
+                                        onClick={() => handleDelete(producto.id)}
+                                        sx={{ color: 'var(--icon-delete)' }} // Rojo para borrar
+                                    >
+                                        <Delete />
+                                    </IconButton>
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -153,7 +195,18 @@ function Productos() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleClose}>Cancelar</Button>
-                    <Button onClick={handleSave} color="primary">Guardar</Button>
+                    <Button
+                        onClick={handleSave}
+                        sx={{
+                            backgroundColor: 'var(--primary-color)',
+                            color: '#fff',
+                            '&:hover': {
+                                backgroundColor: 'var(--secondary-color)',
+                            },
+                        }}
+                    >
+                        Guardar
+                    </Button>
                 </DialogActions>
             </Dialog>
         </Container>

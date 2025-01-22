@@ -6,96 +6,99 @@ import ReceiptIcon from '@mui/icons-material/Receipt';
 import PeopleIcon from '@mui/icons-material/People';
 import InventoryIcon from '@mui/icons-material/Inventory';
 
+// Estilos comunes para los ListItem
+const listItemStyles = {
+  color: 'var(--text-light)',
+  textDecoration: 'none',
+  borderRadius: '8px',
+  transition: 'background-color 0.3s ease',
+  '&:hover': {
+    backgroundColor: 'var(--secondary-color)',
+  },
+  '&.active': {
+    backgroundColor: 'var(--secondary-color)',
+    color: '#fff', // Texto blanco cuando está activo
+  },
+};
+
 function Sidebar() {
-    return (
-        <Box
-            sx={{
-                width: '240px',
-                backgroundColor: '#256d7b',
-                color: '#fff',
-                height: '100vh',
-                display: 'flex',
-                flexDirection: 'column',
-                padding: '20px',
-                boxShadow: '2px 0 5px rgba(0, 0, 0, 0.1)',
-            }}
+  return (
+    <Box
+      sx={{
+        width: '240px',
+        backgroundColor: 'var(--primary-color)',
+        color: 'var(--text-light)',
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: '20px',
+        boxShadow: '2px 0 5px rgba(0, 0, 0, 0.1)',
+      }}
+    >
+      <Typography
+        variant="h5"
+        sx={{
+          marginBottom: '20px',
+          textAlign: 'center',
+          fontWeight: 'bold',
+          fontSize: 'var(--font-size-title)',
+          color: '#fff', // Título en blanco para contrastar con el fondo
+        }}
+      >
+        Menú
+      </Typography>
+      <List>
+        {/* Dashboard */}
+        <ListItem
+          component={NavLink}
+          to="/"
+          exact
+          sx={listItemStyles}
         >
-            <Typography variant="h5" sx={{ marginBottom: '20px', textAlign: 'center', fontWeight: 'bold' }}>
-                Menú
-            </Typography>
-            <List>
-                <ListItem
-                    component={NavLink}
-                    to="/"
-                    exact
-                    sx={{
-                        color: '#fff',
-                        textDecoration: 'none',
-                        '&.active': {
-                            backgroundColor: '#4b5563',
-                            borderRadius: '8px',
-                        },
-                    }}
-                >
-                    <ListItemIcon>
-                        <DashboardIcon sx={{ color: '#fff' }} />
-                    </ListItemIcon>
-                    <ListItemText primary="Dashboard" />
-                </ListItem>
-                <ListItem
-                    component={NavLink}
-                    to="/invoices"
-                    sx={{
-                        color: '#fff',
-                        textDecoration: 'none',
-                        '&.active': {
-                            backgroundColor: '#4b5563',
-                            borderRadius: '8px',
-                        },
-                    }}
-                >
-                    <ListItemIcon>
-                        <ReceiptIcon sx={{ color: '#fff' }} />
-                    </ListItemIcon>
-                    <ListItemText primary="Facturas" />
-                </ListItem>
-                <ListItem
-                    component={NavLink}
-                    to="/clients"
-                    sx={{
-                        color: '#fff',
-                        textDecoration: 'none',
-                        '&.active': {
-                            backgroundColor: '#4b5563',
-                            borderRadius: '8px',
-                        },
-                    }}
-                >
-                    <ListItemIcon>
-                        <PeopleIcon sx={{ color: '#fff' }} />
-                    </ListItemIcon>
-                    <ListItemText primary="Clientes" />
-                </ListItem>
-                <ListItem
-                    component={NavLink}
-                    to="/products"
-                    sx={{
-                        color: '#fff',
-                        textDecoration: 'none',
-                        '&.active': {
-                            backgroundColor: '#4b5563',
-                            borderRadius: '8px',
-                        },
-                    }}
-                >
-                    <ListItemIcon>
-                        <InventoryIcon sx={{ color: '#fff' }} />
-                    </ListItemIcon>
-                    <ListItemText primary="Productos" />
-                </ListItem>
-            </List>
-        </Box>
-    );
+          <ListItemIcon>
+            <DashboardIcon sx={{ color: 'var(--text-light)' }} />
+          </ListItemIcon>
+          <ListItemText primary="Dashboard" />
+        </ListItem>
+
+        {/* Facturas */}
+        <ListItem
+          component={NavLink}
+          to="/invoices"
+          sx={listItemStyles}
+        >
+          <ListItemIcon>
+            <ReceiptIcon sx={{ color: 'var(--text-light)' }} />
+          </ListItemIcon>
+          <ListItemText primary="Facturas" />
+        </ListItem>
+
+        {/* Clientes */}
+        <ListItem
+          component={NavLink}
+          to="/clients"
+          sx={listItemStyles}
+        >
+          <ListItemIcon>
+            <PeopleIcon sx={{ color: 'var(--text-light)' }} />
+          </ListItemIcon>
+          <ListItemText primary="Clientes" />
+        </ListItem>
+
+        {/* Productos */}
+        <ListItem
+          component={NavLink}
+          to="/products"
+          sx={listItemStyles}
+        >
+          <ListItemIcon>
+            <InventoryIcon sx={{ color: 'var(--text-light)' }} />
+          </ListItemIcon>
+          <ListItemText primary="Productos" />
+        </ListItem>
+      </List>
+    </Box>
+  );
 }
 
 export default Sidebar;

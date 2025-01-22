@@ -1,0 +1,44 @@
+:root {
+    /* Colores principales */
+    --primary-color: #09b30f; /* Sidebar */
+    --secondary-color: #0e57be; /* Elementos activos */
+    --background-color: #bf5fb7; /* Fondo general */
+    --card-background: #ffffff; /* Fondo de tarjetas */
+    --text-color: #333333; /* Texto principal */
+    --text-light: #666666; /* Texto secundario */
+
+    /* Colores para íconos */
+    --icon-view: #2196F3; /* Azul para vista previa */
+    --icon-edit: #5635b1; /* Verde para editar */
+    --icon-delete: #F44336; /* Rojo para borrar */
+    --icon-download: #FF9800; /* Naranja para descargar */
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    font-size: 16px;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 0;
+}
+
+.card {
+    background-color: var(--card-background);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.button-primary {
+    background-color: var(--primary-color);
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.button-primary:hover {
+    background-color: darken(var(--primary-color), 10%);
+}

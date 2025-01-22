@@ -20,6 +20,7 @@ import {
 } from '@mui/material';
 import { Add, Edit, Delete, Search, Download, Visibility, Close as CloseIcon } from '@mui/icons-material';
 import InvoicePreview from '../InvoicePreview/InvoicePreview';
+import '../../styles/global.css'; // Importar global.css
 
 function Invoices() {
     const [facturas, setFacturas] = useState([]);
@@ -32,6 +33,7 @@ function Invoices() {
     const [previewOpen, setPreviewOpen] = useState(false);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
 
+    // Fetch invoices from backend
     useEffect(() => {
         fetch('http://localhost:5002/api/invoices')
             .then(response => response.json())
@@ -42,20 +44,22 @@ function Invoices() {
             .catch(error => console.error('Error:', error));
     }, []);
 
+    // Search filter
     const handleSearch = (e) => {
         const term = e.target.value.toLowerCase();
         setSearchTerm(term);
         setFilteredFacturas(facturas.filter(factura =>
-            (typeof factura.client === 'string' 
-                ? factura.client 
-                : factura.client.nombre
+            (typeof factura.client === 'string'
+                ? factura.client
+                : factura.client?.nombre
             ).toLowerCase().includes(term)
         ));
     };
 
+    // Open and close dialog
     const handleOpen = (factura) => {
         setEditing(factura || null);
-        setCliente(factura ? (typeof factura.client === 'string' ? factura.client : factura.client.nombre) : '');
+        setCliente(factura ? (typeof factura.client === 'string' ? factura.client : factura.client?.nombre) : '');
         setTotal(factura ? factura.total : '');
         setOpen(true);
     };
@@ -67,6 +71,7 @@ function Invoices() {
         setEditing(null);
     };
 
+    // Open and close preview dialog
     const handlePreviewOpen = (factura) => {
         setSelectedInvoice(factura);
         setPreviewOpen(true);
@@ -77,6 +82,7 @@ function Invoices() {
         setSelectedInvoice(null);
     };
 
+    // Save or update invoice
     const handleSave = () => {
         if (!cliente || !total) {
             alert('Todos los campos son obligatorios.');
@@ -108,6 +114,7 @@ function Invoices() {
             });
     };
 
+    // Delete invoice
     const handleDelete = (id) => {
         fetch(`http://localhost:5002/api/invoices/${id}`, { method: 'DELETE' })
             .then(() => {
@@ -118,6 +125,7 @@ function Invoices() {
             .catch(error => console.error('Error:', error));
     };
 
+    // Download PDF
     const handleDownloadPDF = (id) => {
         fetch(`http://localhost:5002/api/invoices/${id}/pdf`)
             .then((response) => {
@@ -152,7 +160,20 @@ function Invoices() {
                 />
             </Box>
 
-            <Button variant="contained" color="primary" onClick={() => handleOpen(null)} startIcon={<Add />} sx={{ marginBottom: '20px' }}>
+            {/* Botón "Nueva Factura" */}
+            <Button
+                variant="contained"
+                sx={{
+                    backgroundColor: 'var(--primary-color)', // Usamos la variable de global.css
+                    color: '#fff',
+                    marginBottom: '20px',
+                    '&:hover': {
+                        backgroundColor: 'var(--secondary-color)', // Cambia al color secundario en hover
+                    },
+                }}
+                onClick={() => handleOpen(null)}
+                startIcon={<Add />}
+            >
                 Nueva Factura
             </Button>
 
@@ -171,20 +192,32 @@ function Invoices() {
                             <TableRow key={factura.id}>
                                 <TableCell>{factura.id}</TableCell>
                                 <TableCell>
-                                    {typeof factura.client === 'string' ? factura.client : factura.client.nombre}
+                                    {typeof factura.client === 'string' ? factura.client : factura.client?.nombre}
                                 </TableCell>
                                 <TableCell>${factura.total}</TableCell>
                                 <TableCell>
-                                    <IconButton onClick={() => handlePreviewOpen(factura)} color="info">
+                                    <IconButton
+                                        onClick={() => handlePreviewOpen(factura)}
+                                        sx={{ color: 'var(--icon-view)' }} // Azul para vista previa
+                                    >
                                         <Visibility />
                                     </IconButton>
-                                    <IconButton onClick={() => handleOpen(factura)} color="primary">
+                                    <IconButton
+                                        onClick={() => handleOpen(factura)}
+                                        sx={{ color: 'var(--icon-edit)' }} // Verde para editar
+                                    >
                                         <Edit />
                                     </IconButton>
-                                    <IconButton onClick={() => handleDelete(factura.id)} color="error">
+                                    <IconButton
+                                        onClick={() => handleDelete(factura.id)}
+                                        sx={{ color: 'var(--icon-delete)' }} // Rojo para borrar
+                                    >
                                         <Delete />
                                     </IconButton>
-                                    <IconButton onClick={() => handleDownloadPDF(factura.id)} color="secondary">
+                                    <IconButton
+                                        onClick={() => handleDownloadPDF(factura.id)}
+                                        sx={{ color: 'var(--icon-download)' }} // Naranja para descargar
+                                    >
                                         <Download />
                                     </IconButton>
                                 </TableCell>
@@ -216,7 +249,18 @@ function Invoices() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleClose}>Cancelar</Button>
-                    <Button onClick={handleSave} color="primary">Guardar</Button>
+                    <Button
+                        onClick={handleSave}
+                        sx={{
+                            backgroundColor: 'var(--primary-color)',
+                            color: '#fff',
+                            '&:hover': {
+                                backgroundColor: 'var(--secondary-color)',
+                            },
+                        }}
+                    >
+                        Guardar
+                    </Button>
                 </DialogActions>
             </Dialog>
 

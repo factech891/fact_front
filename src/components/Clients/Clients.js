@@ -1,6 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogActions, DialogContent, DialogTitle, TextField, IconButton, Box } from '@mui/material';
+import {
+    Container,
+    Typography,
+    Button,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Paper,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    TextField,
+    IconButton,
+    Box,
+} from '@mui/material';
 import { Add, Edit, Delete, Search } from '@mui/icons-material';
+import '../../styles/global.css'; // Importar global.css
 
 function Clients() {
     const [clients, setClients] = useState([]);
@@ -13,7 +32,7 @@ function Clients() {
 
     // Fetch clients from backend
     useEffect(() => {
-        fetch('http://localhost:5002/api/clients')  // ✅ Ruta actualizada
+        fetch('http://localhost:5002/api/clients')
             .then(response => response.json())
             .then(data => {
                 setClients(data);
@@ -52,7 +71,7 @@ function Clients() {
         }
 
         const newClient = { name, email };
-        const url = editing ? `http://localhost:5002/api/clients/${editing.id}` : 'http://localhost:5002/api/clients';  // ✅ Ruta actualizada
+        const url = editing ? `http://localhost:5002/api/clients/${editing.id}` : 'http://localhost:5002/api/clients';
         const method = editing ? 'PUT' : 'POST';
 
         fetch(url, {
@@ -78,7 +97,7 @@ function Clients() {
 
     // Delete client
     const handleDelete = (id) => {
-        fetch(`http://localhost:5002/api/clients/${id}`, { method: 'DELETE' })  // ✅ Ruta actualizada
+        fetch(`http://localhost:5002/api/clients/${id}`, { method: 'DELETE' })
             .then(() => {
                 const updatedClients = clients.filter(c => c.id !== id);
                 setClients(updatedClients);
@@ -101,7 +120,20 @@ function Clients() {
                 />
             </Box>
 
-            <Button variant="contained" color="primary" onClick={() => handleOpen(null)} startIcon={<Add />} sx={{ marginBottom: '20px' }}>
+            {/* Botón "Nuevo Cliente" */}
+            <Button
+                variant="contained"
+                sx={{
+                    backgroundColor: 'var(--primary-color)', // Usamos la variable de global.css
+                    color: '#fff',
+                    marginBottom: '20px',
+                    '&:hover': {
+                        backgroundColor: 'var(--secondary-color)', // Cambia al color secundario en hover
+                    },
+                }}
+                onClick={() => handleOpen(null)}
+                startIcon={<Add />}
+            >
                 Nuevo Cliente
             </Button>
 
@@ -122,8 +154,18 @@ function Clients() {
                                 <TableCell>{client.name}</TableCell>
                                 <TableCell>{client.email}</TableCell>
                                 <TableCell>
-                                    <IconButton onClick={() => handleOpen(client)} color="primary"><Edit /></IconButton>
-                                    <IconButton onClick={() => handleDelete(client.id)} color="error"><Delete /></IconButton>
+                                    <IconButton
+                                        onClick={() => handleOpen(client)}
+                                        sx={{ color: 'var(--icon-edit)' }} // Verde para editar
+                                    >
+                                        <Edit />
+                                    </IconButton>
+                                    <IconButton
+                                        onClick={() => handleDelete(client.id)}
+                                        sx={{ color: 'var(--icon-delete)' }} // Rojo para borrar
+                                    >
+                                        <Delete />
+                                    </IconButton>
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -152,7 +194,18 @@ function Clients() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleClose}>Cancelar</Button>
-                    <Button onClick={handleSave} color="primary">Guardar</Button>
+                    <Button
+                        onClick={handleSave}
+                        sx={{
+                            backgroundColor: 'var(--primary-color)',
+                            color: '#fff',
+                            '&:hover': {
+                                backgroundColor: 'var(--secondary-color)',
+                            },
+                        }}
+                    >
+                        Guardar
+                    </Button>
                 </DialogActions>
             </Dialog>
         </Container>
