@@ -1,110 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import {
-    Container,
-    Typography,
-    Button,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Paper,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-    TextField,
-    IconButton,
-    Box,
-} from '@mui/material';
-import { Add, Edit, Delete, Search } from '@mui/icons-material';
-import '../../styles/global.css'; // Importar global.css
+import React, { useState } from 'react';
+import { Container, Typography, Button, TextField, Box } from '@mui/material';
+import { Search, Add } from '@mui/icons-material';
+import ClientTable from './ClientTable';
+import ClientForm from './ClientForm';
+import { useClients } from './useClients';
 
 function Clients() {
-    const [clients, setClients] = useState([]);
-    const [filteredClients, setFilteredClients] = useState([]);
-    const [searchTerm, setSearchTerm] = useState('');
+    const { clients, loading, error, saveClient, deleteClient } = useClients();
     const [open, setOpen] = useState(false);
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
     const [editing, setEditing] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
 
-    // Fetch clients from backend
-    useEffect(() => {
-        fetch('http://localhost:5002/api/clients')
-            .then(response => response.json())
-            .then(data => {
-                setClients(data);
-                setFilteredClients(data);
-            })
-            .catch(error => console.error('Error:', error));
-    }, []);
-
-    // Search filter
-    const handleSearch = (e) => {
-        const term = e.target.value.toLowerCase();
-        setSearchTerm(term);
-        setFilteredClients(clients.filter(client => client.name.toLowerCase().includes(term) || client.email.toLowerCase().includes(term)));
-    };
-
-    // Open and close dialog
     const handleOpen = (client) => {
         setEditing(client || null);
-        setName(client ? client.name : '');
-        setEmail(client ? client.email : '');
         setOpen(true);
     };
 
     const handleClose = () => {
         setOpen(false);
-        setName('');
-        setEmail('');
         setEditing(null);
     };
 
-    // Save or update client
-    const handleSave = () => {
-        if (!name || !email) {
-            alert('Todos los campos son obligatorios.');
-            return;
-        }
-
-        const newClient = { name, email };
-        const url = editing ? `http://localhost:5002/api/clients/${editing.id}` : 'http://localhost:5002/api/clients';
-        const method = editing ? 'PUT' : 'POST';
-
-        fetch(url, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newClient),
-        })
-            .then(response => response.json())
-            .then(data => {
-                const updatedClients = editing
-                    ? clients.map(c => (c.id === data.id ? data : c))
-                    : [...clients, data];
-
-                setClients(updatedClients);
-                setFilteredClients(updatedClients);
-                handleClose();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error al guardar el cliente. Inténtalo nuevamente.');
-            });
+    const handleSearch = (e) => {
+        setSearchTerm(e.target.value.toLowerCase());
     };
 
-    // Delete client
-    const handleDelete = (id) => {
-        fetch(`http://localhost:5002/api/clients/${id}`, { method: 'DELETE' })
-            .then(() => {
-                const updatedClients = clients.filter(c => c.id !== id);
-                setClients(updatedClients);
-                setFilteredClients(updatedClients);
-            })
-            .catch(error => console.error('Error:', error));
-    };
+    const filteredClients = clients.filter(client =>
+        client.name && client.name.toLowerCase().includes(searchTerm)
+    );
 
     return (
         <Container>
@@ -120,15 +43,14 @@ function Clients() {
                 />
             </Box>
 
-            {/* Botón "Nuevo Cliente" */}
             <Button
                 variant="contained"
                 sx={{
-                    backgroundColor: 'var(--primary-color)', // Usamos la variable de global.css
+                    backgroundColor: 'var(--primary-color)',
                     color: '#fff',
                     marginBottom: '20px',
                     '&:hover': {
-                        backgroundColor: 'var(--secondary-color)', // Cambia al color secundario en hover
+                        backgroundColor: 'var(--secondary-color)',
                     },
                 }}
                 onClick={() => handleOpen(null)}
@@ -137,77 +59,24 @@ function Clients() {
                 Nuevo Cliente
             </Button>
 
-            <TableContainer component={Paper}>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>ID</TableCell>
-                            <TableCell>Nombre</TableCell>
-                            <TableCell>Email</TableCell>
-                            <TableCell>Acciones</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {filteredClients.map(client => (
-                            <TableRow key={client.id}>
-                                <TableCell>{client.id}</TableCell>
-                                <TableCell>{client.name}</TableCell>
-                                <TableCell>{client.email}</TableCell>
-                                <TableCell>
-                                    <IconButton
-                                        onClick={() => handleOpen(client)}
-                                        sx={{ color: 'var(--icon-edit)' }} // Verde para editar
-                                    >
-                                        <Edit />
-                                    </IconButton>
-                                    <IconButton
-                                        onClick={() => handleDelete(client.id)}
-                                        sx={{ color: 'var(--icon-delete)' }} // Rojo para borrar
-                                    >
-                                        <Delete />
-                                    </IconButton>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+            {loading ? (
+                <Typography>Cargando clientes...</Typography>
+            ) : error ? (
+                <Typography color="error">{error}</Typography>
+            ) : (
+                <ClientTable
+                    clients={filteredClients}
+                    onEdit={handleOpen}
+                    onDelete={deleteClient}
+                />
+            )}
 
-            <Dialog open={open} onClose={handleClose}>
-                <DialogTitle>{editing ? 'Editar Cliente' : 'Nuevo Cliente'}</DialogTitle>
-                <DialogContent>
-                    <TextField
-                        autoFocus
-                        margin="dense"
-                        label="Nombre"
-                        fullWidth
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                    />
-                    <TextField
-                        margin="dense"
-                        label="Email"
-                        fullWidth
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                    />
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleClose}>Cancelar</Button>
-                    <Button
-                        onClick={handleSave}
-                        sx={{
-                            backgroundColor: 'var(--primary-color)',
-                            color: '#fff',
-                            '&:hover': {
-                                backgroundColor: 'var(--secondary-color)',
-                            },
-                        }}
-                    >
-                        Guardar
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            <ClientForm
+                open={open}
+                onClose={handleClose}
+                client={editing}
+                onSave={saveClient}
+            />
         </Container>
     );
 }
