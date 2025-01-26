@@ -26,7 +26,7 @@ function Products() {
     };
 
     const filteredProducts = products.filter(product =>
-        product.name && product.name.toLowerCase().includes(searchTerm)
+        product.nombre && product.nombre.toLowerCase().includes(searchTerm)
     );
 
     return (

@@ -1,3 +1,4 @@
+// useClients.js
 import { useState, useEffect } from 'react';
 
 const API_BASE_URL = 'http://localhost:5002/api';
@@ -10,10 +11,9 @@ export const useClients = () => {
     const fetchClients = async () => {
         try {
             const response = await fetch(`${API_BASE_URL}/clients`);
-            if (!response.ok) {
-                throw new Error(`Error: ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`Error: ${response.status}`);
             const data = await response.json();
+            console.log('Clientes cargados:', data);
             setClients(data);
             setLoading(false);
         } catch (error) {
@@ -24,6 +24,14 @@ export const useClients = () => {
 
     const saveClient = async (client) => {
         try {
+            const clientData = {
+                nombre: client.nombre,
+                rif: client.rif,
+                direccion: client.direccion,
+                telefono: client.telefono,
+                email: client.email
+            };
+
             const method = client.id ? 'PUT' : 'POST';
             const url = client.id 
                 ? `${API_BASE_URL}/clients/${client.id}`
@@ -32,21 +40,18 @@ export const useClients = () => {
             const response = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(client),
+                body: JSON.stringify(clientData),
             });
 
-            if (!response.ok) {
-                throw new Error(`Error: ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`Error: ${response.status}`);
 
             const savedClient = await response.json();
-            setClients((prev) =>
-                client.id
-                    ? prev.map((c) => (c.id === client.id ? savedClient : c))
-                    : [...prev, savedClient]
-            );
+            
+            await fetchClients(); // Recargar la lista después de guardar
+            return savedClient;
         } catch (error) {
             setError(error.message);
+            throw error;
         }
     };
 
@@ -56,13 +61,12 @@ export const useClients = () => {
                 method: 'DELETE',
             });
 
-            if (!response.ok) {
-                throw new Error(`Error: ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`Error: ${response.status}`);
 
-            setClients((prev) => prev.filter((c) => c.id !== id));
+            await fetchClients(); // Recargar la lista después de eliminar
         } catch (error) {
             setError(error.message);
+            throw error;
         }
     };
 

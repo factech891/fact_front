@@ -9,22 +9,35 @@ export const fetchProducts = async () => {
 };
 
 export const saveProduct = async (product) => {
+    console.log('Producto a guardar:', product);
     const method = product.id ? 'PUT' : 'POST';
     const url = product.id
         ? `${API_BASE_URL}/products/${product.id}`
         : `${API_BASE_URL}/products`;
 
-    const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(product),
-    });
+    try {
+        const response = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id: product.id,
+                nombre: product.nombre || product.name,
+                precio: product.precio || product.price,
+                codigo: product.codigo || `P${String(product.id).padStart(3, '0')}`
+            }),
+        });
 
-    if (!response.ok) {
-        throw new Error(`Error al guardar el producto: ${response.status}`);
+        if (!response.ok) {
+            throw new Error(`Error al guardar el producto: ${response.status}`);
+        }
+
+        const savedProduct = await response.json();
+        console.log('Respuesta del servidor:', savedProduct);
+        return savedProduct;
+    } catch (error) {
+        console.error('Error en saveProduct:', error);
+        throw error;
     }
-
-    return response.json();
 };
 
 export const deleteProduct = async (id) => {

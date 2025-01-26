@@ -17,6 +17,7 @@ function ProductTable({ products, onEdit, onDelete }) {
             <Table>
                 <TableHead>
                     <TableRow>
+                        <TableCell>Código</TableCell>
                         <TableCell>Nombre</TableCell>
                         <TableCell>Precio</TableCell>
                         <TableCell>Acciones</TableCell>
@@ -25,8 +26,9 @@ function ProductTable({ products, onEdit, onDelete }) {
                 <TableBody>
                     {products.map((product) => (
                         <TableRow key={product.id}>
-                            <TableCell>{product.name}</TableCell>
-                            <TableCell>${product.price.toFixed(2)}</TableCell>
+                            <TableCell>{product.codigo}</TableCell>
+                            <TableCell>{product.nombre}</TableCell>
+                            <TableCell>${product.precio.toFixed(2)}</TableCell>
                             <TableCell>
                                 <IconButton
                                     onClick={() => onEdit(product)}
@@ -35,7 +37,7 @@ function ProductTable({ products, onEdit, onDelete }) {
                                     <Edit />
                                 </IconButton>
                                 <IconButton
-                                    onClick={() => onDelete(product.id)}  // Asegúrate de pasar el ID correcto
+                                    onClick={() => onDelete(product.id)}
                                     sx={{ color: 'var(--icon-delete)' }}
                                 >
                                     <Delete />

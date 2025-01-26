@@ -26,7 +26,7 @@ function Clients() {
     };
 
     const filteredClients = clients.filter(client =>
-        client.name && client.name.toLowerCase().includes(searchTerm)
+        client.nombre && client.nombre.toLowerCase().includes(searchTerm)
     );
 
     return (
