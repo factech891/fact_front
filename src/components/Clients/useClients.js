@@ -32,10 +32,12 @@ export const useClients = () => {
                 email: client.email
             };
 
-            const method = client.id ? 'PUT' : 'POST';
-            const url = client.id 
-                ? `${API_BASE_URL}/clients/${client.id}`
+            const method = client._id ? 'PUT' : 'POST';
+            const url = client._id 
+                ? `${API_BASE_URL}/clients/${client._id}`
                 : `${API_BASE_URL}/clients`;
+
+            console.log('Sending request to:', url, 'with method:', method);
 
             const response = await fetch(url, {
                 method,
@@ -43,28 +45,37 @@ export const useClients = () => {
                 body: JSON.stringify(clientData),
             });
 
-            if (!response.ok) throw new Error(`Error: ${response.status}`);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Error: ${response.status}`);
+            }
 
             const savedClient = await response.json();
-            
-            await fetchClients(); // Recargar la lista después de guardar
+            await fetchClients();
             return savedClient;
         } catch (error) {
+            console.error('Error in saveClient:', error);
             setError(error.message);
             throw error;
         }
     };
 
-    const deleteClient = async (id) => {
+    const deleteClient = async (_id) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/clients/${id}`, { 
+            console.log('Attempting to delete client with ID:', _id);
+            const response = await fetch(`${API_BASE_URL}/clients/${_id}`, { 
                 method: 'DELETE',
             });
 
-            if (!response.ok) throw new Error(`Error: ${response.status}`);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Error: ${response.status}`);
+            }
 
-            await fetchClients(); // Recargar la lista después de eliminar
+            console.log('Client deleted successfully');
+            await fetchClients();
         } catch (error) {
+            console.error('Error in deleteClient:', error);
             setError(error.message);
             throw error;
         }
