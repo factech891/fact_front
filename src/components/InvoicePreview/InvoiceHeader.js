@@ -2,51 +2,86 @@ import React from 'react';
 import { Grid, Typography, Box } from '@mui/material';
 
 const styles = {
-   header: {
-       borderBottom: '2px solid #002855',
-       marginBottom: '20px',
-       padding: '20px'
-   },
-   companyInfo: {
-       backgroundColor: '#F8F9FA',
-       padding: '15px',
-       borderRadius: '4px',
-       border: '1px solid #D4E0F7'
-   },
-   companyName: {
-       color: '#002855',
-       fontWeight: 'bold',
-       fontSize: '24px',
-       marginBottom: '10px'
-   },
-   invoiceTitle: {
-       color: '#002855',
-       fontWeight: 'bold',
-       fontSize: '32px',
-       marginBottom: '15px'
-   }
+    header: {
+        backgroundColor: '#002855',
+        color: 'white',
+        padding: '30px 20px',
+        marginBottom: '20px',
+        height: '150px'
+    },
+    companyInfo: {
+        padding: '10px',
+    },
+    companyName: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: '24px',
+        marginBottom: '10px'
+    },
+    companyText: {
+        color: 'white',
+        fontSize: '10px',
+        marginBottom: '5px'
+    },
+    invoiceBox: {
+        backgroundColor: 'white',
+        padding: '20px',
+        borderRadius: '4px',
+        color: '#002855',
+        marginTop: '-10px',
+        height: '100px'
+    },
+    invoiceTitle: {
+        color: '#002855',
+        fontWeight: 'bold',
+        fontSize: '20px',
+        marginBottom: '15px'
+    }
 };
 
-const InvoiceHeader = ({ empresa, invoice }) => (
-   <Grid container sx={styles.header} spacing={2}>
-       <Grid item xs={6}>
-           <Box sx={styles.companyInfo}>
-               <Typography sx={styles.companyName}>{empresa.nombre}</Typography>
-               <Typography>RIF: {empresa.rif}</Typography>
-               <Typography>Dirección: {empresa.direccion}</Typography>
-               <Typography>Teléfono: {empresa.telefono}</Typography>
-               <Typography>Email: {empresa.email}</Typography>
-           </Box>
-       </Grid>
-       <Grid item xs={6} sx={{ textAlign: 'right' }}>
-           <Typography sx={styles.invoiceTitle}>FACTURA</Typography>
-           <Typography><strong>N°:</strong> {invoice.series}</Typography>
-           <Typography><strong>Fecha:</strong> {new Date(invoice.fechaEmision).toLocaleDateString()}</Typography>
-           <Typography><strong>Vencimiento:</strong> {new Date(invoice.fechaVencimiento).toLocaleDateString()}</Typography>
-           <Typography><strong>Moneda:</strong> {invoice.moneda}</Typography>
-           <Typography><strong>Condición de Pago:</strong> {invoice.condicionesPago}</Typography>
-       </Grid>
-   </Grid>
+const empresaDefault = {
+    nombre: 'Tu Empresa',
+    direccion: 'Dirección de la empresa',
+    rif: 'J-123456789',
+    telefono: '+58 424-1234567',
+    email: 'info@tuempresa.com'
+};
+
+const InvoiceHeader = ({ invoice }) => (
+    <Grid container sx={styles.header}>
+        <Grid item xs={6}>
+            <Box sx={styles.companyInfo}>
+                <Typography sx={styles.companyName}>
+                    {empresaDefault.nombre}
+                </Typography>
+                <Typography sx={styles.companyText}>
+                    {empresaDefault.direccion}
+                </Typography>
+                <Typography sx={styles.companyText}>
+                    RIF: {empresaDefault.rif}
+                </Typography>
+                <Typography sx={styles.companyText}>
+                    Tel: {empresaDefault.telefono}
+                </Typography>
+                <Typography sx={styles.companyText}>
+                    Email: {empresaDefault.email}
+                </Typography>
+            </Box>
+        </Grid>
+        <Grid item xs={6} sx={{ textAlign: 'right' }}>
+            <Box sx={styles.invoiceBox}>
+                <Typography sx={styles.invoiceTitle}>FACTURA</Typography>
+                <Typography>N°: {invoice.number}</Typography>
+                <Typography>
+                    Fecha: {new Date(invoice.date).toLocaleDateString()}
+                </Typography>
+                <Typography>
+                    {invoice.condicionesPago === 'Crédito' && 
+                     `Días de crédito: ${invoice.diasCredito}`}
+                </Typography>
+            </Box>
+        </Grid>
+    </Grid>
 );
 
 export default InvoiceHeader;
