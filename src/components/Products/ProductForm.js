@@ -1,27 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    TextField, 
-    Dialog, 
-    DialogTitle, 
-    DialogContent, 
-    DialogActions, 
-    Button
-} from '@mui/material';
+import { TextField, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 
 function ProductForm({ open, onClose, product, onSave }) {
    const [formData, setFormData] = useState({
+       _id: '', // Agregamos el campo _id
        nombre: '',
        precio: '',
-       codigo: `P${Math.random().toString(36).substr(2, 3).toUpperCase()}`
+       codigo: `P${Math.random().toString(36).substr(2, 3).toUpperCase()}` // Genera un código predeterminado
    });
+
    const [errors, setErrors] = useState({});
 
    useEffect(() => {
        if (product) {
            setFormData({
-               nombre: product.name || product.nombre || '',
-               precio: (product.price || product.precio)?.toString() || '',
-               codigo: product.codigo || formData.codigo
+               _id: product._id || '', // Asignamos el _id si existe
+               nombre: product.nombre || '',
+               precio: (product.precio || '').toString(),
+               codigo: product.codigo || formData.codigo // Usa el código existente o genera uno nuevo
            });
        }
    }, [product]);
@@ -39,10 +35,10 @@ function ProductForm({ open, onClose, product, onSave }) {
    const handleSave = () => {
        if (validateForm()) {
            onSave({
-               ...product,
+               _id: formData._id, // Incluimos el _id en los datos a guardar
                nombre: formData.nombre,
                precio: parseFloat(formData.precio),
-               codigo: formData.codigo
+               codigo: formData.codigo // Aseguramos que el código esté incluido
            });
            handleClose();
        }
@@ -50,9 +46,10 @@ function ProductForm({ open, onClose, product, onSave }) {
 
    const handleClose = () => {
        setFormData({
+           _id: '', // Reiniciamos el _id
            nombre: '',
            precio: '',
-           codigo: `P${Math.random().toString(36).substr(2, 3).toUpperCase()}`
+           codigo: `P${Math.random().toString(36).substr(2, 3).toUpperCase()}` // Generamos un nuevo código
        });
        setErrors({});
        onClose();
@@ -62,13 +59,24 @@ function ProductForm({ open, onClose, product, onSave }) {
        <Dialog open={open} onClose={handleClose}>
            <DialogTitle>{product ? 'Editar Producto' : 'Nuevo Producto'}</DialogTitle>
            <DialogContent>
+               {/* Campo oculto para el _id */}
+               <TextField
+                   margin="dense"
+                   label="ID"
+                   fullWidth
+                   value={formData._id}
+                   InputProps={{
+                       readOnly: true,
+                   }}
+                   sx={{ display: 'none' }} // Ocultamos este campo visualmente
+               />
                <TextField
                    margin="dense"
                    label="Código"
                    fullWidth
                    value={formData.codigo}
                    InputProps={{
-                       readOnly: true,
+                       readOnly: true, // Hacemos el código de solo lectura
                    }}
                />
                <TextField

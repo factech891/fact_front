@@ -25,7 +25,7 @@ function ProductTable({ products, onEdit, onDelete }) {
                 </TableHead>
                 <TableBody>
                     {products.map((product) => (
-                        <TableRow key={product.id}>
+                        <TableRow key={product._id}>
                             <TableCell>{product.codigo}</TableCell>
                             <TableCell>{product.nombre}</TableCell>
                             <TableCell>${product.precio.toFixed(2)}</TableCell>
@@ -37,7 +37,7 @@ function ProductTable({ products, onEdit, onDelete }) {
                                     <Edit />
                                 </IconButton>
                                 <IconButton
-                                    onClick={() => onDelete(product.id)}
+                                    onClick={() => onDelete(product._id)}
                                     sx={{ color: 'var(--icon-delete)' }}
                                 >
                                     <Delete />
