@@ -43,7 +43,7 @@ function InvoiceTable({ facturas, onEdit, onDelete, onPreview, onDownload, loadi
             <Table>
                 <TableHead>
                     <TableRow>
-                        <TableCell>ID</TableCell>
+                        <TableCell>Número</TableCell>
                         <TableCell>Cliente</TableCell>
                         <TableCell>Total</TableCell>
                         <TableCell>Acciones</TableCell>
@@ -52,11 +52,11 @@ function InvoiceTable({ facturas, onEdit, onDelete, onPreview, onDownload, loadi
                 <TableBody>
                     {facturas.map(factura => (
                         <TableRow 
-                            key={factura.id} 
+                            key={factura._id} 
                             hover 
                             sx={{ '&:hover': { backgroundColor: '#f5f5f5' } }}
                         >
-                            <TableCell>{factura.id}</TableCell>
+                            <TableCell>{factura.number}</TableCell>
                             <TableCell>{factura.client?.nombre || 'Cliente desconocido'}</TableCell>
                             <TableCell>
                                 ${new Intl.NumberFormat('es-ES').format(factura.total)}
@@ -77,14 +77,14 @@ function InvoiceTable({ facturas, onEdit, onDelete, onPreview, onDownload, loadi
                                     <Edit />
                                 </IconButton>
                                 <IconButton
-                                    onClick={() => onDelete(factura.id)}
+                                    onClick={() => onDelete(factura._id)}
                                     sx={{ color: 'var(--icon-delete)' }}
                                     aria-label="Eliminar factura"
                                 >
                                     <Delete />
                                 </IconButton>
                                 <IconButton
-                                    onClick={() => onDownload(factura.id)}
+                                    onClick={() => onDownload(factura._id)}
                                     sx={{ color: 'var(--icon-download)' }}
                                     aria-label="Descargar factura"
                                 >
@@ -99,11 +99,11 @@ function InvoiceTable({ facturas, onEdit, onDelete, onPreview, onDownload, loadi
     );
 }
 
-// Validación de props
 InvoiceTable.propTypes = {
     facturas: PropTypes.arrayOf(
         PropTypes.shape({
-            id: PropTypes.string.isRequired,
+            _id: PropTypes.string.isRequired,
+            number: PropTypes.string.isRequired,
             client: PropTypes.shape({
                 nombre: PropTypes.string
             }),
