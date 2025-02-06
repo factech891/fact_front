@@ -23,7 +23,7 @@ export const useProducts = () => {
    const handleSave = async (product) => {
        try {
            const productToSave = {
-               _id: product._id, // Usamos _id en lugar de id
+               id: product._id, // Usamos _id en lugar de id
                nombre: product.nombre || product.name,
                precio: product.precio || product.price,
                codigo: product.codigo || `P${String(products.length + 1).padStart(3, '0')}`

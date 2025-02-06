@@ -3,10 +3,10 @@ import { TextField, Dialog, DialogTitle, DialogContent, DialogActions, Button } 
 
 function ProductForm({ open, onClose, product, onSave }) {
    const [formData, setFormData] = useState({
-       _id: '', // Agregamos el campo _id
+       _id: '',
        nombre: '',
        precio: '',
-       codigo: `P${Math.random().toString(36).substr(2, 3).toUpperCase()}` // Genera un código predeterminado
+       codigo: `P${Math.random().toString(36).substr(2, 3).toUpperCase()}`
    });
 
    const [errors, setErrors] = useState({});
@@ -14,17 +14,17 @@ function ProductForm({ open, onClose, product, onSave }) {
    useEffect(() => {
        if (product) {
            setFormData({
-               _id: product._id || '', // Asignamos el _id si existe
+               _id: product._id || '',
                nombre: product.nombre || '',
                precio: (product.precio || '').toString(),
-               codigo: product.codigo || formData.codigo // Usa el código existente o genera uno nuevo
+               codigo: product.codigo || formData.codigo
            });
        }
    }, [product]);
 
    const validateForm = () => {
        const newErrors = {};
-       if (!formData.nombre.trim()) newErrors.nombre = 'El nombre del producto es requerido';
+       if (!formData.nombre.trim()) newErrors.nombre = 'El nombre es requerido';
        if (!formData.precio || isNaN(formData.precio) || parseFloat(formData.precio) <= 0) {
            newErrors.precio = 'Ingrese un precio válido';
        }
@@ -34,22 +34,26 @@ function ProductForm({ open, onClose, product, onSave }) {
 
    const handleSave = () => {
        if (validateForm()) {
-           onSave({
-               _id: formData._id, // Incluimos el _id en los datos a guardar
-               nombre: formData.nombre,
-               precio: parseFloat(formData.precio),
-               codigo: formData.codigo // Aseguramos que el código esté incluido
-           });
-           handleClose();
+           try {
+               onSave({
+                   _id: formData._id,
+                   nombre: formData.nombre,
+                   precio: parseFloat(formData.precio),
+                   ...((!formData._id) && { codigo: formData.codigo })
+               });
+               handleClose();
+           } catch (error) {
+               console.error('Error al guardar:', error);
+           }
        }
    };
 
    const handleClose = () => {
        setFormData({
-           _id: '', // Reiniciamos el _id
+           _id: '',
            nombre: '',
            precio: '',
-           codigo: `P${Math.random().toString(36).substr(2, 3).toUpperCase()}` // Generamos un nuevo código
+           codigo: `P${Math.random().toString(36).substr(2, 3).toUpperCase()}`
        });
        setErrors({});
        onClose();
@@ -59,24 +63,13 @@ function ProductForm({ open, onClose, product, onSave }) {
        <Dialog open={open} onClose={handleClose}>
            <DialogTitle>{product ? 'Editar Producto' : 'Nuevo Producto'}</DialogTitle>
            <DialogContent>
-               {/* Campo oculto para el _id */}
-               <TextField
-                   margin="dense"
-                   label="ID"
-                   fullWidth
-                   value={formData._id}
-                   InputProps={{
-                       readOnly: true,
-                   }}
-                   sx={{ display: 'none' }} // Ocultamos este campo visualmente
-               />
                <TextField
                    margin="dense"
                    label="Código"
                    fullWidth
                    value={formData.codigo}
                    InputProps={{
-                       readOnly: true, // Hacemos el código de solo lectura
+                       readOnly: true,
                    }}
                />
                <TextField
@@ -102,16 +95,13 @@ function ProductForm({ open, onClose, product, onSave }) {
            </DialogContent>
            <DialogActions>
                <Button onClick={handleClose}>Cancelar</Button>
-               <Button
-                   onClick={handleSave}
-                   sx={{
-                       backgroundColor: 'var(--primary-color)',
-                       color: '#fff',
-                       '&:hover': {
-                           backgroundColor: 'var(--secondary-color)',
-                       },
-                   }}
-               >
+               <Button onClick={handleSave} sx={{
+                   backgroundColor: 'var(--primary-color)',
+                   color: '#fff',
+                   '&:hover': {
+                       backgroundColor: 'var(--secondary-color)',
+                   },
+               }}>
                    Guardar
                </Button>
            </DialogActions>
