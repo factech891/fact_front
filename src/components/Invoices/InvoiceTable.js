@@ -13,6 +13,7 @@ import {
     Box
 } from '@mui/material';
 import { Edit, Delete, Visibility, Download } from '@mui/icons-material';
+import PropTypes from 'prop-types';
 
 function InvoiceTable({ facturas, onEdit, onDelete, onPreview, onDownload, loading, error }) {
     if (loading) {
@@ -22,7 +23,6 @@ function InvoiceTable({ facturas, onEdit, onDelete, onPreview, onDownload, loadi
             </Box>
         );
     }
-
     if (error) {
         return (
             <Typography color="error" align="center">
@@ -30,7 +30,6 @@ function InvoiceTable({ facturas, onEdit, onDelete, onPreview, onDownload, loadi
             </Typography>
         );
     }
-
     if (!facturas?.length) {
         return (
             <Typography align="center" py={3}>
@@ -52,9 +51,13 @@ function InvoiceTable({ facturas, onEdit, onDelete, onPreview, onDownload, loadi
                 </TableHead>
                 <TableBody>
                     {facturas.map(factura => (
-                        <TableRow key={factura.id}>
+                        <TableRow 
+                            key={factura.id} 
+                            hover 
+                            sx={{ '&:hover': { backgroundColor: '#f5f5f5' } }}
+                        >
                             <TableCell>{factura.id}</TableCell>
-                            <TableCell>{factura.client.nombre}</TableCell> {/* Acceder a la propiedad nombre */}
+                            <TableCell>{factura.client?.nombre || 'Cliente desconocido'}</TableCell>
                             <TableCell>
                                 ${new Intl.NumberFormat('es-ES').format(factura.total)}
                             </TableCell>
@@ -62,24 +65,28 @@ function InvoiceTable({ facturas, onEdit, onDelete, onPreview, onDownload, loadi
                                 <IconButton
                                     onClick={() => onPreview(factura)}
                                     sx={{ color: 'var(--icon-view)' }}
+                                    aria-label="Previsualizar factura"
                                 >
                                     <Visibility />
                                 </IconButton>
                                 <IconButton
                                     onClick={() => onEdit(factura)}
                                     sx={{ color: 'var(--icon-edit)' }}
+                                    aria-label="Editar factura"
                                 >
                                     <Edit />
                                 </IconButton>
                                 <IconButton
                                     onClick={() => onDelete(factura.id)}
                                     sx={{ color: 'var(--icon-delete)' }}
+                                    aria-label="Eliminar factura"
                                 >
                                     <Delete />
                                 </IconButton>
                                 <IconButton
                                     onClick={() => onDownload(factura.id)}
                                     sx={{ color: 'var(--icon-download)' }}
+                                    aria-label="Descargar factura"
                                 >
                                     <Download />
                                 </IconButton>
@@ -91,5 +98,24 @@ function InvoiceTable({ facturas, onEdit, onDelete, onPreview, onDownload, loadi
         </TableContainer>
     );
 }
+
+// Validación de props
+InvoiceTable.propTypes = {
+    facturas: PropTypes.arrayOf(
+        PropTypes.shape({
+            id: PropTypes.string.isRequired,
+            client: PropTypes.shape({
+                nombre: PropTypes.string
+            }),
+            total: PropTypes.number.isRequired
+        })
+    ),
+    onEdit: PropTypes.func.isRequired,
+    onDelete: PropTypes.func.isRequired,
+    onPreview: PropTypes.func.isRequired,
+    onDownload: PropTypes.func.isRequired,
+    loading: PropTypes.bool,
+    error: PropTypes.string
+};
 
 export default InvoiceTable;
