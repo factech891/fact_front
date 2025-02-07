@@ -6,13 +6,15 @@ import {
 } from '@mui/material';
 
 export const ProductForm = ({ open, onClose, product, onSave }) => {
-  const [formData, setFormData] = useState({
+  const initialFormData = {
     codigo: '',
     nombre: '',
-    precio: '',
-    stock: '',
+    precio: '0',
+    stock: '0',
     descripcion: ''
-  });
+  };
+
+  const [formData, setFormData] = useState(initialFormData);
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
@@ -20,10 +22,12 @@ export const ProductForm = ({ open, onClose, product, onSave }) => {
       setFormData({
         codigo: product.codigo || '',
         nombre: product.nombre || '',
-        precio: product.precio?.toString() || '',
-        stock: product.stock?.toString() || '',
+        precio: product.precio?.toString() || '0',
+        stock: product.stock?.toString() || '0',
         descripcion: product.descripcion || ''
       });
+    } else {
+      setFormData(initialFormData);
     }
   }, [product]);
 
@@ -31,9 +35,9 @@ export const ProductForm = ({ open, onClose, product, onSave }) => {
     const newErrors = {};
     if (!formData.codigo.trim()) newErrors.codigo = 'El código es requerido';
     if (!formData.nombre.trim()) newErrors.nombre = 'El nombre es requerido';
-    if (!formData.precio) newErrors.precio = 'El precio es requerido';
-    if (Number(formData.precio) < 0) newErrors.precio = 'El precio no puede ser negativo';
-    if (Number(formData.stock) < 0) newErrors.stock = 'El stock no puede ser negativo';
+    if (isNaN(Number(formData.precio)) || Number(formData.precio) < 0) {
+      newErrors.precio = 'Ingrese un precio válido';
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -41,26 +45,35 @@ export const ProductForm = ({ open, onClose, product, onSave }) => {
   const handleSave = () => {
     if (validateForm()) {
       const productData = {
-        ...product, // Mantener el _id si existe
         ...formData,
-        precio: Number(formData.precio) || 0,
-        stock: Number(formData.stock) || 0
+        precio: Number(formData.precio),
+        stock: Number(formData.stock)
       };
+      
+      console.log('Datos a guardar:', productData); // <-- Añade esta línea
+      
+      // Si es una edición, mantener el _id
+      if (product?._id) {
+        productData._id = product._id;
+      }
+
+      console.log('Saving product:', productData); // Para debug
       onSave(productData);
       handleClose();
     }
   };
 
   const handleClose = () => {
-    setFormData({
-      codigo: '',
-      nombre: '',
-      precio: '',
-      stock: '',
-      descripcion: ''
-    });
+    setFormData(initialFormData);
     setErrors({});
     onClose();
+  };
+
+  const handlePriceChange = (e) => {
+    const value = e.target.value;
+    if (value === '' || (!isNaN(value) && Number(value) >= 0)) {
+      setFormData(prev => ({...prev, precio: value}));
+    }
   };
 
   return (
@@ -101,9 +114,12 @@ export const ProductForm = ({ open, onClose, product, onSave }) => {
                 label="Precio"
                 fullWidth
                 type="number"
-                inputProps={{ min: "0", step: "0.01" }}
+                inputProps={{ 
+                  min: "0",
+                  step: "0.01"
+                }}
                 value={formData.precio}
-                onChange={(e) => setFormData(prev => ({...prev, precio: e.target.value}))}
+                onChange={handlePriceChange}
                 error={!!errors.precio}
                 helperText={errors.precio}
               />
@@ -113,11 +129,12 @@ export const ProductForm = ({ open, onClose, product, onSave }) => {
                 label="Stock"
                 fullWidth
                 type="number"
-                inputProps={{ min: "0", step: "1" }}
+                inputProps={{ 
+                  min: "0",
+                  step: "1"
+                }}
                 value={formData.stock}
                 onChange={(e) => setFormData(prev => ({...prev, stock: e.target.value}))}
-                error={!!errors.stock}
-                helperText={errors.stock}
               />
             </Grid>
             <Grid item xs={12}>

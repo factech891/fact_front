@@ -13,6 +13,10 @@ const Products = () => {
 
   const handleSave = async (product) => {
     try {
+      console.log('2. Products - Recibido del form:', {
+        precio: product.precio,
+        productoCompleto: product
+      });
       await saveProduct(product);
       setOpenForm(false);
       setSelectedProduct(null);
