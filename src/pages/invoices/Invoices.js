@@ -4,21 +4,28 @@ import { Box, Button, Typography } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import { InvoiceTable } from './InvoiceTable';
 import { InvoiceForm } from './InvoiceForm';
+import { InvoicePreview } from './InvoicePreview/InvoicePreview';
 import { useInvoices } from '../../hooks/useInvoices';
+import { useClients } from '../../hooks/useClients';
+import { useProducts } from '../../hooks/useProducts';
 
 const Invoices = () => {
   const [openForm, setOpenForm] = useState(false);
+  const [openPreview, setOpenPreview] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
-  const { invoices, loading, error, saveInvoice, deleteInvoice } = useInvoices();
+  
+  const { invoices, loading: loadingInvoices, saveInvoice, deleteInvoice } = useInvoices();
+  const { clients, loading: loadingClients } = useClients();
+  const { products, loading: loadingProducts } = useProducts();
 
-  const handleSave = async (invoice) => {
-    try {
-      await saveInvoice(invoice);
-      setOpenForm(false);
-      setSelectedInvoice(null);
-    } catch (error) {
-      console.error('Error saving invoice:', error);
-    }
+  const handlePreview = (invoice) => {
+    setSelectedInvoice(invoice);
+    setOpenPreview(true);
+  };
+
+  const handleDownload = async (invoice) => {
+    // Aquí implementaremos la descarga del PDF
+    console.log('Descargando factura:', invoice);
   };
 
   const handleEdit = (invoice) => {
@@ -36,8 +43,9 @@ const Invoices = () => {
     }
   };
 
-  if (loading) return <Typography>Cargando...</Typography>;
-  if (error) return <Typography color="error">{error}</Typography>;
+  if (loadingInvoices || loadingClients || loadingProducts) {
+    return <Typography>Cargando...</Typography>;
+  }
 
   return (
     <Box>
@@ -46,7 +54,10 @@ const Invoices = () => {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => setOpenForm(true)}
+          onClick={() => {
+            setSelectedInvoice(null);
+            setOpenForm(true);
+          }}
         >
           Nueva Factura
         </Button>
@@ -56,16 +67,30 @@ const Invoices = () => {
         invoices={invoices}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onPreview={handlePreview}
+        onDownload={handleDownload}
       />
 
       <InvoiceForm
         open={openForm}
         invoice={selectedInvoice}
+        clients={clients}
+        products={products}
         onClose={() => {
           setOpenForm(false);
           setSelectedInvoice(null);
         }}
-        onSave={handleSave}
+        onSave={saveInvoice}
+      />
+
+      <InvoicePreview
+        open={openPreview}
+        invoice={selectedInvoice}
+        onClose={() => {
+          setOpenPreview(false);
+          setSelectedInvoice(null);
+        }}
+        onDownload={handleDownload}
       />
     </Box>
   );

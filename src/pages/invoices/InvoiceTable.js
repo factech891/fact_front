@@ -1,9 +1,14 @@
 // src/pages/invoices/InvoiceTable.js
 import { DataGrid } from '@mui/x-data-grid';
 import { Card, IconButton, Tooltip, Chip } from '@mui/material';
-import { Edit, Delete, Visibility } from '@mui/icons-material';
+import { 
+  Edit, 
+  Delete, 
+  Visibility,
+  FileDownload // Añadimos el icono de descarga
+} from '@mui/icons-material';
 
-export const InvoiceTable = ({ invoices = [], onEdit, onDelete }) => {
+export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDownload }) => {
   const columns = [
     { 
       field: 'number', 
@@ -54,13 +59,26 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete }) => {
     {
       field: 'actions',
       headerName: 'Acciones',
-      width: 150,
+      width: 180, // Aumentamos el ancho para acomodar el nuevo botón
       sortable: false,
       renderCell: (params) => (
         <>
-          <Tooltip title="Ver">
-            <IconButton color="info" size="small">
+          <Tooltip title="Previsualizar">
+            <IconButton 
+              onClick={() => onPreview && onPreview(params.row)} 
+              color="info" 
+              size="small"
+            >
               <Visibility fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Descargar PDF">
+            <IconButton 
+              onClick={() => onDownload && onDownload(params.row)} 
+              color="secondary" 
+              size="small"
+            >
+              <FileDownload fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Editar">
@@ -74,7 +92,7 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete }) => {
           </Tooltip>
           <Tooltip title="Eliminar">
             <IconButton 
-              onClick={() => onDelete && onDelete(params.row?._id)} 
+              onClick={() => onDelete && onDelete(params.row._id)} 
               color="error" 
               size="small"
             >
