@@ -1,32 +1,19 @@
-import React from 'react';
+// src/App.js
 import { Routes, Route } from 'react-router-dom';
-import Dashboard from './components/Dashboard/Dashboard';
-import Invoices from './components/Invoices/Invoices';
-import Clients from './components/Clients/Clients';
-import Products from './components/Products/Products';
-import Sidebar from './components/Sidebar/Sidebar';
-import { Box } from '@mui/material';
+import { DashboardLayout } from './layouts/DashboardLayout';
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import Dashboard from './pages/dashboard/Dashboard';
+import Invoices from './pages/invoices/Invoices';
+import Clients from './pages/clients/Clients';
+import Products from './pages/products/Products';
+import theme from './theme';
 import './styles/global.css';
 
 function App() {
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Sidebar */}
-      <Sidebar />
-
-      {/* Contenedor principal */}
-      <Box
-        sx={{
-          flexGrow: 1,
-          padding: '20px',
-          backgroundColor: 'var(--background-color)', // Usamos la variable de global.css
-          backgroundImage: 'url(/path/to/background-image.jpg)', // Ruta de la imagen de fondo
-          backgroundSize: 'cover', // Que la imagen ocupe todo
-          backgroundRepeat: 'no-repeat',
-          backgroundPosition: 'center',
-        }}
-      >
-        {/* Aquí se renderizan las rutas */}
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <DashboardLayout>
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/invoices" element={<Invoices />} />
@@ -34,8 +21,8 @@ function App() {
           <Route path="/products" element={<Products />} />
           <Route path="*" element={<h1>Página no encontrada</h1>} />
         </Routes>
-      </Box>
-    </Box>
+      </DashboardLayout>
+    </ThemeProvider>
   );
 }
 
