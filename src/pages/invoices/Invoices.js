@@ -21,24 +21,27 @@ const Invoices = () => {
   const { clients, loading: loadingClients } = useClients();
   const { products, loading: loadingProducts } = useProducts();
 
-  // Manejador para previsualizar una factura
+  // Manejador para previsualizar una factura con mejoras
   const handlePreview = async (invoice) => {
-    console.log('Datos completos de la factura:', invoice);
+    console.log('Datos originales de factura:', invoice);
+    
     try {
-      // Obtener datos completos del cliente y productos si es necesario
-      const fullInvoice = {
+      // Procesamos la factura asegurando valores seguros
+      const processedInvoice = {
         ...invoice,
-        client: clients.find(c => c._id === invoice.client._id),
-        items: invoice.items.map(item => ({
-          ...item,
-          product: products.find(p => p._id === (item.product._id || item.product))
-        }))
+        subtotal: Number(invoice.subtotal || 0),
+        tax: Number(invoice.tax || 0),
+        total: Number(invoice.total || 0),
+        moneda: invoice.moneda || 'USD',
+        items: invoice.items || [],
+        client: invoice.client || null
       };
-      console.log('Factura procesada para preview:', fullInvoice);
-      setSelectedInvoice(fullInvoice);
+
+      console.log('Factura procesada:', processedInvoice);
+      setSelectedInvoice(processedInvoice);
       setOpenPreview(true);
     } catch (error) {
-      console.error('Error al procesar factura para preview:', error);
+      console.error('Error procesando factura:', error);
       setError({
         severity: 'error',
         message: 'Error al cargar la vista previa'

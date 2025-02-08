@@ -5,7 +5,7 @@ import {
   Edit, 
   Delete, 
   Visibility,
-  FileDownload // Añadimos el icono de descarga
+  FileDownload 
 } from '@mui/icons-material';
 
 export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDownload }) => {
@@ -59,13 +59,16 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
     {
       field: 'actions',
       headerName: 'Acciones',
-      width: 180, // Aumentamos el ancho para acomodar el nuevo botón
+      width: 180,
       sortable: false,
       renderCell: (params) => (
         <>
           <Tooltip title="Previsualizar">
             <IconButton 
-              onClick={() => onPreview && onPreview(params.row)} 
+              onClick={() => {
+                console.log('Datos a enviar a preview:', params.row);
+                onPreview(params.row);
+              }} 
               color="info" 
               size="small"
             >

@@ -1,34 +1,73 @@
 // src/pages/invoices/InvoicePreview/ClientInfo.js
-import { Box, Typography, Grid } from '@mui/material';
+import { Typography, Box } from '@mui/material';
 
-export const ClientInfo = ({ client }) => (
-  <Box sx={{ mb: 3 }}>
-    <Typography variant="h6" gutterBottom>
-      Información del Cliente
-    </Typography>
-    <Grid container spacing={2}>
-      <Grid item xs={12}>
-        <Typography>
-          <strong>Nombre:</strong> {client?.nombre}
+const styles = {
+  clientInfo: {
+    backgroundColor: '#f8f9fa',
+    padding: '20px',
+    marginBottom: '30px',
+    border: '1px solid #e0e0e7'
+  },
+  title: {
+    color: '#002855',
+    fontWeight: 'bold',
+    fontSize: '14px',
+    marginBottom: '15px'
+  },
+  infoRow: {
+    fontSize: '10px',
+    color: '#2c3e50',
+    marginBottom: '5px'
+  },
+  label: {
+    fontWeight: 'bold',
+    display: 'inline-block',
+    marginRight: '5px'
+  },
+  content: {
+    display: 'inline-block'
+  }
+};
+
+export const ClientInfo = ({ client }) => {
+  if (!client) return null;
+
+  return (
+    <Box sx={styles.clientInfo}>
+      <Typography sx={styles.title}>
+        DATOS DEL CLIENTE
+      </Typography>
+      
+      <Typography sx={styles.infoRow}>
+        <span style={styles.label}>Cliente:</span>
+        <span style={styles.content}>{client.nombre || 'N/A'}</span>
+      </Typography>
+      
+      <Typography sx={styles.infoRow}>
+        <span style={styles.label}>RIF/CI:</span>
+        <span style={styles.content}>{client.rif || 'N/A'}</span>
+      </Typography>
+      
+      <Typography sx={styles.infoRow}>
+        <span style={styles.label}>Dirección:</span>
+        <span style={styles.content}>{client.direccion || 'N/A'}</span>
+      </Typography>
+      
+      {client.telefono && (
+        <Typography sx={styles.infoRow}>
+          <span style={styles.label}>Teléfono:</span>
+          <span style={styles.content}>{client.telefono}</span>
         </Typography>
-      </Grid>
-      <Grid item xs={12}>
-        <Typography>
-          <strong>RIF:</strong> {client?.rif}
+      )}
+      
+      {client.email && (
+        <Typography sx={styles.infoRow}>
+          <span style={styles.label}>Email:</span>
+          <span style={styles.content}>{client.email}</span>
         </Typography>
-      </Grid>
-      <Grid item xs={12}>
-        <Typography>
-          <strong>Dirección:</strong> {client?.direccion}
-        </Typography>
-      </Grid>
-      <Grid item xs={12}>
-        <Typography>
-          <strong>Teléfono:</strong> {client?.telefono}
-        </Typography>
-      </Grid>
-    </Grid>
-  </Box>
-);
+      )}
+    </Box>
+  );
+};
 
 export default ClientInfo;

@@ -1,41 +1,67 @@
 // src/pages/invoices/InvoicePreview/InvoiceItemsTable.js
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Paper
-  } from '@mui/material';
-  
-  export const InvoiceItemsTable = ({ items = [], moneda = 'USD' }) => (
-    <TableContainer component={Paper} sx={{ mb: 3 }}>
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableContainer, 
+  TableHead, 
+  TableRow 
+} from '@mui/material';
+
+const styles = {
+  tableHeader: {
+    backgroundColor: '#002855',
+    color: 'white',
+    fontSize: '10px',
+    padding: '10px'
+  },
+  tableRow: {
+    '&:nth-of-type(odd)': {
+      backgroundColor: '#f8f9fa'
+    }
+  },
+  tableCell: {
+    fontSize: '10px',
+    padding: '7px 10px'
+  }
+};
+
+export const InvoiceItemsTable = ({ items = [], moneda = 'USD' }) => {
+  console.log('Items recibidos en tabla:', items);
+
+  if (!items || items.length === 0) {
+    return null;
+  }
+
+  return (
+    <TableContainer>
       <Table>
         <TableHead>
           <TableRow>
-            <TableCell>Código</TableCell>
-            <TableCell>Descripción</TableCell>
-            <TableCell align="right">Cantidad</TableCell>
-            <TableCell align="right">Precio Unit.</TableCell>
-            <TableCell align="right">Subtotal</TableCell>
-            <TableCell align="right">IVA</TableCell>
+            <TableCell sx={styles.tableHeader}>Código</TableCell>
+            <TableCell sx={styles.tableHeader}>Descripción</TableCell>
+            <TableCell align="right" sx={styles.tableHeader}>Cantidad</TableCell>
+            <TableCell align="right" sx={styles.tableHeader}>Precio Unit.</TableCell>
+            <TableCell align="right" sx={styles.tableHeader}>Total</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {items.map((item, index) => (
-            <TableRow key={index}>
-              <TableCell>{item.product?.codigo}</TableCell>
-              <TableCell>{item.product?.nombre}</TableCell>
-              <TableCell align="right">{item.quantity}</TableCell>
-              <TableCell align="right">
+            <TableRow key={index} sx={styles.tableRow}>
+              <TableCell sx={styles.tableCell}>
+                {item.product?.codigo}
+              </TableCell>
+              <TableCell sx={styles.tableCell}>
+                {item.product?.nombre}
+              </TableCell>
+              <TableCell align="right" sx={styles.tableCell}>
+                {item.quantity}
+              </TableCell>
+              <TableCell align="right" sx={styles.tableCell}>
                 {moneda} {item.price?.toFixed(2)}
               </TableCell>
-              <TableCell align="right">
-                {moneda} {(item.quantity * item.price)?.toFixed(2)}
-              </TableCell>
-              <TableCell align="right">
-                {moneda} {(item.quantity * item.price * 0.16)?.toFixed(2)}
+              <TableCell align="right" sx={styles.tableCell}>
+                {moneda} {(item.quantity * item.price).toFixed(2)}
               </TableCell>
             </TableRow>
           ))}
@@ -43,5 +69,6 @@ import {
       </Table>
     </TableContainer>
   );
+};
 
 export default InvoiceItemsTable;
