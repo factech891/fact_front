@@ -117,7 +117,11 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
     status: invoice.status || 'draft',
     moneda: invoice.moneda || 'USD',
     client: invoice.client || {},
-    _id: invoice._id
+    _id: invoice._id,
+    // Agregar los items y otros campos necesarios
+    items: invoice.items || [],
+    subtotal: invoice.subtotal || 0,
+    tax: invoice.tax || 0
   }));
 
   return (
@@ -141,3 +145,5 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
     </Card>
   );
 };
+
+export default InvoiceTable;

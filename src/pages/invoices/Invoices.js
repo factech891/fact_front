@@ -1,4 +1,4 @@
-// src/pages/invoices/Invoices.js
+// Invoices.js
 import { useState } from 'react';
 import { Box, Button, Typography, Snackbar, Alert } from '@mui/material';
 import { Add as AddIcon, FileDownload } from '@mui/icons-material';
@@ -21,19 +21,28 @@ const Invoices = () => {
   const { clients, loading: loadingClients } = useClients();
   const { products, loading: loadingProducts } = useProducts();
 
-  // Manejador para previsualizar una factura con mejoras
   const handlePreview = async (invoice) => {
     console.log('Datos originales de factura:', invoice);
     
     try {
-      // Procesamos la factura asegurando valores seguros
+      // Asegurarnos de que los items tengan la estructura correcta
+      const processedItems = invoice.items?.map(item => ({
+        product: {
+          codigo: item.codigo || item.product?.codigo,
+          nombre: item.descripcion || item.product?.nombre
+        },
+        quantity: item.quantity,
+        price: item.price,
+        subtotal: item.quantity * item.price
+      })) || [];
+
       const processedInvoice = {
         ...invoice,
+        items: processedItems,
         subtotal: Number(invoice.subtotal || 0),
         tax: Number(invoice.tax || 0),
         total: Number(invoice.total || 0),
         moneda: invoice.moneda || 'USD',
-        items: invoice.items || [],
         client: invoice.client || null
       };
 
@@ -49,7 +58,6 @@ const Invoices = () => {
     }
   };
 
-  // Manejador para descargar una factura como PDF
   const handleDownload = async (invoice) => {
     setDownloading(true);
     setError(null);
@@ -70,14 +78,12 @@ const Invoices = () => {
     }
   };
 
-  // Manejador para editar una factura
   const handleEdit = (invoice) => {
     console.log('Editando factura:', invoice);
     setSelectedInvoice(invoice);
     setOpenForm(true);
   };
 
-  // Manejador para eliminar una factura
   const handleDelete = async (id) => {
     if (window.confirm('¿Está seguro de eliminar esta factura?')) {
       try {
@@ -136,7 +142,6 @@ const Invoices = () => {
         onSave={saveInvoice}
       />
 
-      {/* La vista previa ahora recibe más datos procesados */}
       <InvoicePreview
         open={openPreview}
         invoice={selectedInvoice}
