@@ -1,12 +1,12 @@
 // src/pages/invoices/InvoicePreview/ClientInfo.js
 import { Typography, Box } from '@mui/material';
 
-const styles = {
+const getStyles = (theme) => ({
   clientInfo: {
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.background.primary,
     padding: '15px 20px',
     marginBottom: '20px',
-    border: '1px solid #e0e0e7',
+    border: `1px solid ${theme.border}`,
     borderRadius: '6px',
     position: 'relative',
     boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
@@ -17,16 +17,16 @@ const styles = {
       left: 0,
       bottom: 0,
       width: '3px',
-      background: 'linear-gradient(to bottom, #002855, #0057a8)'
+      background: theme.gradient
     }
   },
   title: {
-    color: '#002855',
+    color: theme.primary,
     fontWeight: '600',
-    fontSize: '14px',
+    fontSize: theme.fontSize.subtitle,
     marginBottom: '15px',
     paddingBottom: '8px',
-    borderBottom: '1px solid #f0f0f0',
+    borderBottom: `1px solid ${theme.border}`,
     textTransform: 'uppercase',
     letterSpacing: '0.5px'
   },
@@ -36,15 +36,15 @@ const styles = {
     gap: '10px'
   },
   infoRow: {
-    fontSize: '13px',
-    color: '#2c3e50',
+    fontSize: theme.fontSize.body,
+    color: theme.text.primary,
     display: 'flex',
     alignItems: 'center'
   },
   label: {
     fontWeight: '600',
     minWidth: '100px',
-    color: '#4a5568',
+    color: theme.text.secondary,
     position: 'relative',
     '&::after': {
       content: '":"',
@@ -54,12 +54,15 @@ const styles = {
   },
   content: {
     flex: 1,
-    paddingLeft: '5px'
+    paddingLeft: '5px',
+    color: theme.text.primary
   }
-};
+});
 
-export const ClientInfo = ({ client }) => {
+export const ClientInfo = ({ client, theme }) => {
   if (!client) return null;
+
+  const styles = getStyles(theme);
 
   const clientFields = [
     { label: 'Cliente', value: client.nombre },

@@ -1,15 +1,14 @@
 // src/pages/invoices/InvoicePreview/InvoiceHeader.js
 import { Grid, Typography, Box } from '@mui/material';
 
-
-const styles = {
+const getStyles = (theme) => ({
   header: {
-    backgroundColor: '#002855',
-    background: 'linear-gradient(135deg, #002855 0%, #004a9f 100%)',
+    backgroundColor: theme.primary,
+    background: theme.gradient,
     color: 'white',
-    padding: '20px', // Reducido de 30px a 20px
+    padding: '20px',
     position: 'relative',
-    height: '120px', // Altura fija más compacta
+    height: '120px',
     '&::after': {
       content: '""',
       position: 'absolute',
@@ -17,67 +16,69 @@ const styles = {
       left: '50%',
       transform: 'translateX(-50%)',
       width: '95%',
-      height: '1px', // Más sutil
+      height: '1px',
       background: 'linear-gradient(to right, transparent, #ffffff80, transparent)'
     }
   },
   companyInfo: {
-    padding: '10px', // Reducido de 15px a 10px
-    borderLeft: '1px solid rgba(255, 255, 255, 0.2)' // Más sutil
+    padding: '10px',
+    borderLeft: '1px solid rgba(255, 255, 255, 0.2)'
   },
   companyName: {
     color: 'white',
     fontWeight: '600',
-    fontSize: '22px', // Reducido de 26px a 22px
-    marginBottom: '10px', // Reducido de 15px a 10px
+    fontSize: theme.fontSize.title,
+    marginBottom: '10px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   },
   companyText: {
     color: 'white',
-    fontSize: '12px', // Reducido de 14px a 12px
-    marginBottom: '6px', // Reducido de 8px a 6px
+    fontSize: theme.fontSize.small,
+    marginBottom: '6px',
     opacity: '0.9'
   },
   invoiceBox: {
-    backgroundColor: 'white',
-    padding: '15px', // Reducido de 25px a 15px
-    borderRadius: '6px', // Reducido de 8px a 6px
-    color: '#002855',
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)', // Sombra más sutil
-    border: '1px solid rgba(0, 0, 0, 0.1)',
+    backgroundColor: theme.background.primary,
+    padding: '15px',
+    borderRadius: '6px',
+    color: theme.primary,
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+    border: `1px solid ${theme.border}`,
     position: 'relative',
-    marginTop: '-5px', // Reducido de -10px a -5px
-    width: '200px', // Ancho fijo para la caja
+    marginTop: '-5px',
+    width: '200px',
     '&::before': {
       content: '""',
       position: 'absolute',
       top: 0,
       left: 0,
       right: 0,
-      height: '3px', // Reducido de 4px a 3px
-      background: 'linear-gradient(to right, #002855, #0057a8)'
+      height: '3px',
+      background: theme.gradient
     }
   },
   invoiceTitle: {
-    color: '#002855',
+    color: theme.primary,
     fontWeight: '600',
-    fontSize: '20px', // Reducido de 24px a 20px
-    marginBottom: '10px', // Reducido de 15px a 10px
+    fontSize: theme.fontSize.subtitle,
+    marginBottom: '10px',
     textAlign: 'center'
   },
   invoiceData: {
     textAlign: 'center',
     '& > *': {
-      margin: '6px 0', // Reducido de 8px a 6px
-      color: '#2c3e50',
-      fontSize: '13px' // Reducido de 15px a 13px
+      margin: '6px 0',
+      color: theme.text.primary,
+      fontSize: theme.fontSize.body
     }
   }
-};
+});
 
-export const InvoiceHeader = ({ invoice, empresa }) => {
+export const InvoiceHeader = ({ invoice, empresa, theme }) => {
   if (!invoice) return null;
+
+  const styles = getStyles(theme);
 
   const formatDate = (date) => {
     return new Date(date).toLocaleDateString('es-ES', {

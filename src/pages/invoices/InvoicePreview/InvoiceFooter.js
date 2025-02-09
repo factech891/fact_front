@@ -1,15 +1,15 @@
 // src/pages/invoices/InvoicePreview/InvoiceFooter.js
 import { Typography, Box, Grid } from '@mui/material';
 
-const styles = {
+const getStyles = (theme) => ({
   footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     padding: '20px 25px',
-    background: 'linear-gradient(to bottom, #f8f9fa, #ffffff)',
-    borderTop: '1px solid #e0e0e7',
+    background: `linear-gradient(to bottom, ${theme.background.secondary}, ${theme.background.primary})`,
+    borderTop: `1px solid ${theme.border}`,
     '&::before': {
       content: '""',
       position: 'absolute',
@@ -18,7 +18,7 @@ const styles = {
       transform: 'translateX(-50%)',
       width: '95%',
       height: '1px',
-      background: 'linear-gradient(to right, transparent, #002855, transparent)'
+      background: `linear-gradient(to right, transparent, ${theme.primary}, transparent)`
     }
   },
   section: {
@@ -26,15 +26,15 @@ const styles = {
     padding: '0 10px'
   },
   title: {
-    color: '#002855',
+    color: theme.primary,
     fontWeight: '600',
-    fontSize: '12px',
+    fontSize: theme.fontSize.body,
     marginBottom: '4px',
     letterSpacing: '0.5px'
   },
   content: {
-    color: '#2c3e50',
-    fontSize: '11px',
+    color: theme.text.primary,
+    fontSize: theme.fontSize.small,
     lineHeight: '1.4'
   },
   bulletPoint: {
@@ -43,65 +43,64 @@ const styles = {
     marginBottom: '3px',
     '&::before': {
       content: '"•"',
-      color: '#002855',
+      color: theme.primary,
       marginRight: '5px',
       fontWeight: 'bold'
     }
-  },
-  gridContainer: {
-    borderTop: '1px solid #e0e0e7',
-    paddingTop: '10px',
-    marginTop: '10px'
   },
   paymentInfo: {
     display: 'flex',
     alignItems: 'center',
     gap: '5px',
-    color: '#2c3e50',
-    fontSize: '11px',
+    color: theme.text.primary,
+    fontSize: theme.fontSize.small,
     '& span': {
       fontWeight: '600',
-      color: '#002855'
+      color: theme.primary
     }
   }
-};
+});
 
-export const InvoiceFooter = ({ invoice }) => (
-  <Box sx={styles.footer}>
-    <Grid container spacing={2}>
-      <Grid item xs={6}>
-        <Box sx={styles.section}>
-          <Typography sx={styles.title}>
-            Información de Pago
-          </Typography>
-          <Box sx={styles.paymentInfo}>
-            <span>Condición:</span> {invoice.condicionesPago}
-            {invoice.condicionesPago === 'Crédito' && (
-              <> - <span>Plazo:</span> {invoice.diasCredito} días</>
-            )}
-          </Box>
-        </Box>
-      </Grid>
-      <Grid item xs={6}>
-        <Box sx={styles.section}>
-          <Typography sx={styles.title}>
-            Notas Importantes
-          </Typography>
-          <Box sx={styles.content}>
-            <Box sx={styles.bulletPoint}>
-              Esta factura es un documento legal y sirve como comprobante fiscal.
-            </Box>
-            <Box sx={styles.bulletPoint}>
-              Los precios incluyen IVA según corresponda.
-            </Box>
-            <Box sx={styles.bulletPoint}>
-              Para cualquier consulta, contacte a nuestro departamento de atención al cliente.
+export const InvoiceFooter = ({ invoice, theme }) => {
+  const styles = getStyles(theme);
+
+  return (
+    <Box sx={styles.footer}>
+      <Grid container spacing={2}>
+        <Grid item xs={6}>
+          <Box sx={styles.section}>
+            <Typography sx={styles.title}>
+              Información de Pago
+            </Typography>
+            <Box sx={styles.paymentInfo}>
+              <span>Condición:</span> {invoice.condicionesPago}
+              {invoice.condicionesPago === 'Crédito' && (
+                <> - <span>Plazo:</span> {invoice.diasCredito} días</>
+              )}
             </Box>
           </Box>
-        </Box>
+        </Grid>
+        <Grid item xs={6}>
+          <Box sx={styles.section}>
+            <Typography sx={styles.title}>
+              Notas Importantes
+            </Typography>
+            <Box sx={styles.content}>
+              <Box sx={styles.bulletPoint}>
+                Esta factura es un documento legal y sirve como comprobante fiscal.
+              </Box>
+              <Box sx={styles.bulletPoint}>
+                Los precios incluyen IVA según corresponda.
+              </Box>
+              <Box sx={styles.bulletPoint}>
+                Para cualquier consulta, contacte a nuestro departamento de atención al cliente.
+              </Box>
+            </Box>
+          </Box>
+        </Grid>
       </Grid>
-    </Grid>
-  </Box>
-);
+    </Box>
+  );
+};
 
 export default InvoiceFooter;

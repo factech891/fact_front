@@ -1,14 +1,14 @@
 // src/pages/invoices/InvoicePreview/InvoiceTotals.js
 import { Box, Typography, Divider } from '@mui/material';
 
-const styles = {
+const getStyles = (theme) => ({
   totalsContainer: {
     width: '300px',
     marginLeft: 'auto',
     marginTop: '20px',
     padding: '15px 20px',
-    backgroundColor: '#ffffff',
-    border: '1px solid #e0e0e7',
+    backgroundColor: theme.background.primary,
+    border: `1px solid ${theme.border}`,
     borderRadius: '6px',
     boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
     position: 'relative',
@@ -19,7 +19,7 @@ const styles = {
       right: 0,
       bottom: 0,
       width: '3px',
-      background: 'linear-gradient(to bottom, #002855, #0057a8)'
+      background: theme.gradient
     }
   },
   row: {
@@ -27,16 +27,16 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: '8px',
-    fontSize: '13px',
-    color: '#2c3e50'
+    fontSize: theme.fontSize.body,
+    color: theme.text.primary
   },
   totalRow: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     fontWeight: '600',
-    fontSize: '15px',
-    color: '#002855',
+    fontSize: theme.fontSize.subtitle,
+    color: theme.primary,
     marginTop: '8px'
   },
   label: {
@@ -49,19 +49,20 @@ const styles = {
   },
   divider: {
     margin: '12px 0',
-    backgroundColor: '#e0e0e7'
+    backgroundColor: theme.border
   },
   totalAmount: {
     fontFamily: 'monospace',
     minWidth: '120px',
     textAlign: 'right',
     fontWeight: '600',
-    color: '#002855'
+    color: theme.primary
   }
-};
+});
 
-export const InvoiceTotals = ({ invoice }) => {
-  // Función para formatear números
+export const InvoiceTotals = ({ invoice, theme }) => {
+  const styles = getStyles(theme);
+
   const formatNumber = (number) => {
     return new Intl.NumberFormat('es-VE', {
       minimumFractionDigits: 2,
@@ -92,7 +93,7 @@ export const InvoiceTotals = ({ invoice }) => {
       <Divider sx={styles.divider} />
       
       <Box sx={styles.totalRow}>
-        <Typography variant="subtitle1">TOTAL:</Typography>
+        <Typography>TOTAL:</Typography>
         <Typography sx={styles.totalAmount}>
           {invoice.moneda} {formatNumber(total)}
         </Typography>

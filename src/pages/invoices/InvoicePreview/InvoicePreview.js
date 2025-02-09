@@ -1,19 +1,22 @@
 // src/pages/invoices/InvoicePreview/InvoicePreview.js
+import { useState } from 'react';
 import { Paper, Dialog, DialogContent } from '@mui/material';
 import { InvoiceHeader } from './InvoiceHeader';
 import { ClientInfo } from './ClientInfo';
 import { InvoiceItemsTable } from './InvoiceItemsTable';
 import { InvoiceTotals } from './InvoiceTotals';
 import { InvoiceFooter } from './InvoiceFooter';
+import { InvoiceStyleSelector } from './InvoiceStyleSelector';
+import { invoiceThemes } from './invoiceThemes';
 
-const styles = {
+const getStyles = (theme) => ({
   invoiceContainer: {
     padding: '0',
-    backgroundColor: '#fff',
+    backgroundColor: theme.background.primary,
     minHeight: '842px', // Altura A4
     width: '595px',     // Ancho A4
     margin: '0 auto',
-    position: 'relative', // Importante para el footer
+    position: 'relative',
     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
     '&::before': {
       content: '""',
@@ -22,17 +25,21 @@ const styles = {
       left: 0,
       right: 0,
       height: '4px',
-      background: 'linear-gradient(to right, #002855, #0057a8)'
+      background: theme.gradient
     }
   },
   content: {
     padding: '20px 25px',
-    paddingBottom: '200px', // Espacio para el footer
+    paddingBottom: '200px',
     position: 'relative'
   }
-};
+});
 
 export const InvoicePreview = ({ open, onClose, invoice }) => {
+  const [currentStyle, setCurrentStyle] = useState('modern');
+  const theme = invoiceThemes[currentStyle];
+  const styles = getStyles(theme);
+
   if (!invoice) return null;
 
   return (
@@ -49,6 +56,10 @@ export const InvoicePreview = ({ open, onClose, invoice }) => {
       }}
     >
       <DialogContent sx={{ padding: 0 }} id="invoice-preview">
+        <InvoiceStyleSelector 
+          currentStyle={currentStyle}
+          onStyleChange={setCurrentStyle}
+        />
         <Paper sx={styles.invoiceContainer}>
           <InvoiceHeader 
             invoice={invoice} 
@@ -59,22 +70,29 @@ export const InvoicePreview = ({ open, onClose, invoice }) => {
               telefono: '+58 424-1234567',
               email: 'info@tuempresa.com'
             }}
+            theme={theme}
           />
           <div style={styles.content}>
             <ClientInfo 
-              client={invoice.client} 
+              client={invoice.client}
+              theme={theme}
             />
             {invoice.items && invoice.items.length > 0 && (
               <InvoiceItemsTable 
                 items={invoice.items} 
-                moneda={invoice.moneda} 
+                moneda={invoice.moneda}
+                theme={theme}
               />
             )}
             <InvoiceTotals 
-              invoice={invoice} 
+              invoice={invoice}
+              theme={theme}
             />
           </div>
-          <InvoiceFooter invoice={invoice} />
+          <InvoiceFooter 
+            invoice={invoice}
+            theme={theme}
+          />
         </Paper>
       </DialogContent>
     </Dialog>

@@ -8,48 +8,50 @@ import {
   TableRow 
 } from '@mui/material';
 
-const styles = {
+const getStyles = (theme) => ({
   tableContainer: {
     marginBottom: '20px',
-    border: '1px solid #e0e0e7',
+    border: `1px solid ${theme.border}`,
     borderRadius: '6px',
     overflow: 'hidden',
     boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
   },
   tableHeader: {
-    backgroundColor: '#002855',
+    backgroundColor: theme.primary,
     color: 'white',
-    fontSize: '12px',
+    fontSize: theme.fontSize.small,
     padding: '10px 16px',
     fontWeight: '600',
     letterSpacing: '0.5px',
-    background: 'linear-gradient(135deg, #002855 0%, #004a9f 100%)',
+    background: theme.gradient
   },
   tableRow: {
     '&:nth-of-type(odd)': {
-      backgroundColor: '#f8f9fa'
+      backgroundColor: theme.background.secondary
     },
     '&:nth-of-type(even)': {
-      backgroundColor: '#ffffff'
+      backgroundColor: theme.background.primary
     }
   },
   tableCell: {
-    fontSize: '12px',
+    fontSize: theme.fontSize.body,
     padding: '8px 16px',
-    color: '#2c3e50',
-    borderBottom: '1px solid #f0f0f0'
+    color: theme.text.primary,
+    borderBottom: `1px solid ${theme.border}`
   },
   numericCell: {
-    fontSize: '12px',
+    fontSize: theme.fontSize.body,
     padding: '8px 16px',
-    color: '#2c3e50',
+    color: theme.text.primary,
     fontFamily: 'monospace',
-    borderBottom: '1px solid #f0f0f0'
+    borderBottom: `1px solid ${theme.border}`
   }
-};
+});
 
-export const InvoiceItemsTable = ({ items = [], moneda = 'USD' }) => {
+export const InvoiceItemsTable = ({ items = [], moneda = 'USD', theme }) => {
   if (!items || items.length === 0) return null;
+
+  const styles = getStyles(theme);
 
   const formatNumber = (number) => {
     return new Intl.NumberFormat('es-VE', {
