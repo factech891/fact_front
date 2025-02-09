@@ -4,118 +4,81 @@ import { InvoiceHeader } from './InvoiceHeader';
 import { ClientInfo } from './ClientInfo';
 import { InvoiceItemsTable } from './InvoiceItemsTable';
 import { InvoiceTotals } from './InvoiceTotals';
+import { InvoiceFooter } from './InvoiceFooter';
 
 const styles = {
- invoiceContainer: {
-   padding: '0',
-   backgroundColor: '#fff',
-   minHeight: '842px', // Altura A4
-   width: '595px',     // Ancho A4
-   margin: '0 auto',
-   position: 'relative'
- },
- content: {
-   padding: '20px'
- }
-};
-
-const empresaDefault = {
- nombre: 'Tu Empresa',
- direccion: 'Dirección de la empresa',
- rif: 'J-123456789',
- telefono: '+58 424-1234567',
- email: 'info@tuempresa.com'
+  invoiceContainer: {
+    padding: '0',
+    backgroundColor: '#fff',
+    minHeight: '842px', // Altura A4
+    width: '595px',     // Ancho A4
+    margin: '0 auto',
+    position: 'relative', // Importante para el footer
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: '4px',
+      background: 'linear-gradient(to right, #002855, #0057a8)'
+    }
+  },
+  content: {
+    padding: '20px 25px',
+    paddingBottom: '200px', // Espacio para el footer
+    position: 'relative'
+  }
 };
 
 export const InvoicePreview = ({ open, onClose, invoice }) => {
- if (!invoice) return null;
+  if (!invoice) return null;
 
- console.log('Datos originales de invoice:', invoice);
- console.log('Items originales:', invoice.items);
-
- // Formatear los datos del cliente
- const clientData = {
-   nombre: invoice.client?.nombre || '',
-   rif: invoice.client?.rif || '',
-   direccion: invoice.client?.direccion || '',
-   telefono: invoice.client?.telefono || '',
-   email: invoice.client?.email || ''
- };
-
- // Estructura base de la factura
- const defaultInvoiceData = {
-   numero: 'INV-0001',
-   fecha: new Date(),
-   moneda: 'USD',
-   items: [],
-   subtotal: 0,
-   iva: 0,
-   ivaRate: 16,
-   total: 0
- };
-
- // Procesar los items para que coincidan con la estructura del backend
- const processedItems = (invoice.items || []).map(item => ({
-   product: {
-     codigo: item.product?.codigo || item.codigo,
-     nombre: item.product?.nombre || item.descripcion
-   },
-   quantity: item.quantity || item.cantidad,
-   price: item.price || item.precioUnit
- }));
-
- console.log('Items procesados:', processedItems);
-
- // Combinar datos con el formato correcto
- const invoiceData = {
-   ...defaultInvoiceData,
-   ...invoice,
-   items: processedItems,
-   // Calcular totales basados en la nueva estructura
-   subtotal: processedItems.reduce((sum, item) => sum + (item.quantity * item.price), 0),
-   iva: processedItems.reduce((sum, item) => sum + (item.quantity * item.price), 0) * 0.16,
-   total: processedItems.reduce((sum, item) => sum + (item.quantity * item.price), 0) * 1.16
- };
-
- console.log('Datos finales de la factura:', invoiceData);
-
- return (
-   <Dialog 
-     open={open} 
-     onClose={onClose} 
-     maxWidth={false}
-     PaperProps={{
-       sx: { 
-         minWidth: '595px',
-         height: '842px',
-         margin: '20px'
-       }
-     }}
-   >
-     <DialogContent sx={{ padding: 0 }}>
-       <Paper sx={styles.invoiceContainer}>
-         <InvoiceHeader 
-           empresa={empresaDefault}
-           invoice={invoiceData} 
-         />
-         <div style={styles.content}>
-           <ClientInfo 
-             client={clientData} 
-           />
-           {invoiceData.items && invoiceData.items.length > 0 && (
-             <InvoiceItemsTable 
-               items={invoiceData.items} 
-               moneda={invoiceData.moneda} 
-             />
-           )}
-           <InvoiceTotals 
-             invoice={invoiceData} 
-           />
-         </div>
-       </Paper>
-     </DialogContent>
-   </Dialog>
- );
+  return (
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth={false}
+      PaperProps={{
+        sx: { 
+          minWidth: '595px',
+          height: '842px',
+          margin: '20px'
+        }
+      }}
+    >
+      <DialogContent sx={{ padding: 0 }} id="invoice-preview">
+        <Paper sx={styles.invoiceContainer}>
+          <InvoiceHeader 
+            invoice={invoice} 
+            empresa={invoice.empresa || {
+              nombre: 'Tu Empresa',
+              direccion: 'Dirección de la empresa',
+              rif: 'J-123456789',
+              telefono: '+58 424-1234567',
+              email: 'info@tuempresa.com'
+            }}
+          />
+          <div style={styles.content}>
+            <ClientInfo 
+              client={invoice.client} 
+            />
+            {invoice.items && invoice.items.length > 0 && (
+              <InvoiceItemsTable 
+                items={invoice.items} 
+                moneda={invoice.moneda} 
+              />
+            )}
+            <InvoiceTotals 
+              invoice={invoice} 
+            />
+          </div>
+          <InvoiceFooter invoice={invoice} />
+        </Paper>
+      </DialogContent>
+    </Dialog>
+  );
 };
 
 export default InvoicePreview;

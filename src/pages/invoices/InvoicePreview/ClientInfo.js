@@ -3,35 +3,58 @@ import { Typography, Box } from '@mui/material';
 
 const styles = {
   clientInfo: {
-    backgroundColor: '#f8f9fa',
-    padding: '20px',
-    marginBottom: '30px',
+    backgroundColor: '#ffffff',
+    padding: '15px 20px',
+    marginBottom: '20px',
     border: '1px solid #e0e0e7',
-    borderRadius: '4px'
+    borderRadius: '6px',
+    position: 'relative',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      bottom: 0,
+      width: '3px',
+      background: 'linear-gradient(to bottom, #002855, #0057a8)'
+    }
   },
   title: {
     color: '#002855',
-    fontWeight: 'bold',
-    fontSize: '16px',
+    fontWeight: '600',
+    fontSize: '14px',
     marginBottom: '15px',
-    borderBottom: '1px solid #e0e0e7',
-    paddingBottom: '8px'
+    paddingBottom: '8px',
+    borderBottom: '1px solid #f0f0f0',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px'
+  },
+  infoGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: '10px'
   },
   infoRow: {
-    fontSize: '14px',
+    fontSize: '13px',
     color: '#2c3e50',
-    marginBottom: '8px',
     display: 'flex',
     alignItems: 'center'
   },
   label: {
     fontWeight: '600',
     minWidth: '100px',
-    display: 'inline-block',
-    marginRight: '10px'
+    color: '#4a5568',
+    position: 'relative',
+    '&::after': {
+      content: '":"',
+      position: 'absolute',
+      right: '8px'
+    }
   },
   content: {
-    display: 'inline-block'
+    flex: 1,
+    paddingLeft: '5px'
   }
 };
 
@@ -52,19 +75,18 @@ export const ClientInfo = ({ client }) => {
         DATOS DEL CLIENTE
       </Typography>
       
-      {clientFields.map((field, index) => {
-        // Si el campo es opcional y no tiene valor, no lo mostramos
-        if (field.optional && !field.value) return null;
-
-        return (
-          <Typography key={index} sx={styles.infoRow}>
-            <span style={styles.label}>{field.label}:</span>
-            <span style={styles.content}>
-              {field.value || 'N/A'}
-            </span>
-          </Typography>
-        );
-      })}
+      <Box sx={styles.infoGrid}>
+        {clientFields.map((field, index) => {
+          if (field.optional && !field.value) return null;
+          
+          return (
+            <Box key={index} sx={styles.infoRow}>
+              <span style={styles.label}>{field.label}</span>
+              <span style={styles.content}>{field.value || 'N/A'}</span>
+            </Box>
+          );
+        })}
+      </Box>
     </Box>
   );
 };

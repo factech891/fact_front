@@ -10,33 +10,41 @@ import {
 
 const styles = {
   tableContainer: {
-    marginBottom: '30px',
+    marginBottom: '20px',
     border: '1px solid #e0e0e7',
-    borderRadius: '4px',
-    overflow: 'hidden'
+    borderRadius: '6px',
+    overflow: 'hidden',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
   },
   tableHeader: {
     backgroundColor: '#002855',
     color: 'white',
     fontSize: '12px',
-    padding: '12px',
-    fontWeight: '600'
+    padding: '10px 16px',
+    fontWeight: '600',
+    letterSpacing: '0.5px',
+    background: 'linear-gradient(135deg, #002855 0%, #004a9f 100%)',
   },
   tableRow: {
     '&:nth-of-type(odd)': {
       backgroundColor: '#f8f9fa'
+    },
+    '&:nth-of-type(even)': {
+      backgroundColor: '#ffffff'
     }
   },
   tableCell: {
     fontSize: '12px',
-    padding: '10px 12px',
-    color: '#2c3e50'
+    padding: '8px 16px',
+    color: '#2c3e50',
+    borderBottom: '1px solid #f0f0f0'
   },
   numericCell: {
     fontSize: '12px',
-    padding: '10px 12px',
+    padding: '8px 16px',
     color: '#2c3e50',
-    fontFamily: 'monospace'
+    fontFamily: 'monospace',
+    borderBottom: '1px solid #f0f0f0'
   }
 };
 
@@ -55,11 +63,11 @@ export const InvoiceItemsTable = ({ items = [], moneda = 'USD' }) => {
       <Table>
         <TableHead>
           <TableRow>
-            <TableCell sx={styles.tableHeader}>Código</TableCell>
-            <TableCell sx={styles.tableHeader}>Descripción</TableCell>
-            <TableCell align="right" sx={styles.tableHeader}>Cantidad</TableCell>
-            <TableCell align="right" sx={styles.tableHeader}>Precio Unit.</TableCell>
-            <TableCell align="right" sx={styles.tableHeader}>Total</TableCell>
+            <TableCell width="15%" sx={styles.tableHeader}>Código</TableCell>
+            <TableCell width="40%" sx={styles.tableHeader}>Descripción</TableCell>
+            <TableCell width="15%" align="right" sx={styles.tableHeader}>Cantidad</TableCell>
+            <TableCell width="15%" align="right" sx={styles.tableHeader}>Precio Unit.</TableCell>
+            <TableCell width="15%" align="right" sx={styles.tableHeader}>Total</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
