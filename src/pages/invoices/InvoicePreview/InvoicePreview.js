@@ -1,6 +1,13 @@
 // src/pages/invoices/InvoicePreview/InvoicePreview.js
 import { useState } from 'react';
-import { Paper, Dialog, DialogContent } from '@mui/material';
+import { 
+  Paper, 
+  Dialog, 
+  DialogContent, 
+  DialogActions, 
+  Button 
+} from '@mui/material';
+import { Download, Print } from '@mui/icons-material';
 import { InvoiceHeader } from './InvoiceHeader';
 import { ClientInfo } from './ClientInfo';
 import { InvoiceItemsTable } from './InvoiceItemsTable';
@@ -39,6 +46,15 @@ export const InvoicePreview = ({ open, onClose, invoice }) => {
   const [currentStyle, setCurrentStyle] = useState('modern');
   const theme = invoiceThemes[currentStyle];
   const styles = getStyles(theme);
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleDownload = () => {
+    // Aquí irá la lógica de descarga
+    console.log('Descargando...');
+  };
 
   if (!invoice) return null;
 
@@ -95,6 +111,29 @@ export const InvoicePreview = ({ open, onClose, invoice }) => {
           />
         </Paper>
       </DialogContent>
+      <DialogActions sx={{ 
+        padding: '16px', 
+        borderTop: '1px solid #e0e0e7',
+        gap: '10px',
+        justifyContent: 'center' 
+      }}>
+        <Button
+          variant="outlined"
+          startIcon={<Print />}
+          onClick={handlePrint}
+          size="large"
+        >
+          Imprimir
+        </Button>
+        <Button
+          variant="contained"
+          startIcon={<Download />}
+          onClick={handleDownload}
+          size="large"
+        >
+          Descargar PDF
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 };

@@ -1,13 +1,27 @@
 // src/pages/invoices/InvoicePreview/InvoiceStyleSelector.js
 import { Box, Button, ButtonGroup, Tooltip } from '@mui/material';
-import { Palette, Style, Minimize, Business } from '@mui/icons-material';
+import { 
+  Palette, 
+  Style, 
+  ViewStreamOutlined, 
+  Business,
+  Print,
+  Download 
+} from '@mui/icons-material';
 
 const styles = {
   selectorContainer: {
     position: 'absolute',
     top: '10px',
-    right: '10px',
+    left: '10px', // Cambiado a left 
     zIndex: 1000,
+    backgroundColor: 'transparent',
+    padding: '5px',
+    borderRadius: '4px',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+  },
+  actionsContainer: {
+    marginTop: '5px',
     backgroundColor: 'white',
     padding: '5px',
     borderRadius: '4px',
@@ -31,7 +45,7 @@ const invoiceStyles = [
   { 
     id: 'minimal', 
     name: 'Minimalista',
-    icon: <Minimize fontSize="small" />,
+    icon: <ViewStreamOutlined fontSize="small" />,
     tooltip: 'Diseño minimalista y limpio'
   },
   { 
@@ -42,7 +56,12 @@ const invoiceStyles = [
   }
 ];
 
-export const InvoiceStyleSelector = ({ currentStyle, onStyleChange }) => {
+export const InvoiceStyleSelector = ({ 
+  currentStyle, 
+  onStyleChange,
+  onDownload,
+  onPrint
+}) => {
   return (
     <Box sx={styles.selectorContainer}>
       <ButtonGroup size="small">
@@ -54,7 +73,9 @@ export const InvoiceStyleSelector = ({ currentStyle, onStyleChange }) => {
               startIcon={style.icon}
               sx={{
                 textTransform: 'none',
-                minWidth: '120px'
+                minWidth: '80px',      //reducir el ancho
+                fontSize: '8px',        //reducir la fuente
+                py: 0.00345            //reducir el tamano completo  
               }}
             >
               {style.name}
@@ -62,6 +83,40 @@ export const InvoiceStyleSelector = ({ currentStyle, onStyleChange }) => {
           </Tooltip>
         ))}
       </ButtonGroup>
+
+      {/* Sección de acciones (Descargar e Imprimir) */}
+      {(onDownload || onPrint) && (
+        <Box sx={styles.actionsContainer}>
+          <ButtonGroup size="small">
+            {onDownload && (
+              <Tooltip title="Descargar PDF">
+                <Button
+                  onClick={onDownload}
+                  startIcon={<Download />}
+                  variant="outlined"
+                  color="primary"
+                >
+                  Descargar
+                </Button>
+              </Tooltip>
+            )}
+            {onPrint && (
+              <Tooltip title="Imprimir">
+                <Button
+                  onClick={onPrint}
+                  startIcon={<Print />}
+                  variant="outlined"
+                  color="primary"
+                >
+                  Imprimir
+                </Button>
+              </Tooltip>
+            )}
+          </ButtonGroup>
+        </Box>
+      )}
     </Box>
   );
 };
+
+export default InvoiceStyleSelector;
