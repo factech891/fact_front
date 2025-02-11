@@ -1,49 +1,99 @@
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
-export const generatePDF = async (invoice) => {
+export const generatePDF = async (invoice, options = {}) => {
+  const {
+    fileName = `factura_${invoice.number || 'nueva'}.pdf`,
+    margins = { top: 20, right: 20, bottom: 20, left: 20 },
+    quality = 1.0,
+    scale = 2
+  } = options;
+
+  const element = document.getElementById('invoice-preview');
+
   try {
-    const element = document.getElementById('invoice-preview');
-    
-    if (!element) {
-      throw new Error('Elemento no encontrado');
-    }
+    // Ocultar elementos de control temporalmente
+    const controlsToHide = element.querySelectorAll(
+      '.MuiButtonGroup-root, .MuiDialogActions-root, .no-print'
+    );
+    controlsToHide.forEach(el => el.style.display = 'none');
 
-    // Ocultar temporalmente los controles para la captura
-    const controls = element.querySelector('.MuiButtonGroup-root');
-    const actions = element.querySelector('.MuiDialogActions-root');
-    if (controls) controls.style.display = 'none';
-    if (actions) actions.style.display = 'none';
-
-    const canvas = await html2canvas(element, {
-      scale: 2,
+    // Configuración de captura
+    const canvas = await html2canvas(element.querySelector('.MuiPaper-root'), {
+      scale: scale,
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
-      onclone: (document) => {
-        const clonedElement = document.getElementById('invoice-preview');
-        clonedElement.style.width = '595px';
-        clonedElement.style.height = '842px';
+      windowWidth: 794, // Ancho A4
+      windowHeight: 1123, // Alto A4
+      x: -15, // Ajuste a la izquierda
+      scrollX: -window.scrollX,
+      scrollY: -window.scrollY,
+      onclone: (clonedDoc) => {
+        // Ajustes adicionales al clon antes de la captura
+        const clonedElement = clonedDoc.getElementById('invoice-preview');
+        if (clonedElement) {
+          clonedElement.style.padding = '0';
+          clonedElement.style.margin = '0';
+        }
       }
     });
 
-    // Restaurar los controles
-    if (controls) controls.style.display = '';
-    if (actions) actions.style.display = '';
+    // Restaurar elementos ocultos
+    controlsToHide.forEach(el => el.style.display = '');
 
-    const imgData = canvas.toDataURL('image/jpeg', 1.0);
+    // Crear PDF con orientación automática
+    const imgRatio = canvas.height / canvas.width;
+    const orientation = imgRatio >= 1 ? 'portrait' : 'landscape';
+
     const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'px',
-      format: [595, 842]
+      orientation: orientation,
+      unit: 'pt',
+      format: 'a4',
+      compress: true
     });
 
-    pdf.addImage(imgData, 'JPEG', 0, 0, 595, 842);
-    pdf.save(`factura_${invoice.number || 'nueva'}.pdf`);
+    // Calcular dimensiones para centrado
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pdfWidth - (margins.left + margins.right);
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    const x = margins.left;
+    const y = margins.top;
 
-    return true;
+    // Agregar imagen centrada
+    pdf.addImage(
+      canvas.toDataURL('image/jpeg', quality),
+      'JPEG',
+      x,
+      y,
+      imgWidth,
+      imgHeight
+    );
+
+    // Agregar metadatos
+    pdf.setProperties({
+      title: fileName,
+      subject: `Factura ${invoice.number || 'nueva'}`,
+      creator: 'Sistema de Facturación',
+      author: 'Tu Empresa',
+      keywords: 'factura, invoice, pdf',
+      creationDate: new Date()
+    });
+
+    // Guardar PDF
+    pdf.save(fileName);
+
+    return {
+      success: true,
+      fileName: fileName
+    };
+
   } catch (error) {
-    console.error('Error generando PDF:', error);
-    return false;
+    console.error('Error al generar PDF:', error);
+    return {
+      success: false,
+      error: error.message
+    };
   }
 };

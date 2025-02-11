@@ -1,4 +1,3 @@
-// src/pages/invoices/InvoicePreview/InvoiceStyleSelector.js
 import { Box, Button, ButtonGroup, Tooltip } from '@mui/material';
 import { 
   Palette, 
@@ -11,14 +10,17 @@ import {
 
 const styles = {
   selectorContainer: {
-    position: 'absolute',
+    position: 'fixed', // Cambiado a fixed
     top: '10px',
-    left: '10px', // Cambiado a left 
+    left: '10px',
     zIndex: 1000,
-    backgroundColor: 'transparent',
-    padding: '5px',
+    backgroundColor: 'white',
+    padding: '3px',
     borderRadius: '4px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+    '@media print': {
+      display: 'none !important' // Se oculta en impresión
+    }
   },
   actionsContainer: {
     marginTop: '5px',
@@ -75,7 +77,7 @@ export const InvoiceStyleSelector = ({
                 textTransform: 'none',
                 minWidth: '80px',      //reducir el ancho
                 fontSize: '8px',        //reducir la fuente
-                py: 0.00345            //reducir el tamano completo  
+                py: 0.00345            //reducir el tamaño completo  
               }}
             >
               {style.name}
