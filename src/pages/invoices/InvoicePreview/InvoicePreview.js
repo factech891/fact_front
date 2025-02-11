@@ -15,6 +15,7 @@ import { InvoiceTotals } from './InvoiceTotals';
 import { InvoiceFooter } from './InvoiceFooter';
 import { InvoiceStyleSelector } from './InvoiceStyleSelector';
 import { invoiceThemes } from './invoiceThemes';
+import { generatePDF } from '../../../utils/pdfGenerator';
 
 const getStyles = (theme) => ({
   invoiceContainer: {
@@ -51,9 +52,16 @@ export const InvoicePreview = ({ open, onClose, invoice }) => {
     window.print();
   };
 
-  const handleDownload = () => {
-    // Aquí irá la lógica de descarga
-    console.log('Descargando...');
+  const handleDownload = async () => {
+    if (!invoice) {
+      console.error('Error: No hay datos de factura para generar PDF');
+      return;
+    }
+
+    const success = await generatePDF(invoice);
+    if (!success) {
+      console.error('Error al generar el PDF');
+    }
   };
 
   if (!invoice) return null;

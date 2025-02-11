@@ -1,14 +1,14 @@
-// Invoices.js
+// src/pages/invoices/Invoices.js
 import { useState } from 'react';
 import { Box, Button, Typography, Snackbar, Alert } from '@mui/material';
-import { Add as AddIcon, FileDownload } from '@mui/icons-material';
+import { Add as AddIcon } from '@mui/icons-material';
 import { InvoiceTable } from './InvoiceTable';
 import { InvoiceForm } from './InvoiceForm';
 import { InvoicePreview } from './InvoicePreview/InvoicePreview';
 import { useInvoices } from '../../hooks/useInvoices';
 import { useClients } from '../../hooks/useClients';
 import { useProducts } from '../../hooks/useProducts';
-import { invoicesApi } from '../../services/api';
+import { generatePDF } from '../../utils/pdfGenerator';
 
 const Invoices = () => {
   const [openForm, setOpenForm] = useState(false);
@@ -25,7 +25,6 @@ const Invoices = () => {
     console.log('Datos originales de factura:', invoice);
     
     try {
-      // Asegurarnos de que los items tengan la estructura correcta
       const processedItems = invoice.items?.map(item => ({
         product: {
           codigo: item.codigo || item.product?.codigo,
@@ -59,23 +58,19 @@ const Invoices = () => {
   };
 
   const handleDownload = async (invoice) => {
-    setDownloading(true);
-    setError(null);
-    try {
-      await invoicesApi.downloadPDF(invoice._id);
-      setError({
-        severity: 'success',
-        message: 'Factura descargada exitosamente'
-      });
-    } catch (err) {
-      console.error('Error al descargar la factura:', err);
-      setError({
-        severity: 'error',
-        message: 'Error al descargar la factura. Por favor intente nuevamente.'
-      });
-    } finally {
-      setDownloading(false);
-    }
+    setSelectedInvoice(invoice);
+    setOpenPreview(true);
+
+    // Damos tiempo a que se renderice la vista previa antes de generar el PDF
+    setTimeout(async () => {
+      const success = await generatePDF(invoice);
+      if (!success) {
+        setError({
+          severity: 'error',
+          message: 'Error al generar el PDF'
+        });
+      }
+    }, 500);
   };
 
   const handleEdit = (invoice) => {

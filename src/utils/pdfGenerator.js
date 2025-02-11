@@ -1,54 +1,49 @@
-// src/utils/pdfGenerator.js
-import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 export const generatePDF = async (invoice) => {
   try {
     const element = document.getElementById('invoice-preview');
     
     if (!element) {
-      throw new Error('No se encontró el elemento de la factura');
+      throw new Error('Elemento no encontrado');
     }
 
-    // Configuración mejorada para html2canvas
+    // Ocultar temporalmente los controles para la captura
+    const controls = element.querySelector('.MuiButtonGroup-root');
+    const actions = element.querySelector('.MuiDialogActions-root');
+    if (controls) controls.style.display = 'none';
+    if (actions) actions.style.display = 'none';
+
     const canvas = await html2canvas(element, {
-      scale: 2, // Mayor calidad
+      scale: 2,
       useCORS: true,
-      logging: true, // Activar logs para debug
+      logging: false,
       backgroundColor: '#ffffff',
-      windowWidth: element.scrollWidth,
-      windowHeight: element.scrollHeight,
       onclone: (document) => {
-        // Asegurar que los estilos se apliquen correctamente
-        const element = document.getElementById('invoice-preview');
-        if (element) {
-          element.style.padding = '20px';
-          element.style.backgroundColor = '#ffffff';
-        }
+        const clonedElement = document.getElementById('invoice-preview');
+        clonedElement.style.width = '595px';
+        clonedElement.style.height = '842px';
       }
     });
 
-    // Configuración del PDF
-    const imgData = canvas.toDataURL('image/png');
+    // Restaurar los controles
+    if (controls) controls.style.display = '';
+    if (actions) actions.style.display = '';
+
+    const imgData = canvas.toDataURL('image/jpeg', 1.0);
     const pdf = new jsPDF({
       orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4'
+      unit: 'px',
+      format: [595, 842]
     });
 
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-    // Añadir la imagen al PDF
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-
-    // Guardar el PDF
-    const fileName = `factura-${invoice.number || 'nueva'}.pdf`;
-    pdf.save(fileName);
+    pdf.addImage(imgData, 'JPEG', 0, 0, 595, 842);
+    pdf.save(`factura_${invoice.number || 'nueva'}.pdf`);
 
     return true;
   } catch (error) {
-    console.error('Error detallado al generar PDF:', error);
-    throw new Error('Error al generar el PDF: ' + error.message);
+    console.error('Error generando PDF:', error);
+    return false;
   }
 };
