@@ -50,9 +50,9 @@ const CompanyPreview = () => {
         {/* Encabezado */}
         <Box display="flex" justifyContent="space-between" mb={3}>
           <Box>
-            {company.logo?.url ? (
+            {company.logoUrl ? (
               <img
-                src={company.logo.url}
+                src={company.logoUrl}
                 alt="Logo de la empresa"
                 style={{
                   maxWidth: 200,
@@ -62,13 +62,13 @@ const CompanyPreview = () => {
               />
             ) : (
               <Typography variant="h5" fontWeight="bold">
-                {company.name}
+                {company.nombre}
               </Typography>
             )}
           </Box>
           <Box textAlign="right">
             <Typography variant="h6">FACTURA</Typography>
-            <Typography color="text.secondary"># 000000</Typography>
+            <Typography color="text.secondary"># EJEMPLO</Typography>
           </Box>
         </Box>
 
@@ -81,14 +81,14 @@ const CompanyPreview = () => {
               De:
             </Typography>
             <Typography variant="body1" fontWeight="bold">
-              {company.name}
+              {company.nombre}
             </Typography>
             <Typography>RIF: {company.rif}</Typography>
             <Typography>
-              {company.address.street}
-              <br />
-              {company.address.city}, {company.address.state}
-              {company.address.zip && ` - ${company.address.zip}`}
+              {company.direccion}
+              {company.ciudad && <br />}
+              {company.ciudad && `${company.ciudad}`}
+              {company.estado && `, ${company.estado}`}
             </Typography>
           </Grid>
           <Grid item xs={12} md={6}>
@@ -96,16 +96,16 @@ const CompanyPreview = () => {
               Contacto:
             </Typography>
             <Typography>
-              Email: {company.contact.email}
+              Email: {company.email}
               <br />
-              Teléfono: {company.contact.phone}
+              Teléfono: {company.telefono || 'No especificado'}
             </Typography>
           </Grid>
         </Grid>
 
         <Divider sx={{ my: 3 }} />
 
-        {/* Información del cliente (ejemplo) */}
+        {/* Ejemplo de cliente */}
         <Grid container spacing={2}>
           <Grid item xs={12} md={6}>
             <Typography variant="h6" gutterBottom>
@@ -118,9 +118,9 @@ const CompanyPreview = () => {
           <Grid item xs={12} md={6}>
             <Box textAlign="right">
               <Typography variant="body2" color="text.secondary">
-                Fecha: DD/MM/YYYY
+                Fecha: {new Date().toLocaleDateString()}
                 <br />
-                Vencimiento: DD/MM/YYYY
+                Vencimiento: {new Date(Date.now() + 15*24*60*60*1000).toLocaleDateString()}
               </Typography>
             </Box>
           </Grid>
@@ -128,8 +128,8 @@ const CompanyPreview = () => {
 
         <Box mt={4}>
           <Typography variant="caption" color="text.secondary">
-            Esta es una vista previa de cómo se mostrará la información de su empresa en las facturas.
-            Los datos del cliente, productos y totales variarán según cada factura.
+            Esta es una vista previa de cómo se mostrarán los datos de su empresa en las facturas.
+            Los datos del cliente y las fechas son ejemplos.
           </Typography>
         </Box>
       </Paper>

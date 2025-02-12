@@ -1,40 +1,62 @@
+// utils/pdfGenerator.js
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
+const convertImageToBase64 = async (imgUrl) => {
+  try {
+    const response = await fetch(imgUrl);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error('Error convirtiendo imagen:', error);
+    return null;
+  }
+};
+
 export const generatePDF = async (invoice, options = {}) => {
   const {
-    fileName = `factura_${invoice.number || 'nueva'}.pdf`,
-    margins = { top: 20, right: 20, bottom: 20, left: 20 },
-    quality = 1.0,
-    scale = 2
+    fileName = `factura_${invoice.numero || 'nueva'}.pdf`,
+    margins = { top: 20, right: 20, bottom: 20, left: 20 }
   } = options;
 
-  const element = document.getElementById('invoice-preview');
-
   try {
-    // Ocultar elementos de control temporalmente
+    const element = document.getElementById('invoice-preview');
+    if (!element) throw new Error('Elemento no encontrado');
+
+    // Ocultar elementos no deseados
     const controlsToHide = element.querySelectorAll(
-      '.MuiButtonGroup-root, .MuiDialogActions-root, .no-print'
+      '.MuiButtonGroup-root, .MuiDialogActions-root, .no-print, .style-selector'
     );
     controlsToHide.forEach(el => el.style.display = 'none');
 
-    // Configuración de captura
+    // Convertir logo a base64 si existe
+    const logoImg = element.querySelector('.company-logo');
+    if (logoImg && logoImg.src) {
+      const base64Logo = await convertImageToBase64(logoImg.src);
+      if (base64Logo) {
+        logoImg.src = base64Logo;
+      }
+    }
+
+    // Pequeña pausa para asegurar que los cambios se apliquen
+    await new Promise(resolve => setTimeout(resolve, 500));
+
     const canvas = await html2canvas(element.querySelector('.MuiPaper-root'), {
-      scale: scale,
+      scale: 2,
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
-      windowWidth: 794, // Ancho A4
-      windowHeight: 1123, // Alto A4
-      x: -15, // Ajuste a la izquierda
-      scrollX: -window.scrollX,
-      scrollY: -window.scrollY,
+      allowTaint: true,
+      removeContainer: true,
       onclone: (clonedDoc) => {
-        // Ajustes adicionales al clon antes de la captura
-        const clonedElement = clonedDoc.getElementById('invoice-preview');
+        const clonedElement = clonedDoc.querySelector('.MuiPaper-root');
         if (clonedElement) {
-          clonedElement.style.padding = '0';
-          clonedElement.style.margin = '0';
+          clonedElement.style.backgroundColor = '#ffffff';
         }
       }
     });
@@ -42,58 +64,36 @@ export const generatePDF = async (invoice, options = {}) => {
     // Restaurar elementos ocultos
     controlsToHide.forEach(el => el.style.display = '');
 
-    // Crear PDF con orientación automática
-    const imgRatio = canvas.height / canvas.width;
-    const orientation = imgRatio >= 1 ? 'portrait' : 'landscape';
-
     const pdf = new jsPDF({
-      orientation: orientation,
+      orientation: 'portrait',
       unit: 'pt',
-      format: 'a4',
-      compress: true
+      format: 'a4'
     });
 
-    // Calcular dimensiones para centrado
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
     const imgWidth = pdfWidth - (margins.left + margins.right);
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    const x = margins.left;
-    const y = margins.top;
 
-    // Agregar imagen centrada
     pdf.addImage(
-      canvas.toDataURL('image/jpeg', quality),
-      'JPEG',
-      x,
-      y,
+      canvas,
+      'PNG',
+      margins.left,
+      margins.top,
       imgWidth,
       imgHeight
     );
 
-    // Agregar metadatos
-    pdf.setProperties({
-      title: fileName,
-      subject: `Factura ${invoice.number || 'nueva'}`,
-      creator: 'Sistema de Facturación',
-      author: 'Tu Empresa',
-      keywords: 'factura, invoice, pdf',
-      creationDate: new Date()
-    });
-
-    // Guardar PDF
     pdf.save(fileName);
 
-    return {
-      success: true,
-      fileName: fileName
-    };
+    // Si modificamos el src del logo, lo restauramos
+    if (logoImg && invoice.empresa?.logoUrl) {
+      logoImg.src = invoice.empresa.logoUrl;
+    }
 
+    return { success: true, fileName };
   } catch (error) {
-    console.error('Error al generar PDF:', error);
-    return {
-      success: false,
-      error: error.message
-    };
+    console.error('Error generando PDF:', error);
+    return { success: false, error: error.message };
   }
 };

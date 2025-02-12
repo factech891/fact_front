@@ -8,35 +8,46 @@ const getStyles = (theme) => ({
     color: 'white',
     padding: '20px',
     position: 'relative',
-    height: '120px',
-    '&::after': {
-      content: '""',
-      position: 'absolute',
-      bottom: 0,
-      left: '50%',
-      transform: 'translateX(-50%)',
-      width: '95%',
-      height: '1px',
-      background: 'linear-gradient(to right, transparent, #ffffff80, transparent)'
-    }
+    minHeight: '140px',
+    marginBottom: '20px'
+  },
+  leftSection: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    padding: '10px'
+  },
+  logoContainer: {
+    width: '60px',
+    height: '60px',
+    marginBottom: '10px',
+    display: 'flex',
+    alignItems: 'center'
+  },
+  logo: {
+    maxWidth: '100%',
+    maxHeight: '100%',
+    objectFit: 'contain'
   },
   companyInfo: {
-    padding: '10px',
-    borderLeft: '1px solid rgba(255, 255, 255, 0.2)'
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px'
   },
   companyName: {
     color: 'white',
     fontWeight: '600',
     fontSize: theme.fontSize.title,
-    marginBottom: '10px',
+    marginBottom: '5px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   },
   companyText: {
     color: 'white',
     fontSize: theme.fontSize.small,
-    marginBottom: '6px',
-    opacity: '0.9'
+    lineHeight: 1.4,
+    opacity: '0.9',
+    whiteSpace: 'pre-line'
   },
   invoiceBox: {
     backgroundColor: theme.background.primary,
@@ -46,17 +57,8 @@ const getStyles = (theme) => ({
     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
     border: `1px solid ${theme.border}`,
     position: 'relative',
-    marginTop: '-5px',
     width: '200px',
-    '&::before': {
-      content: '""',
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      height: '3px',
-      background: theme.gradient
-    }
+    height: 'fit-content'
   },
   invoiceTitle: {
     color: theme.primary,
@@ -70,7 +72,7 @@ const getStyles = (theme) => ({
     '& > *': {
       margin: '6px 0',
       color: theme.text.primary,
-      fontSize: theme.fontSize.body
+      fontSize: theme.fontSize.small
     }
   }
 });
@@ -89,37 +91,55 @@ export const InvoiceHeader = ({ invoice, empresa, theme }) => {
   };
 
   return (
-    <Grid container sx={styles.header}>
-      <Grid item xs={7}>
-        <Box sx={styles.companyInfo}>
-          <Typography sx={styles.companyName}>
-            {empresa.nombre}
-          </Typography>
-          <Typography sx={styles.companyText}>
-            {empresa.direccion}
-          </Typography>
-          <Typography sx={styles.companyText}>
-            RIF: {empresa.rif}
-          </Typography>
-          <Typography sx={styles.companyText}>
-            Tel: {empresa.telefono}
-          </Typography>
-          <Typography sx={styles.companyText}>
-            Email: {empresa.email}
-          </Typography>
+    <Grid container sx={styles.header} spacing={2}>
+      <Grid item xs={8}>
+        <Box sx={styles.leftSection}>
+          {empresa.logoUrl && (
+            <Box sx={styles.logoContainer}>
+              <img
+                src={empresa.logoUrl}
+                alt={`Logo de ${empresa.nombre}`}
+                style={styles.logo}
+                className="company-logo"
+                crossOrigin="anonymous"
+                loading="eager"
+              />
+            </Box>
+          )}
+          <Box sx={styles.companyInfo}>
+            <Typography sx={styles.companyName}>
+              {empresa.nombre || 'Nombre Empresa'}
+            </Typography>
+            <Typography sx={styles.companyText}>
+              {empresa.direccion || 'Dirección no especificada'}
+            </Typography>
+            <Typography sx={styles.companyText}>
+              RIF: {empresa.rif || 'RIF no especificado'}
+            </Typography>
+            {empresa.telefono && (
+              <Typography sx={styles.companyText}>
+                Tel: {empresa.telefono}
+              </Typography>
+            )}
+            {empresa.email && (
+              <Typography sx={styles.companyText}>
+                Email: {empresa.email}
+              </Typography>
+            )}
+          </Box>
         </Box>
       </Grid>
-      <Grid item xs={5} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <Grid item xs={4} sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start' }}>
         <Box sx={styles.invoiceBox}>
           <Typography sx={styles.invoiceTitle}>
             FACTURA
           </Typography>
           <Box sx={styles.invoiceData}>
             <Typography>
-              N°: {invoice.numero || invoice.number}
+              N°: {invoice.numero || invoice.number || 'No especificado'}
             </Typography>
             <Typography>
-              Fecha: {formatDate(invoice.fecha || invoice.date)}
+              Fecha: {formatDate(invoice.fecha || invoice.date || new Date())}
             </Typography>
           </Box>
         </Box>
