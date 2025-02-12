@@ -1,4 +1,3 @@
-// src/pages/settings/CompanySettings/CompanyForm.js
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -171,7 +170,45 @@ const CompanyForm = () => {
           )}
 
           <Grid item xs={12}>
-            <Box display="flex" justifyContent="flex-end">
+            <Box display="flex" justifyContent="space-between" alignItems="center">
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={async () => {
+                  if (window.confirm('¿Estás seguro de que quieres eliminar toda la información de la empresa? Esta acción no se puede deshacer.')) {
+                    try {
+                      const response = await fetch('http://localhost:5002/api/company', {
+                        method: 'DELETE'
+                      });
+                      
+                      if (response.ok) {
+                        setFormData({
+                          nombre: '',
+                          rif: '',
+                          direccion: '',
+                          ciudad: '',
+                          estado: '',
+                          telefono: '',
+                          email: ''
+                        });
+                        setSaveStatus({
+                          success: true,
+                          message: 'Información de la empresa eliminada exitosamente'
+                        });
+                      } else {
+                        throw new Error('Error al eliminar la información');
+                      }
+                    } catch (error) {
+                      setSaveStatus({
+                        success: false,
+                        message: 'Error al eliminar la información de la empresa'
+                      });
+                    }
+                  }
+                }}
+              >
+                Eliminar Información
+              </Button>
               <Button
                 type="submit"
                 variant="contained"
