@@ -8,12 +8,14 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Typography
+  Typography,
+  Divider
 } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import PeopleIcon from '@mui/icons-material/People';
 import InventoryIcon from '@mui/icons-material/Inventory';
+import SettingsIcon from '@mui/icons-material/Settings';
 import { SIDEBAR_WIDTH } from './constants';
 
 const menuItems = [
@@ -23,9 +25,50 @@ const menuItems = [
   { title: 'Productos', path: '/products', icon: <InventoryIcon /> }
 ];
 
+const configItems = [
+  { title: 'Configuración', path: '/settings', icon: <SettingsIcon /> }
+];
+
 export const Sidebar = ({ open, onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
+
+  const renderMenuItem = (item) => {
+    const { title, path, icon } = item;
+    const isActive = location.pathname === path;
+
+    return (
+      <ListItem key={title} disablePadding sx={{ mb: 1 }}>
+        <ListItemButton
+          onClick={() => {
+            navigate(path);
+            onClose?.();
+          }}
+          sx={{
+            mx: 1,
+            borderRadius: 1,
+            bgcolor: isActive ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+            '&:hover': {
+              bgcolor: 'rgba(255, 255, 255, 0.08)'
+            }
+          }}
+        >
+          <ListItemIcon sx={{ color: 'common.white', minWidth: 40 }}>
+            {icon}
+          </ListItemIcon>
+          <ListItemText 
+            primary={title}
+            primaryTypographyProps={{
+              sx: { 
+                color: 'common.white',
+                fontWeight: isActive ? 600 : 400
+              }
+            }}
+          />
+        </ListItemButton>
+      </ListItem>
+    );
+  };
 
   const content = (
     <Box sx={{ height: '100%', bgcolor: 'primary.main', color: 'primary.contrastText' }}>
@@ -36,41 +79,17 @@ export const Sidebar = ({ open, onClose }) => {
       </Box>
 
       <List>
-        {menuItems.map(({ title, path, icon }) => {
-          const isActive = location.pathname === path;
+        {menuItems.map(renderMenuItem)}
+      </List>
 
-          return (
-            <ListItem key={title} disablePadding sx={{ mb: 1 }}>
-              <ListItemButton
-                onClick={() => {
-                  navigate(path);
-                  onClose?.();
-                }}
-                sx={{
-                  mx: 1,
-                  borderRadius: 1,
-                  bgcolor: isActive ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
-                  '&:hover': {
-                    bgcolor: 'rgba(255, 255, 255, 0.08)'
-                  }
-                }}
-              >
-                <ListItemIcon sx={{ color: 'common.white', minWidth: 40 }}>
-                  {icon}
-                </ListItemIcon>
-                <ListItemText 
-                  primary={title}
-                  primaryTypographyProps={{
-                    sx: { 
-                      color: 'common.white',
-                      fontWeight: isActive ? 600 : 400
-                    }
-                  }}
-                />
-              </ListItemButton>
-            </ListItem>
-          );
-        })}
+      {/* Separator before settings */}
+      <Divider sx={{ 
+        my: 2, 
+        borderColor: 'rgba(255, 255, 255, 0.12)'
+      }} />
+
+      <List>
+        {configItems.map(renderMenuItem)}
       </List>
     </Box>
   );

@@ -157,3 +157,37 @@ export const invoicesApi = {
     }
   }
 };
+
+// Servicios para Company
+export const companyApi = {
+  get: async () => {
+    const response = await fetch(`${API_BASE_URL}/company`);
+    return handleResponse(response);
+  },
+  update: async (data) => {
+    const response = await fetch(`${API_BASE_URL}/company`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return handleResponse(response);
+  },
+  uploadLogo: async (file) => {
+    const formData = new FormData();
+    formData.append('logo', file);
+    
+    const response = await fetch(`${API_BASE_URL}/company/logo`, {
+      method: 'POST',
+      body: formData // No establecer Content-Type, fetch lo hará automáticamente
+    });
+    return handleResponse(response);
+  },
+  updateTheme: async (settings) => {
+    const response = await fetch(`${API_BASE_URL}/company/theme`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings)
+    });
+    return handleResponse(response);
+  }
+};
