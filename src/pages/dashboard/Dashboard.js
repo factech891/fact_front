@@ -1,4 +1,6 @@
+// src/pages/dashboard/Dashboard.js
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // Añadido para navegación
 import { 
   Box, 
   Grid, 
@@ -10,7 +12,8 @@ import {
   Tabs,
   Tab,
   Button,
-  Chip
+  Chip,
+  CircularProgress
 } from '@mui/material';
 
 // Importamos los iconos necesarios
@@ -37,35 +40,8 @@ import {
   Cell
 } from 'recharts';
 
-// Datos de ejemplo para los gráficos
-const facturasPorMes = [
-  { name: 'Ene', total: 4000 },
-  { name: 'Feb', total: 3000 },
-  { name: 'Mar', total: 5000 },
-  { name: 'Abr', total: 4500 },
-  { name: 'May', total: 6000 },
-  { name: 'Jun', total: 5500 },
-];
-
-const facturasPorTipo = [
-  { name: 'Exportación', value: 45 },
-  { name: 'Importación', value: 35 },
-  { name: 'Nacional', value: 20 },
-];
-
-const clientesRecientes = [
-  { id: 1, nombre: 'Global Logistics Inc.', pais: 'USA', facturas: 12 },
-  { id: 2, nombre: 'Transportes Marítimos S.A.', pais: 'España', facturas: 8 },
-  { id: 3, nombre: 'Carga Express', pais: 'México', facturas: 5 },
-  { id: 4, nombre: 'Pacific Shipping Ltd.', pais: 'China', facturas: 15 },
-];
-
-const facturasRecientes = [
-  { id: 'INV-0012', cliente: 'Global Logistics Inc.', fecha: '10/03/2025', total: 5430, estado: 'Pagada' },
-  { id: 'INV-0013', cliente: 'Transportes Marítimos S.A.', fecha: '08/03/2025', total: 2150, estado: 'Pendiente' },
-  { id: 'INV-0014', cliente: 'Carga Express', fecha: '05/03/2025', total: 3670, estado: 'Pagada' },
-  { id: 'INV-0015', cliente: 'Pacific Shipping Ltd.', fecha: '03/03/2025', total: 7890, estado: 'Vencida' },
-];
+// Importamos nuestro hook de dashboard personalizado
+import { useDashboard } from '../../hooks/useDashboard';
 
 // Colores para gráficos y KPIs
 const COLORS = ['#4477CE', '#66BB6A', '#FFA726', '#EF5350'];
@@ -74,6 +50,17 @@ const PIE_COLORS = ['#4477CE', '#66BB6A', '#FFA726'];
 // Componente principal del Dashboard
 const Dashboard = () => {
   const [tabValue, setTabValue] = useState(0);
+  const navigate = useNavigate(); // Hook para navegación
+  
+  // Utilizamos el hook personalizado
+  const { 
+    loading, 
+    kpis, 
+    facturasPorMes, 
+    facturasPorTipo, 
+    facturasRecientes, 
+    clientesRecientes 
+  } = useDashboard();
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -88,6 +75,23 @@ const Dashboard = () => {
       maximumFractionDigits: 0
     }).format(value);
   };
+  
+  // Handlers para navegación a crear facturas/clientes
+  const handleNewInvoice = () => {
+    navigate('/invoices?action=new');
+  };
+  
+  const handleNewClient = () => {
+    navigate('/clients?action=new');
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
+        <CircularProgress size={60} sx={{ color: '#4477CE' }} />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 3 }}>
@@ -132,17 +136,20 @@ const Dashboard = () => {
                   mb: 1
                 }}
               >
-                $23,450
+                {kpis?.totalIngresos ? formatCurrency(kpis.totalIngresos) : '$0'}
               </Typography>
               <Box sx={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                color: '#4cd964', 
+                color: kpis?.cambioIngresos >= 0 ? '#4cd964' : '#ff3b30', 
                 mt: 2 
               }}>
-                <TrendingUpIcon fontSize="small" />
+                {kpis?.cambioIngresos >= 0 ? 
+                  <TrendingUpIcon fontSize="small" /> : 
+                  <TrendingDownIcon fontSize="small" />
+                }
                 <Typography variant="body2" sx={{ ml: 0.5 }}>
-                  +5.2% este mes
+                  {kpis?.cambioIngresos >= 0 ? '+' : ''}{kpis?.cambioIngresos || 0}% este mes
                 </Typography>
               </Box>
             </CardContent>
@@ -188,17 +195,20 @@ const Dashboard = () => {
                   mb: 1
                 }}
               >
-                132
+                {kpis?.totalOperaciones || 0}
               </Typography>
               <Box sx={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                color: '#4cd964', 
+                color: kpis?.cambioOperaciones >= 0 ? '#4cd964' : '#ff3b30', 
                 mt: 2 
               }}>
-                <TrendingUpIcon fontSize="small" />
+                {kpis?.cambioOperaciones >= 0 ? 
+                  <TrendingUpIcon fontSize="small" /> : 
+                  <TrendingDownIcon fontSize="small" />
+                }
                 <Typography variant="body2" sx={{ ml: 0.5 }}>
-                  +3.1% este mes
+                  {kpis?.cambioOperaciones >= 0 ? '+' : ''}{kpis?.cambioOperaciones || 0}% este mes
                 </Typography>
               </Box>
             </CardContent>
@@ -244,17 +254,20 @@ const Dashboard = () => {
                   mb: 1
                 }}
               >
-                85
+                {kpis?.totalClientes || 0}
               </Typography>
               <Box sx={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                color: '#ff3b30', 
+                color: kpis?.cambioClientes >= 0 ? '#4cd964' : '#ff3b30', 
                 mt: 2 
               }}>
-                <TrendingDownIcon fontSize="small" />
+                {kpis?.cambioClientes >= 0 ? 
+                  <TrendingUpIcon fontSize="small" /> : 
+                  <TrendingDownIcon fontSize="small" />
+                }
                 <Typography variant="body2" sx={{ ml: 0.5 }}>
-                  -0.8% este mes
+                  {kpis?.cambioClientes >= 0 ? '+' : ''}{kpis?.cambioClientes || 0}% este mes
                 </Typography>
               </Box>
             </CardContent>
@@ -300,17 +313,20 @@ const Dashboard = () => {
                   mb: 1
                 }}
               >
-                114
+                {kpis?.totalFacturas || 0}
               </Typography>
               <Box sx={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                color: '#4cd964', 
+                color: kpis?.cambioFacturas >= 0 ? '#4cd964' : '#ff3b30', 
                 mt: 2 
               }}>
-                <TrendingDownIcon fontSize="small" />
+                {kpis?.cambioFacturas >= 0 ? 
+                  <TrendingUpIcon fontSize="small" /> : 
+                  <TrendingDownIcon fontSize="small" />
+                }
                 <Typography variant="body2" sx={{ ml: 0.5 }}>
-                  -2.5% este mes
+                  {kpis?.cambioFacturas >= 0 ? '+' : ''}{kpis?.cambioFacturas || 0}% este mes
                 </Typography>
               </Box>
             </CardContent>
@@ -339,7 +355,7 @@ const Dashboard = () => {
               <Box sx={{ height: 320 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
-                    data={facturasPorMes}
+                    data={facturasPorMes || []}
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#333" />
@@ -365,7 +381,7 @@ const Dashboard = () => {
           </Card>
         </Grid>
 
-        {/* Gráfico de Distribución por Tipo - CORREGIDO */}
+        {/* Gráfico de Distribución por Tipo */}
         <Grid item xs={12} lg={4}>
           <Card 
             sx={{ 
@@ -394,7 +410,7 @@ const Dashboard = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={facturasPorTipo}
+                        data={facturasPorTipo || []}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
@@ -402,7 +418,7 @@ const Dashboard = () => {
                         fill="#8884d8"
                         dataKey="value"
                       >
-                        {facturasPorTipo.map((entry, index) => (
+                        {(facturasPorTipo || []).map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                         ))}
                       </Pie>
@@ -423,7 +439,7 @@ const Dashboard = () => {
                   mt: 2,
                   flexWrap: 'wrap'
                 }}>
-                  {facturasPorTipo.map((entry, index) => (
+                  {(facturasPorTipo || []).map((entry, index) => (
                     <Chip 
                       key={index}
                       label={`${entry.name} ${entry.value}%`}
@@ -473,6 +489,7 @@ const Dashboard = () => {
               <Button 
                 startIcon={<AddIcon />} 
                 variant="contained" 
+                onClick={handleNewInvoice} // Modificado para usar el nuevo handler
                 sx={{ 
                   borderRadius: 2,
                   bgcolor: '#4477CE',
@@ -500,32 +517,38 @@ const Dashboard = () => {
                   <Typography variant="subtitle2" color="#CCC">Estado</Typography>
                 </Box>
                 
-                {facturasRecientes.map((factura) => (
-                  <Box key={factura.id} sx={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: '1fr 2fr 1fr 1fr 1fr',
-                    p: 2,
-                    borderBottom: '1px solid #333'
-                  }}>
-                    <Typography variant="body2" color="white">{factura.id}</Typography>
-                    <Typography variant="body2" color="white">{factura.cliente}</Typography>
-                    <Typography variant="body2" color="white">{factura.fecha}</Typography>
-                    <Typography variant="body2" color="white">${factura.total.toLocaleString()}</Typography>
-                    <Chip 
-                      label={factura.estado} 
-                      size="small"
-                      sx={{ 
-                        width: 'fit-content',
-                        bgcolor: 
-                          factura.estado === 'Pagada' ? '#66BB6A' : 
-                          factura.estado === 'Pendiente' ? '#FFA726' : 
-                          '#EF5350',
-                        color: 'white',
-                        fontWeight: 'bold'
-                      }} 
-                    />
+                {(facturasRecientes || []).length > 0 ? (
+                  (facturasRecientes || []).map((factura) => (
+                    <Box key={factura.id} sx={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: '1fr 2fr 1fr 1fr 1fr',
+                      p: 2,
+                      borderBottom: '1px solid #333'
+                    }}>
+                      <Typography variant="body2" color="white">{factura.id}</Typography>
+                      <Typography variant="body2" color="white">{factura.cliente}</Typography>
+                      <Typography variant="body2" color="white">{factura.fecha}</Typography>
+                      <Typography variant="body2" color="white">${factura.total.toLocaleString()}</Typography>
+                      <Chip 
+                        label={factura.estado} 
+                        size="small"
+                        sx={{ 
+                          width: 'fit-content',
+                          bgcolor: 
+                            factura.estado.toLowerCase() === 'pagada' || factura.estado.toLowerCase() === 'paid' ? '#66BB6A' : 
+                            factura.estado.toLowerCase() === 'pendiente' || factura.estado.toLowerCase() === 'pending' ? '#FFA726' : 
+                            '#EF5350',
+                          color: 'white',
+                          fontWeight: 'bold'
+                        }} 
+                      />
+                    </Box>
+                  ))
+                ) : (
+                  <Box sx={{ p: 3, textAlign: 'center' }}>
+                    <Typography color="white">No hay facturas disponibles</Typography>
                   </Box>
-                ))}
+                )}
               </Box>
             </Box>
           </Box>
@@ -539,6 +562,7 @@ const Dashboard = () => {
               <Button 
                 startIcon={<AddIcon />} 
                 variant="contained" 
+                onClick={handleNewClient} // Modificado para usar el nuevo handler
                 sx={{ 
                   borderRadius: 2,
                   bgcolor: '#4477CE',
@@ -564,18 +588,24 @@ const Dashboard = () => {
                   <Typography variant="subtitle2" color="#CCC">Facturas</Typography>
                 </Box>
                 
-                {clientesRecientes.map((cliente) => (
-                  <Box key={cliente.id} sx={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: '3fr 1fr 1fr',
-                    p: 2,
-                    borderBottom: '1px solid #333'
-                  }}>
-                    <Typography variant="body2" color="white">{cliente.nombre}</Typography>
-                    <Typography variant="body2" color="white">{cliente.pais}</Typography>
-                    <Typography variant="body2" color="white">{cliente.facturas}</Typography>
+                {(clientesRecientes || []).length > 0 ? (
+                  (clientesRecientes || []).map((cliente) => (
+                    <Box key={cliente.id} sx={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: '3fr 1fr 1fr',
+                      p: 2,
+                      borderBottom: '1px solid #333'
+                    }}>
+                      <Typography variant="body2" color="white">{cliente.nombre}</Typography>
+                      <Typography variant="body2" color="white">{cliente.pais}</Typography>
+                      <Typography variant="body2" color="white">{cliente.facturas}</Typography>
+                    </Box>
+                  ))
+                ) : (
+                  <Box sx={{ p: 3, textAlign: 'center' }}>
+                    <Typography color="white">No hay clientes disponibles</Typography>
                   </Box>
-                ))}
+                )}
               </Box>
             </Box>
           </Box>
