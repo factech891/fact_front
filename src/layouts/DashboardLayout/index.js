@@ -1,36 +1,59 @@
-// src/layouts/DashboardLayout/index.js
-import { useState } from 'react';
-import { Box, ThemeProvider } from '@mui/material';
-import { Navbar } from './Navbar';
-import { Sidebar } from './Sidebar';
-import theme from '../../theme';
-import { SIDEBAR_WIDTH } from './constants';
+import React, { useState } from 'react';
+import { Box } from '@mui/material';
+import Sidebar from './Sidebar';
+import Navbar from './Navbar';
 
 export const DashboardLayout = ({ children }) => {
-  const [open, setOpen] = useState(true);
+  // Estado para controlar si el sidebar está colapsado
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Empresa que ha iniciado sesión - esto podría venir de un contexto de autenticación
+  const companyInfo = {
+    name: "Transportes Express",
+    // Otros datos que podrían ser útiles
+    plan: "Premium",
+    logo: null // URL del logo si existe
+  };
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
 
   return (
-    <ThemeProvider theme={theme}>
-      <Box sx={{ display: 'flex' }}>
-        <Navbar open={open} onMenuClick={() => setOpen(!open)} />
-        <Sidebar open={open} onClose={() => setOpen(false)} />
-        <Box
-          component="main"
-          sx={{
-            flexGrow: 1,
-            p: 3,
-            width: { sm: `calc(100% - ${SIDEBAR_WIDTH}px)` },
-            ml: open ? `${SIDEBAR_WIDTH}px` : 0,
-            mt: 8,
-            transition: theme => theme.transitions.create(['margin', 'width'], {
-              easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.leavingScreen,
-            }),
-          }}
-        >
+    <Box sx={{ 
+      display: 'flex', 
+      height: '100vh',
+      overflow: 'hidden'
+    }}>
+      {/* Sidebar con el nombre de la empresa */}
+      <Sidebar 
+        companyName={companyInfo.name} 
+        open={sidebarOpen} 
+        onToggle={toggleSidebar} 
+      />
+      
+      {/* Contenedor principal */}
+      <Box sx={{ 
+        flexGrow: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden'
+      }}>
+        {/* Navbar superior */}
+        <Navbar companyName={companyInfo.name} />
+        
+        {/* Área de contenido */}
+        <Box component="main" sx={{ 
+          flexGrow: 1, 
+          p: 3,
+          overflow: 'auto',
+          backgroundColor: theme => theme.palette.background.default
+        }}>
           {children}
         </Box>
       </Box>
-    </ThemeProvider>
+    </Box>
   );
 };
+
+export default DashboardLayout;

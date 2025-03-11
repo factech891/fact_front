@@ -1,291 +1,587 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
-  CHART_COLORS, 
-  TIME_RANGES, 
-  MOCK_SALES_DATA, 
-  MOCK_PRODUCT_DATA
-} from './constants/dashboardConstants';
-import './Dashboard.css'; 
+  Box, 
+  Grid, 
+  Typography, 
+  Card, 
+  CardContent,
+  IconButton,
+  Avatar,
+  Tabs,
+  Tab,
+  Button,
+  Chip
+} from '@mui/material';
 
-// Importa tus componentes existentes si los tienes
-// import SalesChart from './components/SalesChart';
-// import DistributionChart from './components/DistributionChart';
-// import TransactionsTable from './components/TransactionsTable';
-// import OperationsCalendar from './components/OperationsCalendar';
+// Importamos los iconos necesarios
+import AddIcon from '@mui/icons-material/Add';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import PeopleIcon from '@mui/icons-material/People';
+import ReceiptIcon from '@mui/icons-material/Receipt';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 
+// Importamos los componentes de gráficos desde recharts
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
+} from 'recharts';
+
+// Datos de ejemplo para los gráficos
+const facturasPorMes = [
+  { name: 'Ene', total: 4000 },
+  { name: 'Feb', total: 3000 },
+  { name: 'Mar', total: 5000 },
+  { name: 'Abr', total: 4500 },
+  { name: 'May', total: 6000 },
+  { name: 'Jun', total: 5500 },
+];
+
+const facturasPorTipo = [
+  { name: 'Exportación', value: 45 },
+  { name: 'Importación', value: 35 },
+  { name: 'Nacional', value: 20 },
+];
+
+const clientesRecientes = [
+  { id: 1, nombre: 'Global Logistics Inc.', pais: 'USA', facturas: 12 },
+  { id: 2, nombre: 'Transportes Marítimos S.A.', pais: 'España', facturas: 8 },
+  { id: 3, nombre: 'Carga Express', pais: 'México', facturas: 5 },
+  { id: 4, nombre: 'Pacific Shipping Ltd.', pais: 'China', facturas: 15 },
+];
+
+const facturasRecientes = [
+  { id: 'INV-0012', cliente: 'Global Logistics Inc.', fecha: '10/03/2025', total: 5430, estado: 'Pagada' },
+  { id: 'INV-0013', cliente: 'Transportes Marítimos S.A.', fecha: '08/03/2025', total: 2150, estado: 'Pendiente' },
+  { id: 'INV-0014', cliente: 'Carga Express', fecha: '05/03/2025', total: 3670, estado: 'Pagada' },
+  { id: 'INV-0015', cliente: 'Pacific Shipping Ltd.', fecha: '03/03/2025', total: 7890, estado: 'Vencida' },
+];
+
+// Colores para gráficos y KPIs
+const COLORS = ['#4477CE', '#66BB6A', '#FFA726', '#EF5350'];
+const PIE_COLORS = ['#4477CE', '#66BB6A', '#FFA726'];
+
+// Componente principal del Dashboard
 const Dashboard = () => {
-  const [timeRange, setTimeRange] = useState(TIME_RANGES[0].value);
-  const [loading, setLoading] = useState(false);
-  
-  // Datos para el dashboard (podrías cargarlos de una API)
-  const [dashboardData, setDashboardData] = useState({
-    kpis: {
-      ingresos: { valor: 23000, crecimiento: 2.5 },
-      operaciones: { valor: 132, crecimiento: 1.2 },
-      clientes: { valor: 85, crecimiento: -0.8 },
-      documentos: { valor: 114, crecimiento: 3.1 }
-    },
-    operationsData: MOCK_SALES_DATA.map(item => ({
-      mes: item.mes,
-      operaciones: item.pedidos,
-      ingresos: item.ventas,
-      promedio: item.promedio,
-      meta: item.meta
-    })),
-    serviceTypeData: [
-      { name: 'Transporte', value: 45 },
-      { name: 'Gestión', value: 25 },
-      { name: 'Documentación', value: 20 },
-      { name: 'Otros', value: 10 }
-    ],
-    transactions: [
-      { id: 1, cliente: 'Global Imports Inc.', monto: 1250, fecha: '2025-03-10', estado: 'Completado' },
-      { id: 2, cliente: 'TransOcean Ltd.', monto: 3400, fecha: '2025-03-09', estado: 'En proceso' },
-      { id: 3, cliente: 'Cargo Express S.A.', monto: 860, fecha: '2025-03-08', estado: 'Completado' },
-      { id: 4, cliente: 'AirFreight Solutions', monto: 1700, fecha: '2025-03-07', estado: 'Con retraso' }
-    ]
-  });
+  const [tabValue, setTabValue] = useState(0);
 
-  // Función para cambiar el rango de tiempo
-  const handleTimeRangeChange = (range) => {
-    setTimeRange(range);
-    // Aquí podrías cargar nuevos datos según el rango seleccionado
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
   };
 
-  // Función para formatear números a moneda
-  const formatCurrency = (amount) => {
-    return `$${amount.toLocaleString()}`;
-  };
-
-  // Clases para los indicadores de crecimiento
-  const getGrowthClass = (value) => {
-    return value >= 0 ? 'positive' : 'negative';
-  };
-
-  // Clases para los estados de operación
-  const getStatusClass = (status) => {
-    switch(status) {
-      case 'Completado': return 'status-success';
-      case 'En proceso': return 'status-info';
-      case 'Con retraso': return 'status-danger';
-      case 'Programado': return 'status-warning';
-      default: return '';
-    }
+  // Función para formatear valores monetarios
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
   };
 
   return (
-    <div className="dashboard-container">
-      {/* Cabecera */}
-      <div className="dashboard-header">
-        <h1>Sistema de Facturación</h1>
-        <div className="time-range-selector">
-          {TIME_RANGES.map(range => (
-            <button
-              key={range.value}
-              className={`range-button ${timeRange === range.value ? 'active' : ''}`}
-              onClick={() => handleTimeRangeChange(range.value)}
-            >
-              {range.label}
-            </button>
-          ))}
-        </div>
-      </div>
+    <Box sx={{ p: 3 }}>
+      {/* Tarjetas de KPIs */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* KPI 1: Ingresos */}
+        <Grid item xs={12} md={6} lg={3}>
+          <Card 
+            sx={{ 
+              bgcolor: '#1E1E1E', 
+              borderRadius: 2,
+              border: '1px solid #333',
+              height: '100%',
+              position: 'relative',
+              overflow: 'visible'
+            }}
+          >
+            <CardContent sx={{ p: 3, position: 'relative' }}>
+              <Box sx={{ 
+                position: 'absolute',
+                top: '-15px',
+                right: '15px',
+                zIndex: 1
+              }}>
+                <Avatar 
+                  sx={{ 
+                    bgcolor: '#4477CE',
+                    width: 50,
+                    height: 50,
+                    boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.2)'
+                  }}
+                >
+                  <AttachMoneyIcon />
+                </Avatar>
+              </Box>
+              <Typography 
+                variant="h4" 
+                sx={{ 
+                  color: 'white', 
+                  fontWeight: 'bold',
+                  fontSize: '2.5rem',
+                  mb: 1
+                }}
+              >
+                $23,450
+              </Typography>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                color: '#4cd964', 
+                mt: 2 
+              }}>
+                <TrendingUpIcon fontSize="small" />
+                <Typography variant="body2" sx={{ ml: 0.5 }}>
+                  +5.2% este mes
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        {/* KPI 2: Operaciones */}
+        <Grid item xs={12} md={6} lg={3}>
+          <Card 
+            sx={{ 
+              bgcolor: '#1E1E1E', 
+              borderRadius: 2,
+              border: '1px solid #333',
+              height: '100%',
+              position: 'relative',
+              overflow: 'visible'
+            }}
+          >
+            <CardContent sx={{ p: 3, position: 'relative' }}>
+              <Box sx={{ 
+                position: 'absolute',
+                top: '-15px',
+                right: '15px',
+                zIndex: 1
+              }}>
+                <Avatar 
+                  sx={{ 
+                    bgcolor: '#FFA726',
+                    width: 50,
+                    height: 50,
+                    boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.2)'
+                  }}
+                >
+                  <LocalShippingIcon />
+                </Avatar>
+              </Box>
+              <Typography 
+                variant="h4" 
+                sx={{ 
+                  color: 'white', 
+                  fontWeight: 'bold',
+                  fontSize: '2.5rem',
+                  mb: 1
+                }}
+              >
+                132
+              </Typography>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                color: '#4cd964', 
+                mt: 2 
+              }}>
+                <TrendingUpIcon fontSize="small" />
+                <Typography variant="body2" sx={{ ml: 0.5 }}>
+                  +3.1% este mes
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        {/* KPI 3: Clientes */}
+        <Grid item xs={12} md={6} lg={3}>
+          <Card 
+            sx={{ 
+              bgcolor: '#1E1E1E', 
+              borderRadius: 2,
+              border: '1px solid #333',
+              height: '100%',
+              position: 'relative',
+              overflow: 'visible'
+            }}
+          >
+            <CardContent sx={{ p: 3, position: 'relative' }}>
+              <Box sx={{ 
+                position: 'absolute',
+                top: '-15px',
+                right: '15px',
+                zIndex: 1
+              }}>
+                <Avatar 
+                  sx={{ 
+                    bgcolor: '#4477CE',
+                    width: 50,
+                    height: 50,
+                    boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.2)'
+                  }}
+                >
+                  <PeopleIcon />
+                </Avatar>
+              </Box>
+              <Typography 
+                variant="h4" 
+                sx={{ 
+                  color: 'white', 
+                  fontWeight: 'bold',
+                  fontSize: '2.5rem',
+                  mb: 1
+                }}
+              >
+                85
+              </Typography>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                color: '#ff3b30', 
+                mt: 2 
+              }}>
+                <TrendingDownIcon fontSize="small" />
+                <Typography variant="body2" sx={{ ml: 0.5 }}>
+                  -0.8% este mes
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
 
-      {/* Grid de KPIs */}
-      <div className="kpi-grid">
-        {/* KPI - Ingresos */}
-        <div className="kpi-card">
-          <div className="kpi-header">
-            <h3>Ingresos</h3>
-            <div className="kpi-icon">💰</div>
-          </div>
-          <div className="kpi-value">{formatCurrency(dashboardData.kpis.ingresos.valor)}</div>
-          <div className={`kpi-growth ${getGrowthClass(dashboardData.kpis.ingresos.crecimiento)}`}>
-            {dashboardData.kpis.ingresos.crecimiento >= 0 ? '↑' : '↓'} {Math.abs(dashboardData.kpis.ingresos.crecimiento)}%
-          </div>
-        </div>
-
-        {/* KPI - Operaciones */}
-        <div className="kpi-card">
-          <div className="kpi-header">
-            <h3>Operaciones</h3>
-            <div className="kpi-icon">📦</div>
-          </div>
-          <div className="kpi-value">{dashboardData.kpis.operaciones.valor}</div>
-          <div className={`kpi-growth ${getGrowthClass(dashboardData.kpis.operaciones.crecimiento)}`}>
-            {dashboardData.kpis.operaciones.crecimiento >= 0 ? '↑' : '↓'} {Math.abs(dashboardData.kpis.operaciones.crecimiento)}%
-          </div>
-        </div>
-
-        {/* KPI - Clientes */}
-        <div className="kpi-card">
-          <div className="kpi-header">
-            <h3>Clientes</h3>
-            <div className="kpi-icon">👥</div>
-          </div>
-          <div className="kpi-value">{dashboardData.kpis.clientes.valor}</div>
-          <div className={`kpi-growth ${getGrowthClass(dashboardData.kpis.clientes.crecimiento)}`}>
-            {dashboardData.kpis.clientes.crecimiento >= 0 ? '↑' : '↓'} {Math.abs(dashboardData.kpis.clientes.crecimiento)}%
-          </div>
-        </div>
-
-        {/* KPI - Documentos */}
-        <div className="kpi-card">
-          <div className="kpi-header">
-            <h3>Documentos</h3>
-            <div className="kpi-icon">📄</div>
-          </div>
-          <div className="kpi-value">{dashboardData.kpis.documentos.valor}</div>
-          <div className={`kpi-growth ${getGrowthClass(dashboardData.kpis.documentos.crecimiento)}`}>
-            {dashboardData.kpis.documentos.crecimiento >= 0 ? '↑' : '↓'} {Math.abs(dashboardData.kpis.documentos.crecimiento)}%
-          </div>
-        </div>
-      </div>
+        {/* KPI 4: Facturas */}
+        <Grid item xs={12} md={6} lg={3}>
+          <Card 
+            sx={{ 
+              bgcolor: '#1E1E1E', 
+              borderRadius: 2,
+              border: '1px solid #333',
+              height: '100%',
+              position: 'relative',
+              overflow: 'visible'
+            }}
+          >
+            <CardContent sx={{ p: 3, position: 'relative' }}>
+              <Box sx={{ 
+                position: 'absolute',
+                top: '-15px',
+                right: '15px',
+                zIndex: 1
+              }}>
+                <Avatar 
+                  sx={{ 
+                    bgcolor: '#66BB6A',
+                    width: 50,
+                    height: 50,
+                    boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.2)'
+                  }}
+                >
+                  <ReceiptIcon />
+                </Avatar>
+              </Box>
+              <Typography 
+                variant="h4" 
+                sx={{ 
+                  color: 'white', 
+                  fontWeight: 'bold',
+                  fontSize: '2.5rem',
+                  mb: 1
+                }}
+              >
+                114
+              </Typography>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                color: '#4cd964', 
+                mt: 2 
+              }}>
+                <TrendingDownIcon fontSize="small" />
+                <Typography variant="body2" sx={{ ml: 0.5 }}>
+                  -2.5% este mes
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
 
       {/* Gráficos */}
-      <div className="charts-row">
-        {/* Gráfico de Tendencia de Operaciones */}
-        <div className="chart-card sales-chart">
-          <h2>Tendencia de Operaciones</h2>
-          <div className="chart-container">
-            {/* Aquí insertarías tu componente SalesChart adaptado */}
-            {/* <SalesChart data={dashboardData.operationsData} /> */}
-            <div className="placeholder-chart">
-              {/* Puedes quitar esto cuando integres tu gráfico real */}
-              <div className="placeholder-text">Gráfico de operaciones por mes</div>
-            </div>
-          </div>
-          <div className="chart-insights">
-            <div className="insight-item">
-              <div className="insight-label">Meta mensual</div>
-              <div className="insight-value">{formatCurrency(4200)}</div>
-            </div>
-            <div className="insight-item">
-              <div className="insight-label">Último mes</div>
-              <div className="insight-value">{formatCurrency(5400)}</div>
-              <div className="insight-status positive">✓ Meta alcanzada</div>
-            </div>
-            <div className="insight-item">
-              <div className="insight-label">Mejor mes</div>
-              <div className="insight-value">{formatCurrency(6000)}</div>
-            </div>
-          </div>
-        </div>
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Gráfico de Facturación Mensual */}
+        <Grid item xs={12} lg={8}>
+          <Card 
+            sx={{ 
+              borderRadius: 2, 
+              bgcolor: '#1E1E1E',
+              border: '1px solid #333',
+            }}
+          >
+            <CardContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="h6" color="white">Facturación Mensual</Typography>
+                <IconButton size="small" sx={{ color: 'white' }}>
+                  <MoreVertIcon />
+                </IconButton>
+              </Box>
+              <Box sx={{ height: 320 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={facturasPorMes}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                    <XAxis dataKey="name" stroke="#888" />
+                    <YAxis stroke="#888" />
+                    <Tooltip 
+                      formatter={(value) => [`$${value.toLocaleString()}`, 'Total']}
+                      labelFormatter={(label) => `Mes: ${label}`}
+                      contentStyle={{ backgroundColor: '#2d2d2d', border: 'none', borderRadius: '8px' }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="total" 
+                      stroke="#4477CE" 
+                      strokeWidth={3}
+                      dot={{ r: 6, fill: '#4477CE', strokeWidth: 0 }}
+                      activeDot={{ r: 8, fill: '#4477CE', strokeWidth: 0 }} 
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
 
-        {/* Gráfico de Distribución por Tipo de Servicio */}
-        <div className="chart-card product-chart">
-          <h2>Distribución por Servicio</h2>
-          <div className="chart-container">
-            {/* Aquí insertarías tu componente DistributionChart */}
-            {/* <DistributionChart data={dashboardData.serviceTypeData} /> */}
-            <div className="placeholder-chart">
-              {/* Puedes quitar esto cuando integres tu gráfico real */}
-              <div className="placeholder-text">Distribución por tipo de servicio</div>
-            </div>
-          </div>
-          <div className="chart-legend">
-            {dashboardData.serviceTypeData.map((item, index) => (
-              <div key={index} className="legend-item">
-                <span 
-                  className="color-dot"
-                  style={{ backgroundColor: Object.values(CHART_COLORS)[index % Object.values(CHART_COLORS).length] }}
-                ></span>
-                <span>{item.name}</span>
-                <span>{Math.round((item.value / dashboardData.serviceTypeData.reduce((acc, curr) => acc + curr.value, 0)) * 100)}%</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+        {/* Gráfico de Distribución por Tipo - CORREGIDO */}
+        <Grid item xs={12} lg={4}>
+          <Card 
+            sx={{ 
+              borderRadius: 2, 
+              bgcolor: '#1E1E1E',
+              border: '1px solid #333',
+              height: '100%'
+            }}
+          >
+            <CardContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="h6" color="white">Distribución por Tipo</Typography>
+                <IconButton size="small" sx={{ color: 'white' }}>
+                  <MoreVertIcon />
+                </IconButton>
+              </Box>
+              <Box sx={{ 
+                height: 280, 
+                display: 'flex', 
+                flexDirection: 'column', 
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}>
+                {/* Gráfico de pastel centrado */}
+                <Box sx={{ height: 200, width: '100%', maxWidth: 300, mx: 'auto' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={facturasPorTipo}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {facturasPorTipo.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value) => [`${value}%`, 'Porcentaje']}
+                        contentStyle={{ backgroundColor: '#2d2d2d', border: 'none', borderRadius: '8px' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Box>
+                
+                {/* Leyenda con mejor alineación */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  width: '100%', 
+                  gap: 1, 
+                  mt: 2,
+                  flexWrap: 'wrap'
+                }}>
+                  {facturasPorTipo.map((entry, index) => (
+                    <Chip 
+                      key={index}
+                      label={`${entry.name} ${entry.value}%`}
+                      sx={{ 
+                        bgcolor: PIE_COLORS[index % PIE_COLORS.length],
+                        color: 'white',
+                        fontWeight: 'bold',
+                        my: 0.5
+                      }} 
+                    />
+                  ))}
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
 
-      {/* Widgets inferiores */}
-      <div className="widgets-row">
-        {/* Últimas Operaciones */}
-        <div className="widget-card transactions-widget">
-          <h2>Últimas Operaciones</h2>
-          <div className="transactions-container">
-            <table className="transactions-table">
-              <thead>
-                <tr>
-                  <th>Cliente</th>
-                  <th>Valor</th>
-                  <th>Fecha</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dashboardData.transactions.map(transaction => (
-                  <tr key={transaction.id}>
-                    <td>{transaction.cliente}</td>
-                    <td>{formatCurrency(transaction.monto)}</td>
-                    <td>{new Date(transaction.fecha).toLocaleDateString('es-ES')}</td>
-                    <td>
-                      <span className={`status-badge ${getStatusClass(transaction.estado)}`}>
-                        {transaction.estado}
-                      </span>
-                    </td>
-                  </tr>
+      {/* Pestañas de Facturas/Clientes */}
+      <Card 
+        sx={{ 
+          borderRadius: 2, 
+          bgcolor: '#1E1E1E',
+          border: '1px solid #333',
+        }}
+      >
+        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          <Tabs 
+            value={tabValue} 
+            onChange={handleTabChange}
+            sx={{ 
+              '& .MuiTab-root': { color: '#888' },
+              '& .Mui-selected': { color: 'white' },
+              '& .MuiTabs-indicator': { backgroundColor: '#4477CE' }
+            }}
+          >
+            <Tab label="Facturas Recientes" />
+            <Tab label="Clientes Recientes" />
+          </Tabs>
+        </Box>
+        
+        {/* Contenido de Facturas Recientes */}
+        {tabValue === 0 && (
+          <Box sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6" color="white">Facturas Recientes</Typography>
+              <Button 
+                startIcon={<AddIcon />} 
+                variant="contained" 
+                sx={{ 
+                  borderRadius: 2,
+                  bgcolor: '#4477CE',
+                  '&:hover': { bgcolor: '#3366BB' }
+                }}
+              >
+                Nueva Factura
+              </Button>
+            </Box>
+            
+            <Box sx={{ overflowX: 'auto' }}>
+              <Box sx={{ minWidth: 700, width: '100%' }}>
+                <Box sx={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: '1fr 2fr 1fr 1fr 1fr',
+                  bgcolor: '#2A2A2A',
+                  borderRadius: 1,
+                  p: 2,
+                  fontWeight: 'bold'
+                }}>
+                  <Typography variant="subtitle2" color="#CCC">Nº Factura</Typography>
+                  <Typography variant="subtitle2" color="#CCC">Cliente</Typography>
+                  <Typography variant="subtitle2" color="#CCC">Fecha</Typography>
+                  <Typography variant="subtitle2" color="#CCC">Total</Typography>
+                  <Typography variant="subtitle2" color="#CCC">Estado</Typography>
+                </Box>
+                
+                {facturasRecientes.map((factura) => (
+                  <Box key={factura.id} sx={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: '1fr 2fr 1fr 1fr 1fr',
+                    p: 2,
+                    borderBottom: '1px solid #333'
+                  }}>
+                    <Typography variant="body2" color="white">{factura.id}</Typography>
+                    <Typography variant="body2" color="white">{factura.cliente}</Typography>
+                    <Typography variant="body2" color="white">{factura.fecha}</Typography>
+                    <Typography variant="body2" color="white">${factura.total.toLocaleString()}</Typography>
+                    <Chip 
+                      label={factura.estado} 
+                      size="small"
+                      sx={{ 
+                        width: 'fit-content',
+                        bgcolor: 
+                          factura.estado === 'Pagada' ? '#66BB6A' : 
+                          factura.estado === 'Pendiente' ? '#FFA726' : 
+                          '#EF5350',
+                        color: 'white',
+                        fontWeight: 'bold'
+                      }} 
+                    />
+                  </Box>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Calendario de Operaciones */}
-        <div className="widget-card calendar-widget">
-          <h2>Calendario de Operaciones</h2>
-          <div className="calendar-container">
-            {/* Aquí insertarías tu componente OperationsCalendar */}
-            {/* <OperationsCalendar /> */}
+              </Box>
+            </Box>
+          </Box>
+        )}
+        
+        {/* Contenido de Clientes Recientes */}
+        {tabValue === 1 && (
+          <Box sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6" color="white">Clientes Recientes</Typography>
+              <Button 
+                startIcon={<AddIcon />} 
+                variant="contained" 
+                sx={{ 
+                  borderRadius: 2,
+                  bgcolor: '#4477CE',
+                  '&:hover': { bgcolor: '#3366BB' }
+                }}
+              >
+                Nuevo Cliente
+              </Button>
+            </Box>
             
-            {/* Placeholder para el ejemplo */}
-            <div className="calendar-header">
-              <button className="calendar-nav-btn">←</button>
-              <div className="month-title">Marzo 2025</div>
-              <button className="calendar-nav-btn">→</button>
-            </div>
-            
-            <div className="calendar-days-header">
-              {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((day, index) => (
-                <div key={index}>{day}</div>
-              ))}
-            </div>
-            
-            <div className="calendar-grid">
-              {/* Placeholder para el calendario */}
-              <div className="placeholder-calendar">
-                <div className="placeholder-text">Calendario de operaciones programadas</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Widget adicional para información financiera (útil para subcontratistas) */}
-      <div className="additional-widget">
-        <div className="widget-card financial-summary">
-          <h2>Resumen Financiero</h2>
-          <div className="financial-summary-content">
-            <div className="financial-metric">
-              <div className="metric-label">Facturación Total</div>
-              <div className="metric-value">{formatCurrency(28500)}</div>
-            </div>
-            <div className="financial-metric">
-              <div className="metric-label">Pagos Pendientes</div>
-              <div className="metric-value">{formatCurrency(5100)}</div>
-            </div>
-            <div className="financial-metric">
-              <div className="metric-label">Margen</div>
-              <div className="metric-value">24.7%</div>
-            </div>
-            <div className="financial-metric">
-              <div className="metric-label">Comisiones</div>
-              <div className="metric-value">{formatCurrency(3400)}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+            <Box sx={{ overflowX: 'auto' }}>
+              <Box sx={{ minWidth: 600, width: '100%' }}>
+                <Box sx={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: '3fr 1fr 1fr',
+                  bgcolor: '#2A2A2A',
+                  borderRadius: 1,
+                  p: 2,
+                  fontWeight: 'bold'
+                }}>
+                  <Typography variant="subtitle2" color="#CCC">Nombre</Typography>
+                  <Typography variant="subtitle2" color="#CCC">País</Typography>
+                  <Typography variant="subtitle2" color="#CCC">Facturas</Typography>
+                </Box>
+                
+                {clientesRecientes.map((cliente) => (
+                  <Box key={cliente.id} sx={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: '3fr 1fr 1fr',
+                    p: 2,
+                    borderBottom: '1px solid #333'
+                  }}>
+                    <Typography variant="body2" color="white">{cliente.nombre}</Typography>
+                    <Typography variant="body2" color="white">{cliente.pais}</Typography>
+                    <Typography variant="body2" color="white">{cliente.facturas}</Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          </Box>
+        )}
+      </Card>
+    </Box>
   );
 };
 
