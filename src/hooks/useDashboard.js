@@ -1,4 +1,4 @@
-// src/hooks/useDashboard.js - Versión completa actualizada
+// src/hooks/useDashboard.js - Solución actualizada
 import { useState, useEffect, useMemo } from 'react';
 import { useInvoices } from './useInvoices';
 import { useClients } from './useClients';
@@ -16,34 +16,12 @@ function normalizeId(id) {
   return typeof id === 'object' ? id.toString() : String(id);
 }
 
-export const useDashboard = (timeRange = null) => {
+export const useDashboard = (timeRange = null, exchangeRate = 35.68) => {
   const { invoices, loading: invoicesLoading } = useInvoices();
   const { clients, loading: clientsLoading } = useClients();
   const { products, loading: productsLoading } = useProducts();
   
   const loading = invoicesLoading || clientsLoading || productsLoading;
-
-  // Código de depuración
-  useEffect(() => {
-    if (invoices.length && clients.length) {
-      console.log("FACTURA EJEMPLO COMPLETA:", truncateObject(invoices[0]));
-      console.log("CLIENTE EJEMPLO COMPLETO:", truncateObject(clients[0]));
-      
-      console.log("==== PROPIEDADES DE FACTURA ====");
-      Object.entries(invoices[0]).forEach(([key, value]) => {
-        console.log(`${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`);
-      });
-      
-      console.log("==== PROPIEDADES DE CLIENTE ====");
-      Object.entries(clients[0]).forEach(([key, value]) => {
-        console.log(`${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`);
-      });
-      
-      // Log de todas las facturas y clientes
-      console.log("TODAS LAS FACTURAS:", invoices);
-      console.log("TODOS LOS CLIENTES:", clients);
-    }
-  }, [invoices, clients]);
 
   // Filtrar facturas por rango de tiempo
   const filteredInvoices = useMemo(() => {
@@ -55,7 +33,20 @@ export const useDashboard = (timeRange = null) => {
     });
   }, [invoices, timeRange]);
 
-  // Procesar datos para KPIs con monedas SEPARADAS
+  // Función auxiliar para convertir monedas
+  const convertCurrency = (amount, fromCurrency, toCurrency) => {
+    if (fromCurrency === toCurrency) return amount;
+    
+    if (fromCurrency === 'USD' && toCurrency === 'VES') {
+      return amount * exchangeRate;
+    } else if (fromCurrency === 'VES' && toCurrency === 'USD') {
+      return amount / exchangeRate;
+    }
+    
+    return amount; // Si no hay conversión disponible
+  };
+
+  // Procesar datos para KPIs con monedas SEPARADAS Y CONSOLIDADAS
   const kpis = useMemo(() => {
     if (loading) return {
       totalPorMoneda: [],
@@ -65,18 +56,31 @@ export const useDashboard = (timeRange = null) => {
       cambioIngresos: 0,
       cambioOperaciones: 0,
       cambioClientes: 0,
-      cambioFacturas: 0
+      cambioFacturas: 0,
+      totalConsolidadoUSD: 0,
+      totalConsolidadoVES: 0
     };
 
     // Calcular totales por moneda (separados)
     const totalesPorMoneda = {};
+    let totalConsolidadoUSD = 0;
     
     filteredInvoices.forEach(invoice => {
       const moneda = invoice.moneda || 'USD';
+      const total = parseFloat(invoice.total) || 0;
+      
       if (!totalesPorMoneda[moneda]) {
         totalesPorMoneda[moneda] = 0;
       }
-      totalesPorMoneda[moneda] += parseFloat(invoice.total) || 0;
+      
+      totalesPorMoneda[moneda] += total;
+      
+      // Consolidar en USD
+      if (moneda === 'USD') {
+        totalConsolidadoUSD += total;
+      } else if (moneda === 'VES') {
+        totalConsolidadoUSD += convertCurrency(total, 'VES', 'USD');
+      }
     });
     
     // Convertir a array para la visualización
@@ -84,6 +88,9 @@ export const useDashboard = (timeRange = null) => {
       moneda,
       total
     }));
+    
+    // Calcular total consolidado en VES
+    const totalConsolidadoVES = convertCurrency(totalConsolidadoUSD, 'USD', 'VES');
     
     const totalFacturas = filteredInvoices.length;
     const totalClientes = clients.length;
@@ -102,11 +109,13 @@ export const useDashboard = (timeRange = null) => {
       cambioIngresos,
       cambioOperaciones,
       cambioClientes,
-      cambioFacturas
+      cambioFacturas,
+      totalConsolidadoUSD,
+      totalConsolidadoVES
     };
-  }, [filteredInvoices, clients, loading]);
+  }, [filteredInvoices, clients, loading, exchangeRate]);
 
-  // Procesar datos para el gráfico de facturación mensual
+  // Procesar datos para el gráfico de facturación mensual - SEPARADO POR MONEDA
   const facturasPorMes = useMemo(() => {
     if (loading || !filteredInvoices.length) return [];
 
@@ -115,58 +124,97 @@ export const useDashboard = (timeRange = null) => {
     filteredInvoices.forEach(invoice => {
       const fecha = new Date(invoice.fecha || invoice.date);
       const mes = fecha.toLocaleString('es', { month: 'short' });
+      const moneda = invoice.moneda || 'USD';
+      const total = parseFloat(invoice.total) || 0;
       
       if (!mesesMap[mes]) {
-        mesesMap[mes] = 0;
+        mesesMap[mes] = { 
+          USD: 0, 
+          VES: 0,
+          total: 0 // Total en USD para visualización
+        };
       }
       
-      mesesMap[mes] += parseFloat(invoice.total) || 0;
+      // Agregar a la moneda correspondiente
+      mesesMap[mes][moneda] += total;
+      
+      // Actualizar el total (convertido a USD para comparación)
+      if (moneda === 'USD') {
+        mesesMap[mes].total += total;
+      } else if (moneda === 'VES') {
+        mesesMap[mes].total += convertCurrency(total, 'VES', 'USD');
+      } else {
+        mesesMap[mes].total += total; // Otras monedas como USD por defecto
+      }
     });
     
     // Convertir a array para el gráfico
-    return Object.entries(mesesMap).map(([name, total]) => ({
+    return Object.entries(mesesMap).map(([name, data]) => ({
       name,
-      total
+      USD: Math.round(data.USD * 100) / 100,
+      VES: Math.round(data.VES * 100) / 100,
+      total: Math.round(data.total * 100) / 100
     }));
-  }, [filteredInvoices, loading]);
+  }, [filteredInvoices, loading, exchangeRate]);
 
-  // Distribución por moneda
+  // Distribución por moneda - PORCENTAJES PRECISOS
   const facturasPorTipo = useMemo(() => {
     if (loading || !filteredInvoices.length) return [];
 
     const monedasMap = {};
-    const total = filteredInvoices.reduce((sum, inv) => sum + (parseFloat(inv.total) || 0), 0);
     
-    // Mapa de emojis para monedas
-    const monedaEmojis = {
-      'USD': '💵 USD',
-      'VES': '💰 VES',
-      'EUR': '💶 EUR',
-      'BTC': '₿ BTC',
-    };
+    // Calcular totales en USD para tener una base común
+    let totalUSD = 0;
     
     filteredInvoices.forEach(invoice => {
-      // Usar moneda o determinar por el formato del total
-      let moneda = invoice.moneda || 'USD';
+      const moneda = invoice.moneda || 'USD';
+      const total = parseFloat(invoice.total) || 0;
       
-      // Formatear el nombre de moneda con emoji
-      const monedaDisplay = monedaEmojis[moneda] || moneda;
-      
-      if (!monedasMap[monedaDisplay]) {
-        monedasMap[monedaDisplay] = 0;
+      if (!monedasMap[moneda]) {
+        monedasMap[moneda] = 0;
       }
       
-      monedasMap[monedaDisplay] += parseFloat(invoice.total) || 0;
+      monedasMap[moneda] += total;
+      
+      // Convertir a USD para calcular porcentajes
+      if (moneda === 'USD') {
+        totalUSD += total;
+      } else if (moneda === 'VES') {
+        totalUSD += convertCurrency(total, 'VES', 'USD');
+      } else {
+        totalUSD += total; // Otras monedas se tratan como USD
+      }
     });
     
     // Convertir a array y calcular porcentajes
-    return Object.entries(monedasMap).map(([name, value]) => ({
-      name,
-      value: Math.round((value / total) * 100) 
-    }));
-  }, [filteredInvoices, loading]);
+    return Object.entries(monedasMap).map(([moneda, value]) => {
+      // Convertir el valor a USD para calcular el porcentaje
+      let valueInUSD = value;
+      if (moneda === 'VES') {
+        valueInUSD = convertCurrency(value, 'VES', 'USD');
+      }
+      
+      const porcentaje = Math.round((valueInUSD / totalUSD) * 100);
+      
+      // Formatear nombre para visualización
+      const monedaEmojis = {
+        'USD': '💵 USD',
+        'VES': '💰 VES',
+        'EUR': '💶 EUR',
+        'BTC': '₿ BTC',
+      };
+      
+      const name = monedaEmojis[moneda] || moneda;
+      
+      return {
+        name,
+        value: porcentaje,
+        raw: value // Valor original sin formato
+      };
+    });
+  }, [filteredInvoices, loading, exchangeRate]);
 
-  // Facturas recientes - SOLUCIÓN MEJORADA USANDO DATOS DEL BACKEND
+  // El resto del código permanece igual...
   const facturasRecientes = useMemo(() => {
     if (loading || !filteredInvoices.length) return [];
 
@@ -240,12 +288,13 @@ export const useDashboard = (timeRange = null) => {
           cliente: `👤 ${clienteNombre}`,
           fecha: new Date(invoice.fecha || invoice.date).toLocaleDateString('es-ES'),
           total: parseFloat(invoice.total) || 0,
+          moneda: invoice.moneda || 'USD',
           estado: `${estadoEmoji}${estadoTraducido}`
         };
       });
   }, [filteredInvoices, clients, loading]);
 
-  // Clientes recientes - SIN MAPEOS MANUALES
+  // Clientes recientes permanece igual
   const clientesRecientes = useMemo(() => {
     if (loading || !clients.length) return [];
 
@@ -293,6 +342,7 @@ export const useDashboard = (timeRange = null) => {
     facturasPorMes,
     facturasPorTipo,
     facturasRecientes,
-    clientesRecientes
+    clientesRecientes,
+    exchangeRate: exchangeRate
   };
 };

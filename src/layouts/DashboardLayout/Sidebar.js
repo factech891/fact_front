@@ -204,7 +204,7 @@ const Sidebar = ({ companyName = "Transportes Express", open = true, onToggle })
             
             {/* Versión */}
             <Typography variant="caption" color="rgba(255, 255, 255, 0.7)" sx={{ mb: 2, display: 'block' }}>
-              Versión 1.0.2
+              Versión 1
             </Typography>
           </>
         )}

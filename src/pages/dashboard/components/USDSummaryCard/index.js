@@ -4,54 +4,42 @@ import {
   CardContent,
   Typography,
   Box,
-  Avatar
+  Avatar,
+  Tooltip
 } from '@mui/material';
+import InfoIcon from '@mui/icons-material/Info';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import PeopleIcon from '@mui/icons-material/People';
-import ReceiptIcon from '@mui/icons-material/Receipt';
-import ShoppingBasketIcon from '@mui/icons-material/ShoppingBasket';
 
-const SummaryCard = ({ 
-  title,
+const USDSummaryCard = ({ 
+  title = "💵 Ingresos USD",
   value, 
   growth, 
-  icon, 
-  currency,
-  avatarColor = '#4285F4'
+  exchangeRate = 35.68
 }) => {
   // Determinar si el crecimiento es positivo o negativo
   const isPositive = growth >= 0;
   
   // Función para formatear valores monetarios
-  const formatValue = () => {
-    if (currency) {
-      return new Intl.NumberFormat('es-ES', {
-        style: 'currency',
-        currency,
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2
-      }).format(value);
+  const formatCurrency = (value, currency = 'USD') => {
+    // Verificar si el valor es un número válido
+    const isValidNumber = value !== undefined && value !== null && !isNaN(value);
+    
+    if (!isValidNumber) {
+      return currency === 'USD' ? '$0.00' : 'Bs. 0,00';
     }
-    return value;
+    
+    return new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    }).format(value);
   };
-  
-  // Seleccionar el icono basado en el parámetro icon
-  const renderIcon = () => {
-    switch (icon) {
-      case 'money':
-        return <AttachMoneyIcon sx={{ fontSize: 18 }} />;
-      case 'people':
-        return <PeopleIcon sx={{ fontSize: 18 }} />;
-      case 'receipt':
-        return <ReceiptIcon sx={{ fontSize: 18 }} />;
-      case 'product':
-        return <ShoppingBasketIcon sx={{ fontSize: 18 }} />;
-      default:
-        return <AttachMoneyIcon sx={{ fontSize: 18 }} />;
-    }
-  };
+
+  // Calcular el equivalente en VES
+  const vesEquivalent = value * exchangeRate;
 
   return (
     <Card 
@@ -73,13 +61,13 @@ const SummaryCard = ({
         }}>
           <Avatar 
             sx={{ 
-              bgcolor: avatarColor,
+              bgcolor: '#66BB6A', // Verde para USD
               width: 32,
               height: 32,
               boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.2)'
             }}
           >
-            {renderIcon()}
+            <AttachMoneyIcon sx={{ fontSize: 18 }} />
           </Avatar>
         </Box>
         
@@ -88,16 +76,25 @@ const SummaryCard = ({
         </Typography>
         
         <Typography 
-          variant="h5" 
+          variant="h6" 
           sx={{ 
             color: 'white', 
             fontWeight: 'bold',
-            fontSize: '1.8rem',
+            fontSize: '1.5rem',
             lineHeight: 1.1,
-            my: 0.5
+            my: 0.3
           }}
         >
-          {formatValue()}
+          {formatCurrency(value, 'USD')}
+        </Typography>
+        
+        {/* Equivalente en VES */}
+        <Typography 
+          variant="body2" 
+          color="#AAA"
+          sx={{ fontSize: '0.7rem' }}
+        >
+          Equivale a: {formatCurrency(vesEquivalent, 'VES')}
         </Typography>
         
         <Box sx={{ 
@@ -115,9 +112,22 @@ const SummaryCard = ({
             {isPositive ? '+' : ''}{Math.abs(growth).toFixed(1)}% este mes
           </Typography>
         </Box>
+        
+        <Box sx={{ 
+          mt: 0.5, 
+          pt: 0.5, 
+          borderTop: '1px solid #333', 
+          display: 'flex', 
+          alignItems: 'center'
+        }}>
+          <InfoIcon sx={{ fontSize: 12, color: '#AAA', mr: 0.3 }} />
+          <Typography variant="caption" color="#AAA" sx={{ fontSize: '0.65rem' }}>
+            Tasa: {exchangeRate.toFixed(2)} VES/USD
+          </Typography>
+        </Box>
       </CardContent>
     </Card>
   );
 };
 
-export default SummaryCard;
+export default USDSummaryCard;

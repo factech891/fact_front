@@ -1,114 +1,125 @@
 import React, { useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
-import { CHART_OPTIONS, getColor } from './config';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  IconButton,
+  Tooltip,
+  Switch,
+  FormControlLabel
+} from '@mui/material';
+import InfoIcon from '@mui/icons-material/Info';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 
-const SalesChart = ({ data }) => {
-  const [chartType, setChartType] = useState('area');
-  
-  // Calcular valores para mejorar la visualización
-  const maxValue = Math.max(...data.map(item => item.value), ...data.map(item => item.target));
-  const minValue = Math.min(...data.map(item => item.value)) * 0.8;
-  
-  return (
-    <div className="sales-chart-container">
-      <div className="chart-controls">
-        <div className="chart-type-selector">
-          {CHART_OPTIONS.map(option => (
-            <button 
-              key={option.id}
-              className={`chart-type-button ${chartType === option.id ? 'active' : ''}`}
-              onClick={() => setChartType(option.id)}
-            >
-              {option.label}
-            </button>
+const SalesChart = ({ data = [], title = "Facturación Mensual" }) => {
+  const [showCombined, setShowCombined] = useState(true);
+
+  // Customizar tooltip para mostrar valores por moneda
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="custom-tooltip" style={{ 
+          backgroundColor: '#242424',
+          padding: '10px',
+          border: '1px solid #444',
+          borderRadius: '4px'
+        }}>
+          <p className="label" style={{ color: '#CCC', marginBottom: '8px' }}>{`Mes: ${label}`}</p>
+          {payload.map((entry, index) => (
+            <p key={`item-${index}`} style={{ 
+              color: entry.color,
+              margin: '2px 0'
+            }}>
+              {`${entry.name === 'total' ? 'Total' : entry.name}: ${entry.value.toLocaleString('es-ES', {
+                style: 'currency',
+                currency: entry.name === 'VES' ? 'VES' : 'USD'
+              })}`}
+            </p>
           ))}
         </div>
-      </div>
-      
-      <div className="chart-wrapper" style={{ width: '100%', height: 300 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          {chartType === 'area' ? (
-            <AreaChart data={data}>
-              <defs>
-                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#2196F3" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="#2196F3" stopOpacity={0.1}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis domain={[minValue, maxValue * 1.1]} />
-              <Tooltip 
-                formatter={(value) => [`$${value.toLocaleString()}`, 'Ventas']}
-                labelFormatter={(label) => `Mes: ${label}`}
+      );
+    }
+    return null;
+  };
+
+  return (
+    <Card
+      sx={{
+        bgcolor: '#1E1E1E',
+        borderRadius: 2,
+        border: '1px solid #333',
+        height: '100%'
+      }}
+    >
+      <CardContent sx={{ p: 3, position: 'relative' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h6" color="#CCC" sx={{ display: 'flex', alignItems: 'center' }}>
+            {title}
+            <Tooltip title="Muestra la facturación mensual. Puede ver los montos separados por moneda o el total consolidado.">
+              <InfoIcon fontSize="small" sx={{ ml: 1, color: '#AAA', cursor: 'pointer' }} />
+            </Tooltip>
+          </Typography>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <FormControlLabel
+              control={
+                <Switch 
+                  checked={showCombined}
+                  onChange={() => setShowCombined(!showCombined)}
+                  size="small"
+                  sx={{ 
+                    '& .MuiSwitch-track': { backgroundColor: '#555' },
+                    '& .Mui-checked + .MuiSwitch-track': { backgroundColor: '#3f51b5' }
+                  }}
+                />
+              }
+              label={
+                <Typography variant="caption" color="#AAA">
+                  {showCombined ? "Total" : "Por moneda"}
+                </Typography>
+              }
+              sx={{ mr: 1 }}
+            />
+            <IconButton size="small" sx={{ color: '#AAA' }}>
+              <MoreVertIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        </Box>
+
+        <Box sx={{ width: '100%', height: 300 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={data}
+              margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+              <XAxis 
+                dataKey="name"
+                tick={{ fill: '#AAA' }}
+                axisLine={{ stroke: '#444' }}
               />
-              <Legend />
-              <Area 
-                type="monotone" 
-                dataKey="value" 
-                name="Ventas" 
-                stroke="#2196F3" 
-                fillOpacity={1} 
-                fill="url(#colorValue)" 
+              <YAxis 
+                tick={{ fill: '#AAA' }}
+                axisLine={{ stroke: '#444' }}
               />
-              <Line 
-                type="monotone" 
-                dataKey="target" 
-                name="Meta" 
-                stroke="#FF9800" 
-                strokeDasharray="5 5" 
-                dot={false}
-              />
-            </AreaChart>
-          ) : (
-            <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis domain={[minValue, maxValue * 1.1]} />
-              <Tooltip 
-                formatter={(value) => [`$${value.toLocaleString()}`, 'Ventas']}
-                labelFormatter={(label) => `Mes: ${label}`}
-              />
-              <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="value" 
-                name="Ventas" 
-                stroke="#2196F3" 
-                activeDot={{ r: 8 }}
-                strokeWidth={2}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="target" 
-                name="Meta" 
-                stroke="#FF9800" 
-                strokeDasharray="5 5" 
-                dot={false}
-              />
-            </LineChart>
-          )}
-        </ResponsiveContainer>
-      </div>
-      
-      <div className="chart-insights">
-        <div className="insight-card">
-          <div className="insight-title">Meta mensual</div>
-          <div className="insight-value">${data[0].target.toLocaleString()}</div>
-        </div>
-        <div className="insight-card">
-          <div className="insight-title">Último mes</div>
-          <div className="insight-value">${data[data.length-1].value.toLocaleString()}</div>
-          <div className={`insight-trend ${data[data.length-1].value >= data[data.length-1].target ? 'positive' : 'negative'}`}>
-            {data[data.length-1].value >= data[data.length-1].target ? '✓ Meta alcanzada' : '✗ Por debajo de meta'}
-          </div>
-        </div>
-        <div className="insight-card">
-          <div className="insight-title">Mejor mes</div>
-          <div className="insight-value">${Math.max(...data.map(item => item.value)).toLocaleString()}</div>
-        </div>
-      </div>
-    </div>
+              <RechartsTooltip content={<CustomTooltip />} />
+              <Legend wrapperStyle={{ color: '#AAA' }} />
+              
+              {showCombined ? (
+                <Bar dataKey="total" name="Total" fill="#4285F4" barSize={30} />
+              ) : (
+                <>
+                  <Bar dataKey="USD" name="USD" fill="#4CAF50" barSize={15} />
+                  <Bar dataKey="VES" name="VES" fill="#4285F4" barSize={15} />
+                </>
+              )}
+            </BarChart>
+          </ResponsiveContainer>
+        </Box>
+      </CardContent>
+    </Card>
   );
 };
 
