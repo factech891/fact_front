@@ -166,75 +166,36 @@ export const useDashboard = (timeRange = null) => {
     }));
   }, [filteredInvoices, loading]);
 
-  // Facturas recientes - SOLUCIÓN DEFINITIVA PARA "CLIENTE DESCONOCIDO"
+  // Facturas recientes - SOLUCIÓN MEJORADA USANDO DATOS DEL BACKEND
   const facturasRecientes = useMemo(() => {
     if (loading || !filteredInvoices.length) return [];
-
-    // Mapeo directo por ID de factura
-    const idToClientMap = {
-      // IDs de las facturas que vemos en las capturas
-      '67d0bf75e0449dafa1f11c0f': 'Pedro',
-      '67a81053d26f8472fbf9615e': 'Yoliverts',
-      '67a7b3f046ce4a82877d5a13': 'Jesus',
-      '67a7b3f046ce4a82877d5a14': 'rolita',
-      '67a7b3f046ce4a82877d5a15': 'Tony'
-    };
-
-    // También mapeamos por número de factura como respaldo
-    const numeroToClientMap = {
-      'INV-0002': 'Yoliverts',
-      'INV-0003': 'Jesus',
-      'INV-0004': 'Pedro',
-      'INV-0005': 'rolita',
-      'INV-0006': 'Jesus',
-      'INV-0007': 'Tony'
-    };
-
-    // También crear un mapa de cliente por nombre para búsqueda
-    const clientesByName = {};
-    clients.forEach(client => {
-      const nombre = client.nombre || client.name;
-      if (nombre) {
-        clientesByName[nombre.toLowerCase()] = client;
-      }
-    });
 
     return filteredInvoices
       .sort((a, b) => new Date(b.fecha || b.date) - new Date(a.fecha || a.date))
       .slice(0, 5)
       .map(invoice => {
-        // 1. Obtener el número de factura correcto
+        // Obtener número de factura
         const numeroFactura = invoice.number || invoice.numeroFactura || invoice.numero || 
-                          `INV-${invoice._id ? invoice._id.substring(0, 4) : Math.floor(Math.random() * 9000 + 1000)}`;
+                        `INV-${invoice._id ? invoice._id.substring(0, 4) : Math.floor(Math.random() * 9000 + 1000)}`;
         
-        // 2. BUSCAR CLIENTE - MÚLTIPLES ESTRATEGIAS
+        // Obtener nombre del cliente usando los datos populados
         let clienteNombre = 'Cliente desconocido';
         
-        // Estrategia 1: Usar mapeo directo por ID
-        if (invoice._id && idToClientMap[invoice._id]) {
-          clienteNombre = idToClientMap[invoice._id];
+        // Verificar si el cliente está populado como objeto
+        if (invoice.client && typeof invoice.client === 'object') {
+          clienteNombre = invoice.client.name || invoice.client.nombre || clienteNombre;
         } 
-        // Estrategia 2: Usar mapeo por número de factura
-        else if (numeroToClientMap[numeroFactura]) {
-          clienteNombre = numeroToClientMap[numeroFactura];
+        // Verificar nombres alternativos de propiedades
+        else if (invoice.cliente && typeof invoice.cliente === 'object') {
+          clienteNombre = invoice.cliente.name || invoice.cliente.nombre || clienteNombre;
         }
-        // Estrategia 3: Buscar por referencia de cliente directa
-        else if (invoice.cliente || invoice.clientId || invoice.client) {
-          const clientId = invoice.cliente || invoice.clientId || invoice.client;
-          const cliente = clients.find(c => c._id === clientId);
+        // Si tenemos un ID de cliente pero no está populado, buscarlo en el array de clientes
+        else if (invoice.client || invoice.cliente || invoice.clientId) {
+          const clientId = invoice.client || invoice.cliente || invoice.clientId;
+          const cliente = clients.find(c => normalizeId(c._id) === normalizeId(clientId));
           if (cliente) {
-            clienteNombre = cliente.nombre || cliente.name;
+            clienteNombre = cliente.nombre || cliente.name || clienteNombre;
           }
-        }
-        
-        // HACK: Usar el número de factura para determinar el cliente (aunque sea temporal)
-        if (clienteNombre === 'Cliente desconocido') {
-          if (numeroFactura === 'INV-0002') clienteNombre = 'Yoliverts';
-          else if (numeroFactura === 'INV-0003') clienteNombre = 'Jesus';
-          else if (numeroFactura === 'INV-0004') clienteNombre = 'Pedro';
-          else if (numeroFactura === 'INV-0005') clienteNombre = 'rolita';
-          else if (numeroFactura === 'INV-0006') clienteNombre = 'Jesus';
-          else if (numeroFactura === 'INV-0007') clienteNombre = 'Tony';
         }
         
         // Emoji según estado
