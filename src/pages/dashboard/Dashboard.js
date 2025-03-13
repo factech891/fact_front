@@ -1,6 +1,6 @@
 // src/pages/dashboard/Dashboard.js
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // Añadido para navegación
+import { useNavigate } from 'react-router-dom';
 import { 
   Box, 
   Grid, 
@@ -13,7 +13,9 @@ import {
   Tab,
   Button,
   Chip,
-  CircularProgress
+  CircularProgress,
+  Divider,
+  Tooltip
 } from '@mui/material';
 
 // Importamos los iconos necesarios
@@ -25,6 +27,8 @@ import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import PeopleIcon from '@mui/icons-material/People';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import PaidIcon from '@mui/icons-material/Paid';
+import InfoIcon from '@mui/icons-material/Info';
 
 // Importamos los componentes de gráficos desde recharts
 import { 
@@ -33,24 +37,27 @@ import {
   XAxis, 
   YAxis, 
   CartesianGrid, 
-  Tooltip, 
+  Tooltip as RechartsTooltip, 
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell
 } from 'recharts';
 
-// Importamos nuestro hook de dashboard personalizado
+// Importamos nuestro hook personalizado
 import { useDashboard } from '../../hooks/useDashboard';
 
 // Colores para gráficos y KPIs
 const COLORS = ['#4477CE', '#66BB6A', '#FFA726', '#EF5350'];
-const PIE_COLORS = ['#4477CE', '#66BB6A', '#FFA726'];
+const PIE_COLORS = ['#4477CE', '#66BB6A', '#FFA726', '#EF5350', '#AB47BC', '#26C6DA', '#EC407A'];
 
 // Componente principal del Dashboard
 const Dashboard = () => {
   const [tabValue, setTabValue] = useState(0);
-  const navigate = useNavigate(); // Hook para navegación
+  const navigate = useNavigate();
+  
+  // Tasa de cambio actual (podría venir de una API o configuración)
+  const tasaCambio = 35.27; // VES por 1 USD
   
   // Utilizamos el hook personalizado
   const { 
@@ -67,12 +74,12 @@ const Dashboard = () => {
   };
 
   // Función para formatear valores monetarios
-  const formatCurrency = (value) => {
+  const formatCurrency = (value, currency = 'USD') => {
     return new Intl.NumberFormat('es-ES', {
       style: 'currency',
-      currency: 'USD',
+      currency,
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      maximumFractionDigits: 2
     }).format(value);
   };
   
@@ -93,11 +100,15 @@ const Dashboard = () => {
     );
   }
 
+  // Obtener totales por moneda
+  const totalUSD = kpis.totalPorMoneda.find(m => m.moneda === 'USD')?.total || 0;
+  const totalVES = kpis.totalPorMoneda.find(m => m.moneda === 'VES')?.total || 0;
+
   return (
     <Box sx={{ p: 3 }}>
       {/* Tarjetas de KPIs */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        {/* KPI 1: Ingresos */}
+        {/* KPI 1: USD */}
         <Grid item xs={12} md={6} lg={3}>
           <Card 
             sx={{ 
@@ -118,7 +129,7 @@ const Dashboard = () => {
               }}>
                 <Avatar 
                   sx={{ 
-                    bgcolor: '#4477CE',
+                    bgcolor: '#66BB6A', // Verde para USD
                     width: 50,
                     height: 50,
                     boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.2)'
@@ -127,6 +138,12 @@ const Dashboard = () => {
                   <AttachMoneyIcon />
                 </Avatar>
               </Box>
+              
+              <Typography variant="h6" color="#CCC" sx={{ mb: 1 }}>
+                💵 Ingresos USD
+              </Typography>
+              
+              {/* Total USD */}
               <Typography 
                 variant="h4" 
                 sx={{ 
@@ -136,27 +153,100 @@ const Dashboard = () => {
                   mb: 1
                 }}
               >
-                {kpis?.totalIngresos ? formatCurrency(kpis.totalIngresos) : '$0'}
+                {formatCurrency(totalUSD, 'USD')}
               </Typography>
+              
+              {/* Indicador de cambio */}
               <Box sx={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                color: kpis?.cambioIngresos >= 0 ? '#4cd964' : '#ff3b30', 
+                color: kpis.cambioIngresos >= 0 ? '#4cd964' : '#ff3b30', 
                 mt: 2 
               }}>
-                {kpis?.cambioIngresos >= 0 ? 
+                {kpis.cambioIngresos >= 0 ? 
                   <TrendingUpIcon fontSize="small" /> : 
                   <TrendingDownIcon fontSize="small" />
                 }
                 <Typography variant="body2" sx={{ ml: 0.5 }}>
-                  {kpis?.cambioIngresos >= 0 ? '+' : ''}{kpis?.cambioIngresos || 0}% este mes
+                  {kpis.cambioIngresos >= 0 ? '+' : ''}{kpis.cambioIngresos}% este mes
                 </Typography>
               </Box>
             </CardContent>
           </Card>
         </Grid>
         
-        {/* KPI 2: Operaciones */}
+        {/* KPI 2: VES */}
+        <Grid item xs={12} md={6} lg={3}>
+          <Card 
+            sx={{ 
+              bgcolor: '#1E1E1E', 
+              borderRadius: 2,
+              border: '1px solid #333',
+              height: '100%',
+              position: 'relative',
+              overflow: 'visible'
+            }}
+          >
+            <CardContent sx={{ p: 3, position: 'relative' }}>
+              <Box sx={{ 
+                position: 'absolute',
+                top: '-15px',
+                right: '15px',
+                zIndex: 1
+              }}>
+                <Avatar 
+                  sx={{ 
+                    bgcolor: '#4477CE', // Azul para VES
+                    width: 50,
+                    height: 50,
+                    boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.2)'
+                  }}
+                >
+                  <PaidIcon />
+                </Avatar>
+              </Box>
+              
+              <Typography variant="h6" color="#CCC" sx={{ mb: 1 }}>
+                💰 Ingresos VES
+              </Typography>
+              
+              {/* Total VES */}
+              <Typography 
+                variant="h4" 
+                sx={{ 
+                  color: 'white', 
+                  fontWeight: 'bold',
+                  fontSize: '2.5rem',
+                  mb: 1
+                }}
+              >
+                {formatCurrency(totalVES, 'VES')}
+              </Typography>
+              
+              <Box sx={{ 
+                mt: 2, 
+                display: 'flex', 
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <Typography variant="caption" color="#AAA">
+                  ≈ {formatCurrency(totalVES / tasaCambio, 'USD')}
+                </Typography>
+                
+                <Tooltip title="Tasa de cambio actual">
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <InfoIcon sx={{ fontSize: 16, color: '#AAA', mr: 0.5 }} />
+                    <Typography variant="caption" color="#AAA">
+                      {tasaCambio} VES/USD
+                    </Typography>
+                  </Box>
+                </Tooltip>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        {/* KPI 3: Operaciones */}
         <Grid item xs={12} md={6} lg={3}>
           <Card 
             sx={{ 
@@ -183,9 +273,14 @@ const Dashboard = () => {
                     boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.2)'
                   }}
                 >
-                  <LocalShippingIcon />
+                  <ReceiptIcon />
                 </Avatar>
               </Box>
+              
+              <Typography variant="h6" color="#CCC" sx={{ mb: 1 }}>
+                📊 Facturas
+              </Typography>
+              
               <Typography 
                 variant="h4" 
                 sx={{ 
@@ -195,27 +290,27 @@ const Dashboard = () => {
                   mb: 1
                 }}
               >
-                {kpis?.totalOperaciones || 0}
+                {kpis.totalFacturas || 0}
               </Typography>
               <Box sx={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                color: kpis?.cambioOperaciones >= 0 ? '#4cd964' : '#ff3b30', 
+                color: kpis.cambioFacturas >= 0 ? '#4cd964' : '#ff3b30', 
                 mt: 2 
               }}>
-                {kpis?.cambioOperaciones >= 0 ? 
+                {kpis.cambioFacturas >= 0 ? 
                   <TrendingUpIcon fontSize="small" /> : 
                   <TrendingDownIcon fontSize="small" />
                 }
                 <Typography variant="body2" sx={{ ml: 0.5 }}>
-                  {kpis?.cambioOperaciones >= 0 ? '+' : ''}{kpis?.cambioOperaciones || 0}% este mes
+                  {kpis.cambioFacturas >= 0 ? '+' : ''}{kpis.cambioFacturas}% este mes
                 </Typography>
               </Box>
             </CardContent>
           </Card>
         </Grid>
-        
-        {/* KPI 3: Clientes */}
+
+        {/* KPI 4: Clientes */}
         <Grid item xs={12} md={6} lg={3}>
           <Card 
             sx={{ 
@@ -236,7 +331,7 @@ const Dashboard = () => {
               }}>
                 <Avatar 
                   sx={{ 
-                    bgcolor: '#4477CE',
+                    bgcolor: '#EF5350',
                     width: 50,
                     height: 50,
                     boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.2)'
@@ -245,6 +340,11 @@ const Dashboard = () => {
                   <PeopleIcon />
                 </Avatar>
               </Box>
+              
+              <Typography variant="h6" color="#CCC" sx={{ mb: 1 }}>
+                👥 Clientes
+              </Typography>
+              
               <Typography 
                 variant="h4" 
                 sx={{ 
@@ -254,79 +354,20 @@ const Dashboard = () => {
                   mb: 1
                 }}
               >
-                {kpis?.totalClientes || 0}
+                {kpis.totalClientes || 0}
               </Typography>
               <Box sx={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                color: kpis?.cambioClientes >= 0 ? '#4cd964' : '#ff3b30', 
+                color: kpis.cambioClientes >= 0 ? '#4cd964' : '#ff3b30', 
                 mt: 2 
               }}>
-                {kpis?.cambioClientes >= 0 ? 
+                {kpis.cambioClientes >= 0 ? 
                   <TrendingUpIcon fontSize="small" /> : 
                   <TrendingDownIcon fontSize="small" />
                 }
                 <Typography variant="body2" sx={{ ml: 0.5 }}>
-                  {kpis?.cambioClientes >= 0 ? '+' : ''}{kpis?.cambioClientes || 0}% este mes
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* KPI 4: Facturas */}
-        <Grid item xs={12} md={6} lg={3}>
-          <Card 
-            sx={{ 
-              bgcolor: '#1E1E1E', 
-              borderRadius: 2,
-              border: '1px solid #333',
-              height: '100%',
-              position: 'relative',
-              overflow: 'visible'
-            }}
-          >
-            <CardContent sx={{ p: 3, position: 'relative' }}>
-              <Box sx={{ 
-                position: 'absolute',
-                top: '-15px',
-                right: '15px',
-                zIndex: 1
-              }}>
-                <Avatar 
-                  sx={{ 
-                    bgcolor: '#66BB6A',
-                    width: 50,
-                    height: 50,
-                    boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.2)'
-                  }}
-                >
-                  <ReceiptIcon />
-                </Avatar>
-              </Box>
-              <Typography 
-                variant="h4" 
-                sx={{ 
-                  color: 'white', 
-                  fontWeight: 'bold',
-                  fontSize: '2.5rem',
-                  mb: 1
-                }}
-              >
-                {kpis?.totalFacturas || 0}
-              </Typography>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                color: kpis?.cambioFacturas >= 0 ? '#4cd964' : '#ff3b30', 
-                mt: 2 
-              }}>
-                {kpis?.cambioFacturas >= 0 ? 
-                  <TrendingUpIcon fontSize="small" /> : 
-                  <TrendingDownIcon fontSize="small" />
-                }
-                <Typography variant="body2" sx={{ ml: 0.5 }}>
-                  {kpis?.cambioFacturas >= 0 ? '+' : ''}{kpis?.cambioFacturas || 0}% este mes
+                  {kpis.cambioClientes >= 0 ? '+' : ''}{kpis.cambioClientes}% este mes
                 </Typography>
               </Box>
             </CardContent>
@@ -355,13 +396,13 @@ const Dashboard = () => {
               <Box sx={{ height: 320 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
-                    data={facturasPorMes || []}
+                    data={facturasPorMes}
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#333" />
                     <XAxis dataKey="name" stroke="#888" />
                     <YAxis stroke="#888" />
-                    <Tooltip 
+                    <RechartsTooltip 
                       formatter={(value) => [`$${value.toLocaleString()}`, 'Total']}
                       labelFormatter={(label) => `Mes: ${label}`}
                       contentStyle={{ backgroundColor: '#2d2d2d', border: 'none', borderRadius: '8px' }}
@@ -381,7 +422,7 @@ const Dashboard = () => {
           </Card>
         </Grid>
 
-        {/* Gráfico de Distribución por Tipo */}
+        {/* Gráfico de Distribución por Moneda */}
         <Grid item xs={12} lg={4}>
           <Card 
             sx={{ 
@@ -393,7 +434,7 @@ const Dashboard = () => {
           >
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h6" color="white">Distribución por Tipo</Typography>
+                <Typography variant="h6" color="white">Distribución por Moneda</Typography>
                 <IconButton size="small" sx={{ color: 'white' }}>
                   <MoreVertIcon />
                 </IconButton>
@@ -410,7 +451,7 @@ const Dashboard = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={facturasPorTipo || []}
+                        data={facturasPorTipo}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
@@ -418,11 +459,11 @@ const Dashboard = () => {
                         fill="#8884d8"
                         dataKey="value"
                       >
-                        {(facturasPorTipo || []).map((entry, index) => (
+                        {facturasPorTipo.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip 
+                      <RechartsTooltip 
                         formatter={(value) => [`${value}%`, 'Porcentaje']}
                         contentStyle={{ backgroundColor: '#2d2d2d', border: 'none', borderRadius: '8px' }}
                       />
@@ -439,7 +480,7 @@ const Dashboard = () => {
                   mt: 2,
                   flexWrap: 'wrap'
                 }}>
-                  {(facturasPorTipo || []).map((entry, index) => (
+                  {facturasPorTipo.map((entry, index) => (
                     <Chip 
                       key={index}
                       label={`${entry.name} ${entry.value}%`}
@@ -489,7 +530,7 @@ const Dashboard = () => {
               <Button 
                 startIcon={<AddIcon />} 
                 variant="contained" 
-                onClick={handleNewInvoice} // Modificado para usar el nuevo handler
+                onClick={handleNewInvoice}
                 sx={{ 
                   borderRadius: 2,
                   bgcolor: '#4477CE',
@@ -517,8 +558,8 @@ const Dashboard = () => {
                   <Typography variant="subtitle2" color="#CCC">Estado</Typography>
                 </Box>
                 
-                {(facturasRecientes || []).length > 0 ? (
-                  (facturasRecientes || []).map((factura) => (
+                {facturasRecientes.length > 0 ? (
+                  facturasRecientes.map((factura) => (
                     <Box key={factura.id} sx={{ 
                       display: 'grid', 
                       gridTemplateColumns: '1fr 2fr 1fr 1fr 1fr',
@@ -529,19 +570,13 @@ const Dashboard = () => {
                       <Typography variant="body2" color="white">{factura.cliente}</Typography>
                       <Typography variant="body2" color="white">{factura.fecha}</Typography>
                       <Typography variant="body2" color="white">${factura.total.toLocaleString()}</Typography>
-                      <Chip 
-                        label={factura.estado} 
-                        size="small"
-                        sx={{ 
-                          width: 'fit-content',
-                          bgcolor: 
-                            factura.estado.toLowerCase() === 'pagada' || factura.estado.toLowerCase() === 'paid' ? '#66BB6A' : 
-                            factura.estado.toLowerCase() === 'pendiente' || factura.estado.toLowerCase() === 'pending' ? '#FFA726' : 
-                            '#EF5350',
-                          color: 'white',
-                          fontWeight: 'bold'
-                        }} 
-                      />
+                      <Typography 
+                        variant="body2" 
+                        color="white"
+                        sx={{ textWrap: 'nowrap' }}
+                      >
+                        {factura.estado}
+                      </Typography>
                     </Box>
                   ))
                 ) : (
@@ -554,7 +589,7 @@ const Dashboard = () => {
           </Box>
         )}
         
-        {/* Contenido de Clientes Recientes */}
+        {/* Contenido de Clientes Recientes - MEJORADO PARA CENTRAR CONTACTO */}
         {tabValue === 1 && (
           <Box sx={{ p: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -562,7 +597,7 @@ const Dashboard = () => {
               <Button 
                 startIcon={<AddIcon />} 
                 variant="contained" 
-                onClick={handleNewClient} // Modificado para usar el nuevo handler
+                onClick={handleNewClient}
                 sx={{ 
                   borderRadius: 2,
                   bgcolor: '#4477CE',
@@ -577,28 +612,39 @@ const Dashboard = () => {
               <Box sx={{ minWidth: 600, width: '100%' }}>
                 <Box sx={{ 
                   display: 'grid', 
-                  gridTemplateColumns: '3fr 1fr 1fr',
+                  gridTemplateColumns: '2fr 4fr 1fr', // Distribución más equilibrada
                   bgcolor: '#2A2A2A',
                   borderRadius: 1,
                   p: 2,
                   fontWeight: 'bold'
                 }}>
-                  <Typography variant="subtitle2" color="#CCC">Nombre</Typography>
-                  <Typography variant="subtitle2" color="#CCC">País</Typography>
-                  <Typography variant="subtitle2" color="#CCC">Facturas</Typography>
+                  <Typography variant="subtitle2" color="#CCC" align="left">Nombre</Typography>
+                  <Typography variant="subtitle2" color="#CCC" align="center">Contacto</Typography>
+                  <Typography variant="subtitle2" color="#CCC" align="right">Facturas</Typography>
                 </Box>
                 
-                {(clientesRecientes || []).length > 0 ? (
-                  (clientesRecientes || []).map((cliente) => (
+                {clientesRecientes.length > 0 ? (
+                  clientesRecientes.map((cliente) => (
                     <Box key={cliente.id} sx={{ 
                       display: 'grid', 
-                      gridTemplateColumns: '3fr 1fr 1fr',
+                      gridTemplateColumns: '2fr 4fr 1fr', // Distribución más equilibrada
                       p: 2,
                       borderBottom: '1px solid #333'
                     }}>
-                      <Typography variant="body2" color="white">{cliente.nombre}</Typography>
-                      <Typography variant="body2" color="white">{cliente.pais}</Typography>
-                      <Typography variant="body2" color="white">{cliente.facturas}</Typography>
+                      <Typography variant="body2" color="white" align="left">{cliente.nombre}</Typography>
+                      <Typography 
+                        variant="body2" 
+                        color="white"
+                        align="center" // Centrado
+                        sx={{ 
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {cliente.contacto}
+                      </Typography>
+                      <Typography variant="body2" color="white" align="right">{cliente.facturas}</Typography>
                     </Box>
                   ))
                 ) : (
