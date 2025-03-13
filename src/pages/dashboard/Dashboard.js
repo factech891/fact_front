@@ -1,4 +1,3 @@
-// src/pages/dashboard/Dashboard.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -14,7 +13,6 @@ import {
   Button,
   Chip,
   CircularProgress,
-  Divider,
   Tooltip
 } from '@mui/material';
 
@@ -23,11 +21,9 @@ import AddIcon from '@mui/icons-material/Add';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import PeopleIcon from '@mui/icons-material/People';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import PaidIcon from '@mui/icons-material/Paid';
 import InfoIcon from '@mui/icons-material/Info';
 
 // Importamos los componentes de gráficos desde recharts
@@ -47,6 +43,11 @@ import {
 // Importamos nuestro hook personalizado
 import { useDashboard } from '../../hooks/useDashboard';
 
+// Importamos componentes personalizados
+import VESSummaryCard from './components/VESSummaryCard';
+import AnnualBillingChart from './components/AnnualBillingChart';
+import DateRangeSelector from './components/DateRangeSelector';
+
 // Colores para gráficos y KPIs
 const COLORS = ['#4477CE', '#66BB6A', '#FFA726', '#EF5350'];
 const PIE_COLORS = ['#4477CE', '#66BB6A', '#FFA726', '#EF5350', '#AB47BC', '#26C6DA', '#EC407A'];
@@ -56,21 +57,36 @@ const Dashboard = () => {
   const [tabValue, setTabValue] = useState(0);
   const navigate = useNavigate();
   
-  // Tasa de cambio actual (podría venir de una API o configuración)
-  const tasaCambio = 35.27; // VES por 1 USD
+  // Estado para la tasa de cambio seleccionada
+  const [selectedRate, setSelectedRate] = useState(35.68);
+  
+  // Estado para el rango de fechas
+  const [timeRange, setTimeRange] = useState(() => {
+    const now = new Date();
+    return {
+      startDate: new Date(now.getFullYear(), now.getMonth(), 1), // Primer día del mes actual
+      endDate: new Date(now.getFullYear(), now.getMonth() + 1, 0) // Último día del mes actual
+    };
+  });
   
   // Utilizamos el hook personalizado
   const { 
     loading, 
     kpis, 
     facturasPorMes, 
-    facturasPorTipo, 
+    facturasPorTipo,
+    facturasPorAnio,
     facturasRecientes, 
     clientesRecientes 
-  } = useDashboard();
+  } = useDashboard(timeRange);
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
+  };
+  
+  // Handler para actualizar el rango de fechas
+  const handleDateRangeChange = (newRange) => {
+    setTimeRange(newRange);
   };
 
   // Función para formatear valores monetarios
@@ -106,6 +122,9 @@ const Dashboard = () => {
 
   return (
     <Box sx={{ p: 3 }}>
+      {/* Selector de rango de fechas */}
+      <DateRangeSelector onChange={handleDateRangeChange} />
+      
       {/* Tarjetas de KPIs */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {/* KPI 1: USD */}
@@ -175,75 +194,14 @@ const Dashboard = () => {
           </Card>
         </Grid>
         
-        {/* KPI 2: VES */}
+        {/* KPI 2: VES - REEMPLAZADO POR COMPONENTE ESPECIALIZADO */}
         <Grid item xs={12} md={6} lg={3}>
-          <Card 
-            sx={{ 
-              bgcolor: '#1E1E1E', 
-              borderRadius: 2,
-              border: '1px solid #333',
-              height: '100%',
-              position: 'relative',
-              overflow: 'visible'
-            }}
-          >
-            <CardContent sx={{ p: 3, position: 'relative' }}>
-              <Box sx={{ 
-                position: 'absolute',
-                top: '-15px',
-                right: '15px',
-                zIndex: 1
-              }}>
-                <Avatar 
-                  sx={{ 
-                    bgcolor: '#4477CE', // Azul para VES
-                    width: 50,
-                    height: 50,
-                    boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.2)'
-                  }}
-                >
-                  <PaidIcon />
-                </Avatar>
-              </Box>
-              
-              <Typography variant="h6" color="#CCC" sx={{ mb: 1 }}>
-                💰 Ingresos VES
-              </Typography>
-              
-              {/* Total VES */}
-              <Typography 
-                variant="h4" 
-                sx={{ 
-                  color: 'white', 
-                  fontWeight: 'bold',
-                  fontSize: '2.5rem',
-                  mb: 1
-                }}
-              >
-                {formatCurrency(totalVES, 'VES')}
-              </Typography>
-              
-              <Box sx={{ 
-                mt: 2, 
-                display: 'flex', 
-                alignItems: 'center',
-                justifyContent: 'space-between'
-              }}>
-                <Typography variant="caption" color="#AAA">
-                  ≈ {formatCurrency(totalVES / tasaCambio, 'USD')}
-                </Typography>
-                
-                <Tooltip title="Tasa de cambio actual">
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <InfoIcon sx={{ fontSize: 16, color: '#AAA', mr: 0.5 }} />
-                    <Typography variant="caption" color="#AAA">
-                      {tasaCambio} VES/USD
-                    </Typography>
-                  </Box>
-                </Tooltip>
-              </Box>
-            </CardContent>
-          </Card>
+          <VESSummaryCard
+            title="Ingresos VES"
+            value={totalVES}
+            growth={kpis.cambioIngresos}
+            onRateChange={(rate) => setSelectedRate(rate)}
+          />
         </Grid>
         
         {/* KPI 3: Operaciones */}
@@ -499,6 +457,13 @@ const Dashboard = () => {
         </Grid>
       </Grid>
 
+      {/* Facturación Anual */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12}>
+          <AnnualBillingChart data={facturasPorAnio} />
+        </Grid>
+      </Grid>
+
       {/* Pestañas de Facturas/Clientes */}
       <Card 
         sx={{ 
@@ -589,7 +554,7 @@ const Dashboard = () => {
           </Box>
         )}
         
-        {/* Contenido de Clientes Recientes - MEJORADO PARA CENTRAR CONTACTO */}
+        {/* Contenido de Clientes Recientes - MEJORADO CON COLUMNAS SEPARADAS */}
         {tabValue === 1 && (
           <Box sx={{ p: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -609,17 +574,18 @@ const Dashboard = () => {
             </Box>
             
             <Box sx={{ overflowX: 'auto' }}>
-              <Box sx={{ minWidth: 600, width: '100%' }}>
+              <Box sx={{ minWidth: 800, width: '100%' }}>
                 <Box sx={{ 
                   display: 'grid', 
-                  gridTemplateColumns: '2fr 4fr 1fr', // Distribución más equilibrada
+                  gridTemplateColumns: '2fr 2fr 2fr 1fr', // 4 columnas ahora
                   bgcolor: '#2A2A2A',
                   borderRadius: 1,
                   p: 2,
                   fontWeight: 'bold'
                 }}>
-                  <Typography variant="subtitle2" color="#CCC" align="left">Nombre</Typography>
-                  <Typography variant="subtitle2" color="#CCC" align="center">Contacto</Typography>
+                  <Typography variant="subtitle2" color="#CCC">Nombre</Typography>
+                  <Typography variant="subtitle2" color="#CCC">Correo</Typography>
+                  <Typography variant="subtitle2" color="#CCC">Documento</Typography>
                   <Typography variant="subtitle2" color="#CCC" align="right">Facturas</Typography>
                 </Box>
                 
@@ -627,22 +593,32 @@ const Dashboard = () => {
                   clientesRecientes.map((cliente) => (
                     <Box key={cliente.id} sx={{ 
                       display: 'grid', 
-                      gridTemplateColumns: '2fr 4fr 1fr', // Distribución más equilibrada
+                      gridTemplateColumns: '2fr 2fr 2fr 1fr', // 4 columnas ahora
                       p: 2,
                       borderBottom: '1px solid #333'
                     }}>
-                      <Typography variant="body2" color="white" align="left">{cliente.nombre}</Typography>
+                      <Typography variant="body2" color="white">{cliente.nombre}</Typography>
                       <Typography 
                         variant="body2" 
                         color="white"
-                        align="center" // Centrado
                         sx={{ 
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap'
                         }}
                       >
-                        {cliente.contacto}
+                        {cliente.email ? `📧 ${cliente.email}` : ''}
+                      </Typography>
+                      <Typography 
+                        variant="body2" 
+                        color="white"
+                        sx={{ 
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {cliente.documento ? `📝 ${cliente.documento}` : ''}
                       </Typography>
                       <Typography variant="body2" color="white" align="right">{cliente.facturas}</Typography>
                     </Box>

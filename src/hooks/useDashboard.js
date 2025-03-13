@@ -245,45 +245,47 @@ export const useDashboard = (timeRange = null) => {
       });
   }, [filteredInvoices, clients, loading]);
 
-  // Clientes recientes - MEJORADO CON INFORMACIÓN CENTRADA
+  // Clientes recientes - SIN MAPEOS MANUALES
   const clientesRecientes = useMemo(() => {
     if (loading || !clients.length) return [];
-
-    // Mapeo de clientes a facturas - valores conocidos
-    const clienteFacturasMap = {
-      'Yoliverts': 1,
-      'Jesus': 2,
-      'rolita': 1,
-      'Pedro': 1,
-      'Tony': 1
-    };
 
     return clients
       .slice(0, 5)
       .map(client => {
         const nombreCliente = client.nombre || client.name;
-        const numFacturas = clienteFacturasMap[nombreCliente] || 0;
+        
+        // Contar facturas relacionadas directamente desde las facturas disponibles
+        const clienteFacturas = filteredInvoices.filter(invoice => {
+          // Verificar por ID si el cliente está como objeto o como referencia
+          if (invoice.client && typeof invoice.client === 'object') {
+            return normalizeId(invoice.client._id) === normalizeId(client._id);
+          } 
+          // Verificar por referencia directa
+          return normalizeId(invoice.client) === normalizeId(client._id) || 
+                normalizeId(invoice.cliente) === normalizeId(client._id) || 
+                normalizeId(invoice.clientId) === normalizeId(client._id);
+        }).length;
         
         // Emoji según número de facturas
         let facturaEmoji = '';
-        if (numFacturas > 10) facturaEmoji = '🔥 ';
-        else if (numFacturas > 5) facturaEmoji = '⭐ ';
-        else if (numFacturas > 0) facturaEmoji = '📄 ';
+        if (clienteFacturas > 10) facturaEmoji = '🔥 ';
+        else if (clienteFacturas > 5) facturaEmoji = '⭐ ';
+        else if (clienteFacturas > 0) facturaEmoji = '📄 ';
         else facturaEmoji = '📭 ';
         
-        // Formatear información de contacto más estructurada
+        // Extraer email y documento correctamente
         const email = client.email || client.correo || '';
-        const rif = client.rif || client.RIF || client.documento || '';
+        const documento = client.rif || client.RIF || client.documento || '';
         
         return {
           id: client._id,
           nombre: `👤 ${nombreCliente}`,
-          // Formato mejorado para la información de contacto
-          contacto: `📧 ${email} 📝 ${rif}`,
-          facturas: `${facturaEmoji}${numFacturas}`
+          email: email,
+          documento: documento,
+          facturas: `${facturaEmoji}${clienteFacturas}`
         };
       });
-  }, [clients, loading]);
+  }, [clients, filteredInvoices, loading]);
 
   return {
     loading,
