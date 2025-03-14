@@ -1,145 +1,81 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  IconButton,
-  Button,
-  Typography
-} from '@mui/material';
+// src/pages/dashboard/components/DateRangeSelector/index.js
+import React, { useState, useRef, useEffect } from 'react';
+import { Box, Button, Typography } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 
 const DateRangeSelector = ({ onChange }) => {
-  // Obtener mes actual y mes anterior
-  const getCurrentMonth = () => {
+  const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
-    return {
-      startDate: new Date(now.getFullYear(), now.getMonth(), 1),
-      endDate: new Date(now.getFullYear(), now.getMonth() + 1, 0)
-    };
-  };
-  
-  const getPreviousMonth = () => {
-    const now = new Date();
-    return {
-      startDate: new Date(now.getFullYear(), now.getMonth() - 1, 1),
-      endDate: new Date(now.getFullYear(), now.getMonth(), 0)
-    };
-  };
-  
-  // Estado inicial: mes actual
-  const [timeRange, setTimeRange] = useState(getCurrentMonth());
-  
-  // Actualizar cuando cambie el rango
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+
+  // Usar useRef para evitar que la notificación inicial cause un bucle
+  const isInitialMount = useRef(true);
+
+  // Actualizar solo cuando cambia currentMonth, y no en el montaje inicial
   useEffect(() => {
-    if (onChange) {
-      onChange(timeRange);
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
     }
-  }, [timeRange, onChange]);
-  
-  // Navegar al mes anterior
-  const handlePreviousMonth = () => {
-    setTimeRange(current => {
-      const startDate = new Date(current.startDate);
-      startDate.setMonth(startDate.getMonth() - 1);
+
+    if (onChange) {
+      const startDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+      const endDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
       
-      const endDate = new Date(current.endDate);
-      endDate.setMonth(endDate.getMonth() - 1);
-      
-      return { startDate, endDate };
-    });
+      onChange({ startDate, endDate });
+    }
+  }, [currentMonth]); // Solo depende de currentMonth, no de onChange
+
+  const prevMonth = () => {
+    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
   };
-  
-  // Navegar al mes siguiente
-  const handleNextMonth = () => {
-    const now = new Date();
-    const nextMonth = new Date(timeRange.startDate);
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
-    
-    // No permitir navegar a fechas futuras
-    if (nextMonth > now) return;
-    
-    setTimeRange(current => {
-      const startDate = new Date(current.startDate);
-      startDate.setMonth(startDate.getMonth() + 1);
-      
-      const endDate = new Date(current.endDate);
-      endDate.setMonth(endDate.getMonth() + 1);
-      
-      return { startDate, endDate };
-    });
+
+  const nextMonth = () => {
+    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   };
-  
-  // Formatear para mostrar
+
   const formatMonth = (date) => {
     return date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
   };
-  
+
   return (
     <Box sx={{ 
       display: 'flex', 
       alignItems: 'center', 
-      justifyContent: 'space-between',
+      justifyContent: 'center',
       mb: 3,
-      p: 2,
       bgcolor: '#1E1E1E',
       borderRadius: 2,
+      p: 2,
       border: '1px solid #333'
     }}>
-      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-        <IconButton 
-          onClick={handlePreviousMonth}
-          sx={{ color: 'white' }}
-        >
-          <ArrowBackIcon />
-        </IconButton>
-        
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center',
-          mx: 2
-        }}>
-          <CalendarMonthIcon sx={{ color: 'white', mr: 1 }} />
-          <Typography variant="body1" color="white">
-            {formatMonth(timeRange.startDate)}
-          </Typography>
-        </Box>
-        
-        <IconButton 
-          onClick={handleNextMonth}
-          sx={{ color: 'white' }}
-        >
-          <ArrowForwardIcon />
-        </IconButton>
+      <Button 
+        onClick={prevMonth}
+        sx={{ color: 'white', minWidth: 'auto', p: 1 }}
+      >
+        <ArrowBackIcon />
+      </Button>
+      
+      <Box sx={{ 
+        display: 'flex',
+        alignItems: 'center',
+        px: 2
+      }}>
+        <CalendarTodayIcon sx={{ color: '#4477CE', mr: 1, fontSize: 18 }} />
+        <Typography variant="h6" sx={{ color: 'white', textTransform: 'capitalize' }}>
+          {formatMonth(currentMonth)}
+        </Typography>
       </Box>
       
-      <Box>
-        <Button
-          variant="contained"
-          size="small"
-          onClick={() => setTimeRange(getCurrentMonth())}
-          sx={{ 
-            mr: 1,
-            bgcolor: '#4477CE',
-            '&:hover': { bgcolor: '#3366BB' }
-          }}
-        >
-          Mes Actual
-        </Button>
-        
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={() => setTimeRange(getPreviousMonth())}
-          sx={{ 
-            color: 'white',
-            borderColor: '#555',
-            '&:hover': { borderColor: 'white' }
-          }}
-        >
-          Mes Anterior
-        </Button>
-      </Box>
+      <Button 
+        onClick={nextMonth}
+        sx={{ color: 'white', minWidth: 'auto', p: 1 }}
+      >
+        <ArrowForwardIcon />
+      </Button>
     </Box>
   );
 };

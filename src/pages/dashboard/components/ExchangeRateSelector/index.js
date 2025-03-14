@@ -1,109 +1,119 @@
-import React, { useState, useEffect } from 'react';
+// src/pages/dashboard/components/ExchangeRateSelector/index.js
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Box, 
   Typography, 
-  IconButton, 
-  Chip, 
-  Dialog, 
-  DialogTitle, 
-  DialogContent, 
-  DialogActions, 
-  Button, 
+  IconButton,
   TextField, 
   CircularProgress, 
-  Tooltip 
+  Tooltip,
+  Switch,
+  FormControlLabel
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import EditIcon from '@mui/icons-material/Edit';
 import InfoIcon from '@mui/icons-material/Info';
-import { getExchangeRates } from '../../../../services/exchangeRateApi';
+import SyncIcon from '@mui/icons-material/Sync';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
+import exchangeRateApi from '../../../../services/exchangeRateApi';
 
 const ExchangeRateSelector = ({ onRateChange, totalVES }) => {
-  // Estado para las tasas de cambio
-  const [rates, setRates] = useState({
-    bcv: 35.27,
-    usdt: 36.10,
-    average: 35.68
-  });
-  const [selectedRate, setSelectedRate] = useState('average');
+  // Estado para la tasa de cambio
+  const [rate, setRate] = useState(66);
+  const [editRate, setEditRate] = useState(66);
+  const [isAutoMode, setIsAutoMode] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editRates, setEditRates] = useState({ ...rates });
+  const [isEditing, setIsEditing] = useState(false);
+  
+  // Usar useRef para evitar efectos secundarios no deseados
+  const initialRender = useRef(true);
+  const previousRate = useRef(rate);
 
-  // Efecto para cargar tasas guardadas al iniciar
+  // Efecto para cargar tasa guardada al iniciar
   useEffect(() => {
-    // Cargar tasas desde localStorage
-    const savedBcv = localStorage.getItem('tasaCambioBCV');
-    const savedUsdt = localStorage.getItem('tasaCambioUSDT');
-    const savedAverage = localStorage.getItem('tasaCambioPromedio');
-    
-    const loadedRates = {
-      bcv: savedBcv ? parseFloat(savedBcv) : rates.bcv,
-      usdt: savedUsdt ? parseFloat(savedUsdt) : rates.usdt,
-      average: savedAverage ? parseFloat(savedAverage) : rates.average
-    };
-    
-    setRates(loadedRates);
-    setEditRates(loadedRates);
-    
-    // Intentar obtener tasas actualizadas
-    fetchRates();
+    fetchRate();
   }, []);
 
-  // Efecto para notificar cambios en la tasa seleccionada
+  // Efecto para notificar cambios en la tasa - CORREGIDO con useRef
   useEffect(() => {
-    if (onRateChange) {
-      onRateChange(getSelectedRate());
+    // Saltar la primera renderización
+    if (initialRender.current) {
+      initialRender.current = false;
+      return;
     }
-  }, [selectedRate, rates, onRateChange]);
+    
+    // Solo notificar cambios si la tasa realmente cambió
+    if (rate !== previousRate.current && onRateChange) {
+      previousRate.current = rate;
+      onRateChange(rate);
+    }
+  }, [rate, onRateChange]);
 
-  // Función para obtener tasas desde la API
-  const fetchRates = async () => {
+  // Función para obtener tasa
+  const fetchRate = async () => {
     setLoading(true);
     try {
-      const newRates = await getExchangeRates();
-      setRates(newRates);
-      setEditRates(newRates);
-      
-      // Guardar en localStorage
-      localStorage.setItem('tasaCambioBCV', newRates.bcv);
-      localStorage.setItem('tasaCambioUSDT', newRates.usdt);
-      localStorage.setItem('tasaCambioPromedio', newRates.average);
+      const { rate: newRate, mode } = await exchangeRateApi.getCurrentRate();
+      setRate(newRate);
+      setEditRate(newRate);
+      previousRate.current = newRate; // Actualizar la referencia
+      setIsAutoMode(mode === 'auto');
     } catch (error) {
-      console.error('Error fetching exchange rates:', error);
+      console.error('Error fetching exchange rate:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Obtener la tasa seleccionada actualmente
-  const getSelectedRate = () => {
-    return rates[selectedRate];
-  };
-
-  // Manejar el cambio de selección de tasa
-  const handleRateSelect = (rateKey) => {
-    setSelectedRate(rateKey);
-  };
-
   // Manejar cambios en el formulario de edición
-  const handleRateChange = (key, value) => {
-    setEditRates({
-      ...editRates,
-      [key]: parseFloat(value) || 0
-    });
+  const handleRateChange = (e) => {
+    setEditRate(parseFloat(e.target.value) || 0);
   };
 
   // Guardar cambios manuales
-  const saveManualRates = () => {
-    setRates(editRates);
+  const saveManualRate = async () => {
+    try {
+      await exchangeRateApi.setManualRate(editRate);
+      setRate(editRate);
+      previousRate.current = editRate; // Actualizar la referencia
+      setIsAutoMode(false);
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error al guardar tasa manual:', error);
+    }
+  };
+
+  // Cambiar entre modo automático y manual
+  const handleModeChange = async (event) => {
+    const autoMode = event.target.checked;
     
-    // Guardar en localStorage
-    localStorage.setItem('tasaCambioBCV', editRates.bcv);
-    localStorage.setItem('tasaCambioUSDT', editRates.usdt);
-    localStorage.setItem('tasaCambioPromedio', editRates.average);
-    
-    setDialogOpen(false);
+    try {
+      setLoading(true);
+      if (autoMode) {
+        // Cambiar a modo automático
+        const result = await exchangeRateApi.switchToAutoMode();
+        setRate(result.rate);
+        setEditRate(result.rate);
+        previousRate.current = result.rate; // Actualizar la referencia
+      } else {
+        // Cambiar a modo manual con la tasa actual
+        await exchangeRateApi.setManualRate(rate);
+      }
+      
+      setIsAutoMode(autoMode);
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error al cambiar modo:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Cancelar edición
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditRate(rate);
   };
 
   // Formatear moneda
@@ -117,7 +127,7 @@ const ExchangeRateSelector = ({ onRateChange, totalVES }) => {
   };
 
   return (
-    <Box sx={{ mt: 2 }}>
+    <Box sx={{ mt: 1 }}>
       <Box sx={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
@@ -132,25 +142,16 @@ const ExchangeRateSelector = ({ onRateChange, totalVES }) => {
           {loading ? (
             <CircularProgress size={16} sx={{ color: '#AAA', mr: 1 }} />
           ) : (
-            <Tooltip title="Actualizar tasas">
+            <Tooltip title="Actualizar tasa">
               <IconButton 
                 size="small" 
                 sx={{ color: '#AAA', mr: 0.5 }}
-                onClick={fetchRates}
+                onClick={fetchRate}
               >
                 <RefreshIcon fontSize="small" />
               </IconButton>
             </Tooltip>
           )}
-          <Tooltip title="Editar tasas">
-            <IconButton 
-              size="small" 
-              sx={{ color: '#AAA' }}
-              onClick={() => setDialogOpen(true)}
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
         </Box>
       </Box>
       
@@ -158,142 +159,120 @@ const ExchangeRateSelector = ({ onRateChange, totalVES }) => {
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'space-between',
-        mb: 1.5
+        mb: 1
       }}>
         <Typography variant="body2" color="white">
-          ≈ {formatCurrency(totalVES / getSelectedRate())}
+          ≈ {formatCurrency(totalVES / rate)}
         </Typography>
         
         <Tooltip title="Tasa de cambio actual">
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <InfoIcon sx={{ fontSize: 16, color: '#AAA', mr: 0.5 }} />
             <Typography variant="caption" color="#AAA">
-              {getSelectedRate().toFixed(2)} VES/USD
+              {rate.toFixed(2)} VES/USD
             </Typography>
+            {isAutoMode && (
+              <Tooltip title="Sincronizado automáticamente">
+                <SyncIcon 
+                  sx={{ 
+                    ml: 0.5, 
+                    fontSize: 12, 
+                    color: '#4caf50',
+                    animation: 'spin 4s linear infinite',
+                    '@keyframes spin': {
+                      '0%': { transform: 'rotate(0deg)' },
+                      '100%': { transform: 'rotate(360deg)' }
+                    }
+                  }}
+                />
+              </Tooltip>
+            )}
           </Box>
         </Tooltip>
       </Box>
       
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-        <Chip 
-          size="small"
-          label={`BCV: ${rates.bcv.toFixed(2)}`}
-          onClick={() => handleRateSelect('bcv')}
-          sx={{ 
-            bgcolor: selectedRate === 'bcv' ? '#4477CE' : '#2A2A2A',
-            color: 'white',
-            '&:hover': { bgcolor: selectedRate === 'bcv' ? '#3366bb' : '#333' }
-          }}
-        />
-        <Chip 
-          size="small"
-          label={`USDT: ${rates.usdt.toFixed(2)}`}
-          onClick={() => handleRateSelect('usdt')}
-          sx={{ 
-            bgcolor: selectedRate === 'usdt' ? '#4477CE' : '#2A2A2A',
-            color: 'white',
-            '&:hover': { bgcolor: selectedRate === 'usdt' ? '#3366bb' : '#333' }
-          }}
-        />
-        <Chip 
-          size="small"
-          label={`Promedio: ${rates.average.toFixed(2)}`}
-          onClick={() => handleRateSelect('average')}
-          sx={{ 
-            bgcolor: selectedRate === 'average' ? '#4477CE' : '#2A2A2A',
-            color: 'white',
-            '&:hover': { bgcolor: selectedRate === 'average' ? '#3366bb' : '#333' }
-          }}
-        />
-      </Box>
-      
-      {/* Diálogo para editar tasas manualmente */}
-      <Dialog 
-        open={dialogOpen} 
-        onClose={() => setDialogOpen(false)}
-        PaperProps={{
-          sx: {
-            bgcolor: '#2A2A2A',
-            color: 'white',
-            borderRadius: 2
-          }
-        }}
-      >
-        <DialogTitle>Editar Tasas de Cambio</DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField
-              label="Tasa BCV"
-              type="number"
-              value={editRates.bcv}
-              onChange={(e) => handleRateChange('bcv', e.target.value)}
-              fullWidth
-              variant="outlined"
-              InputLabelProps={{ sx: { color: '#AAA' } }}
-              InputProps={{ sx: { color: 'white' } }}
-              sx={{ 
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': { borderColor: '#444' },
-                  '&:hover fieldset': { borderColor: '#666' },
-                  '&.Mui-focused fieldset': { borderColor: '#4477CE' }
-                }
-              }}
-            />
-            <TextField
-              label="Tasa USDT"
-              type="number"
-              value={editRates.usdt}
-              onChange={(e) => handleRateChange('usdt', e.target.value)}
-              fullWidth
-              variant="outlined"
-              InputLabelProps={{ sx: { color: '#AAA' } }}
-              InputProps={{ sx: { color: 'white' } }}
-              sx={{ 
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': { borderColor: '#444' },
-                  '&:hover fieldset': { borderColor: '#666' },
-                  '&.Mui-focused fieldset': { borderColor: '#4477CE' }
-                }
-              }}
-            />
-            <TextField
-              label="Tasa Promedio"
-              type="number"
-              value={editRates.average}
-              onChange={(e) => handleRateChange('average', e.target.value)}
-              fullWidth
-              variant="outlined"
-              InputLabelProps={{ sx: { color: '#AAA' } }}
-              InputProps={{ sx: { color: 'white' } }}
-              sx={{ 
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': { borderColor: '#444' },
-                  '&:hover fieldset': { borderColor: '#666' },
-                  '&.Mui-focused fieldset': { borderColor: '#4477CE' }
-                }
-              }}
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button 
-            onClick={() => setDialogOpen(false)}
-            sx={{ color: '#AAA' }}
-          >
-            Cancelar
-          </Button>
-          <Button 
-            onClick={saveManualRates}
-            variant="contained"
-            sx={{ 
-              bgcolor: '#4477CE',
-              '&:hover': { bgcolor: '#3366BB' }
+      {isEditing ? (
+        <Box sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
+          <TextField
+            label="Tasa"
+            type="number"
+            value={editRate}
+            onChange={handleRateChange}
+            variant="outlined"
+            size="small"
+            fullWidth
+            InputLabelProps={{ sx: { color: '#AAA', fontSize: '0.8rem' } }}
+            InputProps={{ 
+              sx: { color: 'white' },
+              endAdornment: (
+                <Typography variant="caption" color="#AAA" sx={{ ml: 1, fontSize: '0.7rem' }}>
+                  VES/USD
+                </Typography>
+              )
             }}
+            sx={{ 
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': { borderColor: '#444' },
+                '&:hover fieldset': { borderColor: '#666' },
+                '&.Mui-focused fieldset': { borderColor: '#4477CE' }
+              }
+            }}
+          />
+          <IconButton 
+            size="small" 
+            sx={{ color: '#4CAF50', ml: 1 }}
+            onClick={saveManualRate}
           >
-            Guardar
-          </Button>
-        </DialogActions>
-      </Dialog>
+            <CheckIcon fontSize="small" />
+          </IconButton>
+          <IconButton 
+            size="small" 
+            sx={{ color: '#F44336' }}
+            onClick={handleCancelEdit}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Box>
+      ) : (
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <FormControlLabel
+            control={
+              <Switch 
+                checked={isAutoMode}
+                onChange={handleModeChange}
+                size="small"
+                sx={{
+                  '& .MuiSwitch-switchBase.Mui-checked': {
+                    color: '#4477CE',
+                    '&:hover': { backgroundColor: 'rgba(68, 119, 206, 0.08)' }
+                  },
+                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                    backgroundColor: '#4477CE'
+                  }
+                }}
+              />
+            }
+            label={
+              <Typography variant="caption" color="#AAA" sx={{ fontSize: '0.7rem' }}>
+                {isAutoMode ? "Automático (BCV)" : "Manual"}
+              </Typography>
+            }
+            sx={{ ml: -1 }}
+          />
+          
+          {!isAutoMode && (
+            <Tooltip title="Editar tasa">
+              <IconButton 
+                size="small" 
+                sx={{ color: '#AAA' }}
+                onClick={() => setIsEditing(true)}
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
+      )}
     </Box>
   );
 };

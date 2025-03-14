@@ -16,7 +16,7 @@ const USDSummaryCard = ({
   title = "💵 Ingresos USD",
   value, 
   growth, 
-  exchangeRate = 35.68
+  exchangeRate = 10
 }) => {
   // Determinar si el crecimiento es positivo o negativo
   const isPositive = growth >= 0;

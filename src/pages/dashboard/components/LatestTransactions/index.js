@@ -1,91 +1,193 @@
+// src/pages/dashboard/components/LatestTransactions/index.js
 import React, { useState } from 'react';
-import { EXAMPLE_TRANSACTIONS, STATUS_COLORS } from './config';
+import { 
+  Box, 
+  Card, 
+  Typography, 
+  Tabs, 
+  Tab, 
+  Button 
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 
-const LatestTransactions = ({ transactions = EXAMPLE_TRANSACTIONS }) => {
-  const [sortBy, setSortBy] = useState('date');
-  const [sortDirection, setSortDirection] = useState('desc');
-  
-  // Función para formatear fecha
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  };
-  
-  // Función para ordenar las transacciones
-  const sortedTransactions = [...transactions].sort((a, b) => {
-    let comparison = 0;
-    if (sortBy === 'date') {
-      comparison = new Date(a.date) - new Date(b.date);
-    } else if (sortBy === 'amount') {
-      comparison = a.amount - b.amount;
-    } else if (sortBy === 'client') {
-      comparison = a.client.localeCompare(b.client);
-    } else if (sortBy === 'status') {
-      comparison = a.status.localeCompare(b.status);
-    }
-    return sortDirection === 'asc' ? comparison : -comparison;
-  });
-  
-  // Función para cambiar el orden
-  const handleSort = (column) => {
-    if (sortBy === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(column);
-      setSortDirection('desc');
-    }
-  };
-  
-  // Renderizar icono de ordenamiento
-  const renderSortIcon = (column) => {
-    if (sortBy !== column) return '↕️';
-    return sortDirection === 'asc' ? '↑' : '↓';
+const LatestTransactions = ({ invoices, clients }) => {
+  const [tabValue, setTabValue] = useState(0);
+
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
   };
 
   return (
-    <div className="latest-transactions-container">
-      <table className="transactions-table">
-        <thead>
-          <tr>
-            <th onClick={() => handleSort('client')}>
-              Cliente {renderSortIcon('client')}
-            </th>
-            <th onClick={() => handleSort('amount')}>
-              Monto {renderSortIcon('amount')}
-            </th>
-            <th onClick={() => handleSort('date')}>
-              Fecha {renderSortIcon('date')}
-            </th>
-            <th onClick={() => handleSort('status')}>
-              Estado {renderSortIcon('status')}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedTransactions.map((transaction, index) => (
-            <tr key={transaction.id || index}>
-              <td className="client-column">{transaction.client}</td>
-              <td className="amount-column">${transaction.amount.toLocaleString()}</td>
-              <td className="date-column">{formatDate(transaction.date)}</td>
-              <td className="status-column">
-                <span 
-                  className="status-badge"
-                  style={{ backgroundColor: STATUS_COLORS[transaction.status] || '#999' }}
-                >
-                  {transaction.status}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <Card 
+      sx={{ 
+        borderRadius: 2, 
+        bgcolor: '#1E1E1E',
+        border: '1px solid #333',
+      }}
+    >
+      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Tabs 
+          value={tabValue} 
+          onChange={handleTabChange}
+          sx={{ 
+            '& .MuiTab-root': { color: '#888' },
+            '& .Mui-selected': { color: 'white' },
+            '& .MuiTabs-indicator': { backgroundColor: '#4477CE' }
+          }}
+        >
+          <Tab label="FACTURAS RECIENTES" />
+          <Tab label="CLIENTES RECIENTES" />
+        </Tabs>
+      </Box>
       
-      {transactions.length === 0 && (
-        <div className="no-transactions">
-          No hay transacciones recientes disponibles.
-        </div>
+      {/* Contenido de Facturas Recientes */}
+      {tabValue === 0 && (
+        <Box sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" color="white">Facturas Recientes</Typography>
+            <Button 
+              onClick={() => window.location.href = '/invoices?action=new'}
+              startIcon={<AddIcon />} 
+              variant="contained" 
+              sx={{ 
+                borderRadius: 2,
+                bgcolor: '#4477CE',
+                '&:hover': { bgcolor: '#3366BB' }
+              }}
+            >
+              NUEVA FACTURA
+            </Button>
+          </Box>
+          
+          <Box sx={{ overflowX: 'auto' }}>
+            <Box sx={{ minWidth: 700, width: '100%' }}>
+              <Box sx={{ 
+                display: 'grid', 
+                gridTemplateColumns: '1fr 2fr 1fr 1fr 1fr 1fr',
+                bgcolor: '#2A2A2A',
+                borderRadius: 1,
+                p: 2,
+                fontWeight: 'bold'
+              }}>
+                <Typography variant="subtitle2" color="#CCC">Nº Factura</Typography>
+                <Typography variant="subtitle2" color="#CCC">Cliente</Typography>
+                <Typography variant="subtitle2" color="#CCC">Fecha</Typography>
+                <Typography variant="subtitle2" color="#CCC">Total</Typography>
+                <Typography variant="subtitle2" color="#CCC">Moneda</Typography>
+                <Typography variant="subtitle2" color="#CCC">Estado</Typography>
+              </Box>
+              
+              {invoices?.length > 0 ? (
+                invoices.map((factura) => (
+                  <Box key={factura.id} sx={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: '1fr 2fr 1fr 1fr 1fr 1fr',
+                    p: 2,
+                    borderBottom: '1px solid #333'
+                  }}>
+                    <Typography variant="body2" color="white">{factura.id}</Typography>
+                    <Typography variant="body2" color="white">{factura.cliente}</Typography>
+                    <Typography variant="body2" color="white">{factura.fecha}</Typography>
+                    <Typography variant="body2" color="white">{factura.total.toLocaleString()}</Typography>
+                    <Typography variant="body2" color="white">{factura.moneda}</Typography>
+                    <Typography 
+                      variant="body2" 
+                      color="white"
+                      sx={{ textWrap: 'nowrap' }}
+                    >
+                      {factura.estado}
+                    </Typography>
+                  </Box>
+                ))
+              ) : (
+                <Box sx={{ p: 3, textAlign: 'center' }}>
+                  <Typography color="white">No hay facturas disponibles</Typography>
+                </Box>
+              )}
+            </Box>
+          </Box>
+        </Box>
       )}
-    </div>
+      
+      {/* Contenido de Clientes Recientes */}
+      {tabValue === 1 && (
+        <Box sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" color="white">Clientes Recientes</Typography>
+            <Button 
+              onClick={() => window.location.href = '/clients?action=new'}
+              startIcon={<AddIcon />} 
+              variant="contained" 
+              sx={{ 
+                borderRadius: 2,
+                bgcolor: '#4477CE',
+                '&:hover': { bgcolor: '#3366BB' }
+              }}
+            >
+              NUEVO CLIENTE
+            </Button>
+          </Box>
+          
+          <Box sx={{ overflowX: 'auto' }}>
+            <Box sx={{ minWidth: 800, width: '100%' }}>
+              <Box sx={{ 
+                display: 'grid', 
+                gridTemplateColumns: '2fr 2fr 2fr 1fr',
+                bgcolor: '#2A2A2A',
+                borderRadius: 1,
+                p: 2,
+                fontWeight: 'bold'
+              }}>
+                <Typography variant="subtitle2" color="#CCC">Nombre</Typography>
+                <Typography variant="subtitle2" color="#CCC">Correo</Typography>
+                <Typography variant="subtitle2" color="#CCC">Documento</Typography>
+                <Typography variant="subtitle2" color="#CCC" align="right">Facturas</Typography>
+              </Box>
+              
+              {clients?.length > 0 ? (
+                clients.map((cliente) => (
+                  <Box key={cliente.id} sx={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: '2fr 2fr 2fr 1fr',
+                    p: 2,
+                    borderBottom: '1px solid #333'
+                  }}>
+                    <Typography variant="body2" color="white">{cliente.nombre}</Typography>
+                    <Typography 
+                      variant="body2" 
+                      color="white"
+                      sx={{ 
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {cliente.email ? `📧 ${cliente.email}` : ''}
+                    </Typography>
+                    <Typography 
+                      variant="body2" 
+                      color="white"
+                      sx={{ 
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {cliente.documento ? `📝 ${cliente.documento}` : ''}
+                    </Typography>
+                    <Typography variant="body2" color="white" align="right">{cliente.facturas}</Typography>
+                  </Box>
+                ))
+              ) : (
+                <Box sx={{ p: 3, textAlign: 'center' }}>
+                  <Typography color="white">No hay clientes disponibles</Typography>
+                </Box>
+              )}
+            </Box>
+          </Box>
+        </Box>
+      )}
+    </Card>
   );
 };
 

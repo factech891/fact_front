@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useInvoices } from './useInvoices';
 import { useClients } from './useClients';
 import { useProducts } from './useProducts';
+import exchangeRateApi from '../services/exchangeRateApi'; // Importar el servicio
 
 // Función auxiliar para truncar objetos grandes
 function truncateObject(obj, maxLength = 100) {
@@ -16,12 +17,33 @@ function normalizeId(id) {
   return typeof id === 'object' ? id.toString() : String(id);
 }
 
-export const useDashboard = (timeRange = null, exchangeRate = 35.68) => {
+export const useDashboard = (timeRange = null) => {
   const { invoices, loading: invoicesLoading } = useInvoices();
   const { clients, loading: clientsLoading } = useClients();
   const { products, loading: productsLoading } = useProducts();
   
-  const loading = invoicesLoading || clientsLoading || productsLoading;
+  const [exchangeRate, setExchangeRate] = useState(40); // Valor inicial por defecto
+  const [loadingRate, setLoadingRate] = useState(true);
+  
+  // Cargar la tasa de cambio al iniciar
+  useEffect(() => {
+    const loadExchangeRate = async () => {
+      try {
+        setLoadingRate(true);
+        const { rate } = await exchangeRateApi.getCurrentRate();
+        setExchangeRate(rate);
+      } catch (error) {
+        console.error('Error al cargar tasa de cambio:', error);
+        setExchangeRate(40); // Valor por defecto
+      } finally {
+        setLoadingRate(false);
+      }
+    };
+    
+    loadExchangeRate();
+  }, []);
+  
+  const loading = invoicesLoading || clientsLoading || productsLoading || loadingRate;
 
   // Filtrar facturas por rango de tiempo
   const filteredInvoices = useMemo(() => {
@@ -343,6 +365,6 @@ export const useDashboard = (timeRange = null, exchangeRate = 35.68) => {
     facturasPorTipo,
     facturasRecientes,
     clientesRecientes,
-    exchangeRate: exchangeRate
+    exchangeRate // Devolver el exchange rate actual
   };
 };

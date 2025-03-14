@@ -1,115 +1,144 @@
-/**
- * Servicio para obtener tasas de cambio de divisas
- */
+// src/services/exchangeRateApi.js
+const STORAGE_KEY_RATE = 'factTech_exchangeRate';
+const STORAGE_KEY_MODE = 'factTech_exchangeRateMode'; // 'auto' o 'manual'
 
-// URL de la API de DolarToday (ejemplo)
-const DOLARTODAY_API = 'https://s3.amazonaws.com/dolartoday/data.json';
+// Valor por defecto si no hay nada guardado
+const DEFAULT_RATE = 66;
 
-// URL alternativa si la primera falla
-const BACKUP_API = 'https://api.exchangerate-api.com/v4/latest/USD';
-
-/**
- * Obtiene las tasas de cambio actuales
- * @returns {Promise<Object>} Objeto con las tasas bcv, usdt y promedio
- */
-export const getExchangeRates = async () => {
+// Función para obtener tasa desde API externa
+const fetchRateFromAPI = async () => {
   try {
-    // Intentar obtener de DolarToday
-    const response = await fetch(DOLARTODAY_API);
-    
-    if (!response.ok) {
-      throw new Error('Error al obtener tasas desde DolarToday');
-    }
-    
+    const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
     const data = await response.json();
     
-    // Extraer valores según la estructura de la API
-    const bcvRate = data?.USD?.oficial || 35.27;
-    const usdtRate = data?.USD?.localbitcoin || 36.10;
-    const averageRate = data?.USD?.promedio || 35.68;
+    // Extraer tasa para Venezuela (VES)
+    const rate = data.rates.VES || DEFAULT_RATE;
     
-    return {
-      bcv: parseFloat(bcvRate),
-      usdt: parseFloat(usdtRate),
-      average: parseFloat(averageRate)
-    };
-  } catch (primaryError) {
-    console.error('Error con API primaria:', primaryError);
+    // Guardar en localStorage para tenerlo como respaldo
+    localStorage.setItem(STORAGE_KEY_RATE, rate.toString());
     
-    // Intentar API de respaldo
+    return rate;
+  } catch (error) {
+    console.error('Error al obtener tasa desde API:', error);
+    
+    // Si falla, intentar usar valor guardado anteriormente
+    const savedRate = localStorage.getItem(STORAGE_KEY_RATE);
+    if (savedRate) {
+      return parseFloat(savedRate);
+    }
+    
+    // Si no hay valor guardado, usar valor por defecto
+    return DEFAULT_RATE;
+  }
+};
+
+const exchangeRateApi = {
+  // Obtener la tasa de cambio actual
+  getCurrentRate: async () => {
     try {
-      console.info('Intentando con API de respaldo...');
-      const backupResponse = await fetch(BACKUP_API);
+      // Verificar el modo actual
+      const mode = localStorage.getItem(STORAGE_KEY_MODE) || 'auto';
+      console.log('Modo de tasa de cambio:', mode);
       
-      if (!backupResponse.ok) {
-        throw new Error('Error al obtener tasas desde API de respaldo');
+      // Si el modo es manual, obtener la tasa manual
+      if (mode === 'manual') {
+        const manualRate = localStorage.getItem(STORAGE_KEY_RATE);
+        if (manualRate) {
+          const rate = parseFloat(manualRate);
+          console.log('Usando tasa manual:', rate);
+          return { 
+            rate: rate,
+            mode: 'manual',
+            source: 'localStorage'
+          };
+        }
       }
       
-      const backupData = await backupResponse.json();
+      // Si estamos en modo automático, obtener de la API
+      if (mode === 'auto') {
+        console.log('Obteniendo tasa desde API...');
+        const rate = await fetchRateFromAPI();
+        console.log('Tasa obtenida de API:', rate);
+        return {
+          rate: rate,
+          mode: 'auto',
+          source: 'api'
+        };
+      }
       
-      // Simular tasas basadas en la API de respaldo
-      // Nota: Esta API no proporciona tasas específicas para Venezuela,
-      // por lo que simulamos valores a partir de la tasa base
-      const baseRate = 35.68; // Tasa base simulada para VES
+      // Si llegamos aquí, algo raro pasó con el modo
+      // Intentar usar valor guardado en localStorage como respaldo
+      const savedRate = localStorage.getItem(STORAGE_KEY_RATE);
+      if (savedRate) {
+        console.log('Usando tasa guardada anteriormente:', savedRate);
+        return { 
+          rate: parseFloat(savedRate),
+          mode: mode,
+          source: 'localStorage'
+        };
+      }
       
-      return {
-        bcv: baseRate - 0.5,       // Simular tasa BCV ligeramente menor
-        usdt: baseRate + 0.5,      // Simular tasa USDT ligeramente mayor
-        average: baseRate          // Usar como promedio
+      // Si todo falla, usar valor por defecto
+      console.log('Usando tasa por defecto:', DEFAULT_RATE);
+      return { 
+        rate: DEFAULT_RATE,
+        mode: mode,
+        source: 'default'
       };
-    } catch (backupError) {
-      console.error('Error con API de respaldo:', backupError);
+    } catch (error) {
+      console.error('Error al obtener tasa de cambio:', error);
       
-      // Si todo falla, devolver valores por defecto
-      return {
-        bcv: 35.27,
-        usdt: 36.10,
-        average: 35.68
+      // Si hay error general, devolver valor por defecto
+      return { 
+        rate: DEFAULT_RATE,
+        mode: 'fallback',
+        source: 'default'
       };
     }
-  }
-};
-
-/**
- * Guarda tasas de cambio manualmente
- * @param {Object} rates Objeto con las tasas bcv, usdt y average
- */
-export const saveManualRates = (rates) => {
-  if (!rates) return;
+  },
   
-  try {
-    localStorage.setItem('tasaCambioBCV', rates.bcv || 35.27);
-    localStorage.setItem('tasaCambioUSDT', rates.usdt || 36.10);
-    localStorage.setItem('tasaCambioPromedio', rates.average || 35.68);
-    
-    return true;
-  } catch (error) {
-    console.error('Error al guardar tasas de cambio:', error);
-    return false;
+  // Guardar una tasa manual y cambiar al modo manual
+  setManualRate: (rate) => {
+    try {
+      console.log('Guardando tasa manual:', rate);
+      localStorage.setItem(STORAGE_KEY_RATE, rate.toString());
+      localStorage.setItem(STORAGE_KEY_MODE, 'manual');
+      console.log('Modo cambiado a manual');
+      return { 
+        rate: rate,
+        mode: 'manual',
+        success: true
+      };
+    } catch (error) {
+      console.error('Error al guardar tasa manual:', error);
+      throw error;
+    }
+  },
+  
+  // Cambiar al modo automático
+  switchToAutoMode: async () => {
+    try {
+      console.log('Cambiando a modo automático...');
+      localStorage.setItem(STORAGE_KEY_MODE, 'auto');
+      
+      // Obtener tasa actualizada de la API
+      const rate = await fetchRateFromAPI();
+      
+      return {
+        rate,
+        mode: 'auto',
+        success: true
+      };
+    } catch (error) {
+      console.error('Error al cambiar a modo automático:', error);
+      throw error;
+    }
+  },
+  
+  // Obtener el modo actual
+  getCurrentMode: () => {
+    return localStorage.getItem(STORAGE_KEY_MODE) || 'auto';
   }
 };
 
-/**
- * Carga tasas de cambio guardadas
- * @returns {Object} Objeto con las tasas bcv, usdt y average
- */
-export const getStoredRates = () => {
-  try {
-    const bcv = localStorage.getItem('tasaCambioBCV');
-    const usdt = localStorage.getItem('tasaCambioUSDT');
-    const average = localStorage.getItem('tasaCambioPromedio');
-    
-    return {
-      bcv: bcv ? parseFloat(bcv) : 35.27,
-      usdt: usdt ? parseFloat(usdt) : 36.10,
-      average: average ? parseFloat(average) : 35.68
-    };
-  } catch (error) {
-    console.error('Error al cargar tasas de cambio:', error);
-    return {
-      bcv: 35.27,
-      usdt: 36.10,
-      average: 35.68
-    };
-  }
-};
+export default exchangeRateApi;

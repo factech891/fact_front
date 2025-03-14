@@ -8,7 +8,9 @@ import {
   IconButton,
   TextField,
   InputAdornment,
-  Tooltip
+  Tooltip,
+  Switch,
+  FormControlLabel
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
@@ -17,16 +19,20 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
+import SyncIcon from '@mui/icons-material/Sync';
 
 const VESSummaryCard = ({ 
   title = "💰 Ingresos VES", 
   value, 
   growth, 
   onRateChange, 
-  currentRate = 35.68 
+  onModeChange,
+  currentRate = 20,
+  currentMode = 'auto'
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [rateValue, setRateValue] = useState(currentRate.toString());
+  const [isAutoMode, setIsAutoMode] = useState(currentMode === 'auto');
   
   // Determinar si el crecimiento es positivo o negativo
   const isPositive = growth >= 0;
@@ -57,9 +63,33 @@ const VESSummaryCard = ({
   const handleSaveRate = () => {
     const newRate = parseFloat(rateValue);
     if (!isNaN(newRate) && newRate > 0) {
+      console.log("⭐ GUARDANDO NUEVA TASA:", newRate);
+      
+      // 1. Actualizar todos los storages posibles
+      localStorage.setItem('factTech_exchangeRate', newRate.toString());
+      localStorage.setItem('exchangeRate', newRate.toString());
+      localStorage.setItem('tasaCambioPromedio', newRate.toString());
+      
+      // 2. Forzar modo manual
+      localStorage.setItem('factTech_exchangeRateMode', 'manual');
+      localStorage.setItem('exchangeRateMode', 'manual');
+      
+      // 3. Notificar a los componentes padre
       onRateChange(newRate);
+      
+      // 4. Mostrar confirmación
+      alert(`Tasa actualizada a: ${newRate}`);
+      
+      // Si estábamos en modo automático, cambiar a manual
+      if (isAutoMode) {
+        setIsAutoMode(false);
+        if (onModeChange) {
+          onModeChange('manual');
+        }
+      }
     } else {
       setRateValue(currentRate.toString());
+      alert("Por favor ingresa un valor numérico positivo");
     }
     setIsEditing(false);
   };
@@ -68,6 +98,34 @@ const VESSummaryCard = ({
   const handleCancelEdit = () => {
     setRateValue(currentRate.toString());
     setIsEditing(false);
+  };
+  
+  // Cambiar entre modo automático y manual
+  const handleModeChange = (event) => {
+    const newAutoMode = event.target.checked;
+    setIsAutoMode(newAutoMode);
+    
+    // Guardar el modo en localStorage
+    localStorage.setItem('factTech_exchangeRateMode', newAutoMode ? 'auto' : 'manual');
+    localStorage.setItem('exchangeRateMode', newAutoMode ? 'auto' : 'manual');
+    
+    if (onModeChange) {
+      onModeChange(newAutoMode ? 'auto' : 'manual');
+    }
+  };
+  
+  // Sincronizar con API externa
+  const handleSyncWithAPI = () => {
+    // Limpiar los valores en localStorage si volvemos a modo auto
+    localStorage.removeItem('factTech_exchangeRateMode');
+    localStorage.removeItem('exchangeRateMode');
+    localStorage.removeItem('factTech_exchangeRate');
+    localStorage.removeItem('exchangeRate');
+    localStorage.removeItem('tasaCambioPromedio');
+    
+    if (onModeChange) {
+      onModeChange('auto', true); // El segundo parámetro indica forzar sincronización
+    }
   };
   
   // Calcular el equivalente en USD
@@ -202,21 +260,86 @@ const VESSummaryCard = ({
             </Box>
           ) : (
             <>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <InfoIcon sx={{ fontSize: 12, color: '#AAA', mr: 0.3 }} />
-                <Typography variant="caption" color="#AAA" sx={{ fontSize: '0.65rem' }}>
-                  Tasa: {currentRate.toFixed(2)} VES/USD
-                </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <InfoIcon sx={{ fontSize: 12, color: '#AAA', mr: 0.3 }} />
+                  <Typography variant="caption" color="#AAA" sx={{ fontSize: '0.65rem' }}>
+                    Tasa: {currentRate.toFixed(2)} VES/USD
+                  </Typography>
+                  
+                  {isAutoMode && (
+                    <Tooltip title="Tasa sincronizada automáticamente">
+                      <SyncIcon 
+                        sx={{ 
+                          ml: 0.5, 
+                          fontSize: 12, 
+                          color: '#4caf50',
+                          animation: isAutoMode ? 'spin 4s linear infinite' : 'none',
+                          '@keyframes spin': {
+                            '0%': { transform: 'rotate(0deg)' },
+                            '100%': { transform: 'rotate(360deg)' }
+                          }
+                        }}
+                      />
+                    </Tooltip>
+                  )}
+                </Box>
+                
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={isAutoMode}
+                      onChange={handleModeChange}
+                      size="small"
+                      sx={{ 
+                        '& .MuiSwitch-switchBase': { 
+                          p: '1px' 
+                        },
+                        '& .MuiSwitch-thumb': { 
+                          width: 12, 
+                          height: 12 
+                        },
+                        '& .MuiSwitch-track': { 
+                          borderRadius: 10
+                        }
+                      }}
+                    />
+                  }
+                  label={
+                    <Typography variant="caption" color="#AAA" sx={{ fontSize: '0.6rem' }}>
+                      {isAutoMode ? 'Automático' : 'Manual'}
+                    </Typography>
+                  }
+                  sx={{ 
+                    m: 0, 
+                    mt: 0.3
+                  }}
+                />
               </Box>
-              <Tooltip title="Editar tasa de cambio">
-                <IconButton 
-                  size="small" 
-                  onClick={() => setIsEditing(true)}
-                  sx={{ color: '#AAA', p: 0.2 }}
-                >
-                  <EditIcon sx={{ fontSize: 12 }} />
-                </IconButton>
-              </Tooltip>
+              
+              <Box>
+                {isAutoMode ? (
+                  <Tooltip title="Sincronizar ahora">
+                    <IconButton
+                      size="small"
+                      onClick={handleSyncWithAPI}
+                      sx={{ color: '#4477CE', p: 0.2 }}
+                    >
+                      <SyncIcon sx={{ fontSize: 14 }} />
+                    </IconButton>
+                  </Tooltip>
+                ) : (
+                  <Tooltip title="Editar tasa de cambio">
+                    <IconButton 
+                      size="small" 
+                      onClick={() => setIsEditing(true)}
+                      sx={{ color: '#AAA', p: 0.2 }}
+                    >
+                      <EditIcon sx={{ fontSize: 12 }} />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
             </>
           )}
         </Box>
