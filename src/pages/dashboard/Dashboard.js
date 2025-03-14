@@ -79,6 +79,20 @@ const Dashboard = () => {
     };
     
     loadExchangeRate();
+    
+    // Suscribirse a cambios en la tasa
+    const handleRateChange = (newRate) => {
+      console.log("Evento de cambio de tasa recibido en Dashboard:", newRate);
+      setSelectedRate(newRate);
+    };
+    
+    // Registrar el listener
+    exchangeRateApi.subscribeToRateChanges(handleRateChange);
+    
+    // Limpiar al desmontar
+    return () => {
+      exchangeRateApi.unsubscribeFromRateChanges(handleRateChange);
+    };
   }, []);
   
   // Utilizamos el hook personalizado pasando la tasa de cambio seleccionada
@@ -92,9 +106,19 @@ const Dashboard = () => {
     clientesRecientes 
   } = useDashboard(timeRange, selectedRate);
   
-  // Handler para actualizar la tasa de cambio
+  // Handler para actualizar la tasa de cambio - MODIFICADO para evitar bucles
   const handleRateChange = (newRate) => {
+    // Evitar actualizaciones redundantes
+    if (Math.abs(newRate - selectedRate) < 0.01) {
+      console.log("Ignorando actualización redundante");
+      return;
+    }
+    
+    console.log("Actualizando tasa en Dashboard:", newRate);
     setSelectedRate(newRate);
+    
+    // Forzar actualización en localStorage, solo si realmente hay cambio
+    exchangeRateApi.setManualRate(newRate);
     
     setNotification({
       open: true,
