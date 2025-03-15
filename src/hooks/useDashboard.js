@@ -1,9 +1,9 @@
-// src/hooks/useDashboard.js - Solución actualizada
+// src/hooks/useDashboard.js - Actualizado para soportar rango personalizado
 import { useState, useEffect, useMemo } from 'react';
 import { useInvoices } from './useInvoices';
 import { useClients } from './useClients';
 import { useProducts } from './useProducts';
-import exchangeRateApi from '../services/exchangeRateApi'; // Importar el servicio
+import exchangeRateApi from '../services/exchangeRateApi';
 
 // Función auxiliar para truncar objetos grandes
 function truncateObject(obj, maxLength = 100) {
@@ -17,7 +17,110 @@ function normalizeId(id) {
   return typeof id === 'object' ? id.toString() : String(id);
 }
 
-export const useDashboard = (timeRange = null) => {
+// Función auxiliar para obtener rango de fechas según la selección
+const getDateRangeFromSelection = (selectedRange, customDateRange = null) => {
+  // Si es personalizado y tenemos un rango, usarlo directamente
+  if (selectedRange === 'custom' && customDateRange) {
+    return {
+      startDate: new Date(customDateRange.startDate),
+      endDate: new Date(customDateRange.endDate)
+    };
+  }
+  
+  // Si no, calcular el rango según la selección predefinida
+  const today = new Date();
+  const startDate = new Date();
+  const endDate = new Date();
+  
+  switch (selectedRange) {
+    case 'today':
+      // Hoy (desde 00:00 hasta 23:59)
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+      
+    case 'yesterday':
+      // Ayer (desde 00:00 hasta 23:59 de ayer)
+      startDate.setDate(today.getDate() - 1);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setDate(today.getDate() - 1);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+      
+    case 'thisWeek':
+      // Esta semana (desde lunes hasta hoy)
+      const dayOfWeek = today.getDay(); // 0 = Domingo, 1 = Lunes, etc.
+      const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Ajustar para que la semana empiece en lunes
+      startDate.setDate(diff);
+      startDate.setHours(0, 0, 0, 0);
+      break;
+      
+    case 'lastWeek':
+      // Semana pasada (lunes a domingo)
+      const lastWeekDayOfWeek = today.getDay();
+      const lastWeekDiff = today.getDate() - lastWeekDayOfWeek - 6;
+      startDate.setDate(lastWeekDiff);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setDate(lastWeekDiff + 6);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+      
+    case 'thisMonth':
+      // Este mes (desde el 1 hasta hoy)
+      startDate.setDate(1);
+      startDate.setHours(0, 0, 0, 0);
+      break;
+      
+    case 'lastMonth':
+      // Mes pasado (del 1 al último día del mes anterior)
+      startDate.setMonth(today.getMonth() - 1, 1);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setDate(0); // Último día del mes anterior
+      endDate.setHours(23, 59, 59, 999);
+      break;
+      
+    case 'thisYear':
+      // Este año (desde el 1 de enero hasta hoy)
+      startDate.setMonth(0, 1);
+      startDate.setHours(0, 0, 0, 0);
+      break;
+      
+    case '1M':
+      // Últimos 30 días
+      startDate.setDate(today.getDate() - 30);
+      startDate.setHours(0, 0, 0, 0);
+      break;
+      
+    case '3M':
+      // Últimos 3 meses
+      startDate.setMonth(today.getMonth() - 3);
+      startDate.setHours(0, 0, 0, 0);
+      break;
+      
+    case '6M':
+      // Últimos 6 meses
+      startDate.setMonth(today.getMonth() - 6);
+      startDate.setHours(0, 0, 0, 0);
+      break;
+      
+    case '1Y':
+      // Último año
+      startDate.setFullYear(today.getFullYear() - 1);
+      startDate.setHours(0, 0, 0, 0);
+      break;
+      
+    default:
+      // Por defecto, mostrar este mes completo
+      startDate.setDate(1);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setMonth(today.getMonth() + 1, 0);
+      endDate.setHours(23, 59, 59, 999);
+  }
+  
+  return { startDate, endDate };
+};
+
+export const useDashboard = (selectedRange = 'thisMonth', customDateRange = null) => {
   const { invoices, loading: invoicesLoading } = useInvoices();
   const { clients, loading: clientsLoading } = useClients();
   const { products, loading: productsLoading } = useProducts();
@@ -45,12 +148,22 @@ export const useDashboard = (timeRange = null) => {
   
   const loading = invoicesLoading || clientsLoading || productsLoading || loadingRate;
 
+  // Obtener el rango de fechas basado en la selección
+  const timeRange = useMemo(() => {
+    return getDateRangeFromSelection(selectedRange, customDateRange);
+  }, [selectedRange, customDateRange]);
+
   // Filtrar facturas por rango de tiempo
   const filteredInvoices = useMemo(() => {
-    if (!invoices.length || !timeRange) return invoices;
+    if (!invoices.length) return invoices;
     
     return invoices.filter(invoice => {
-      const invoiceDate = new Date(invoice.fecha || invoice.date);
+      const fechaStr = invoice.fecha || invoice.date;
+      if (!fechaStr) return false;
+      
+      const invoiceDate = new Date(fechaStr);
+      if (isNaN(invoiceDate.getTime())) return false;
+      
       return invoiceDate >= timeRange.startDate && invoiceDate <= timeRange.endDate;
     });
   }, [invoices, timeRange]);
@@ -80,7 +193,9 @@ export const useDashboard = (timeRange = null) => {
       cambioClientes: 0,
       cambioFacturas: 0,
       totalConsolidadoUSD: 0,
-      totalConsolidadoVES: 0
+      totalConsolidadoVES: 0,
+      ventasAyerUSD: 0,
+      ventasMesPasadoUSD: 0
     };
 
     // Calcular totales por moneda (separados)
@@ -117,25 +232,91 @@ export const useDashboard = (timeRange = null) => {
     const totalFacturas = filteredInvoices.length;
     const totalClientes = clients.length;
     
-    // Cambios porcentuales simulados
-    const cambioIngresos = 5.2; 
+    // Calcular ingresos del día anterior
+    const hoy = new Date();
+    const ayer = new Date(hoy);
+    ayer.setDate(ayer.getDate() - 1);
+    const facturasAyer = invoices.filter(invoice => {
+      const fechaFactura = new Date(invoice.fecha || invoice.date);
+      return fechaFactura.getDate() === ayer.getDate() && 
+             fechaFactura.getMonth() === ayer.getMonth() && 
+             fechaFactura.getFullYear() === ayer.getFullYear();
+    });
+    let ventasAyerUSD = 0;
+    facturasAyer.forEach(invoice => {
+      const moneda = invoice.moneda || 'USD';
+      const total = parseFloat(invoice.total) || 0;
+      
+      if (moneda === 'USD') {
+        ventasAyerUSD += total;
+      } else if (moneda === 'VES') {
+        ventasAyerUSD += convertCurrency(total, 'VES', 'USD');
+      }
+    });
+    
+    // Calcular ingresos del mes anterior
+    const mesActual = new Date().getMonth();
+    const anioActual = new Date().getFullYear();
+    let mesPasado = mesActual - 1;
+    let anioPasado = anioActual;
+    if (mesPasado < 0) {
+      mesPasado = 11; // Diciembre
+      anioPasado = anioActual - 1;
+    }
+    const facturasMesPasado = invoices.filter(invoice => {
+      const fecha = new Date(invoice.fecha || invoice.date);
+      return fecha.getMonth() === mesPasado && fecha.getFullYear() === anioPasado;
+    });
+    let ventasMesPasadoUSD = 0;
+    facturasMesPasado.forEach(invoice => {
+      const moneda = invoice.moneda || 'USD';
+      const total = parseFloat(invoice.total) || 0;
+      
+      if (moneda === 'USD') {
+        ventasMesPasadoUSD += total;
+      } else if (moneda === 'VES') {
+        ventasMesPasadoUSD += convertCurrency(total, 'VES', 'USD');
+      }
+    });
+
+    // Calcular cambios porcentuales basados en períodos comparativos
+    let cambioIngresos = 0;
+    let cambioFacturas = 0;
+    
+    // Si estamos en este mes, comparamos con el mes anterior
+    if (selectedRange === 'thisMonth' && ventasMesPasadoUSD > 0) {
+      cambioIngresos = ((totalConsolidadoUSD - ventasMesPasadoUSD) / ventasMesPasadoUSD) * 100;
+    } 
+    // Si estamos viendo hoy, comparamos con ayer
+    else if (selectedRange === 'today' && ventasAyerUSD > 0) {
+      cambioIngresos = ((totalConsolidadoUSD - ventasAyerUSD) / ventasAyerUSD) * 100;
+    }
+    // En otros casos, usamos valores simulados (para no dejar vacío)
+    else {
+      cambioIngresos = 5.2;
+      cambioFacturas = -2.5;
+    }
+    
+    // Cambios simulados para otros indicadores que no tenemos datos históricos
     const cambioOperaciones = 3.1;
     const cambioClientes = -0.8;
-    const cambioFacturas = -2.5;
 
     return {
       totalPorMoneda,
       totalOperaciones: totalFacturas,
       totalClientes,
       totalFacturas,
-      cambioIngresos,
+      cambioIngresos: Math.round(cambioIngresos * 10) / 10, // Redondear a 1 decimal
       cambioOperaciones,
       cambioClientes,
       cambioFacturas,
       totalConsolidadoUSD,
-      totalConsolidadoVES
+      totalConsolidadoVES,
+      ventasAyerUSD,
+      ventasMesPasadoUSD,
+      periodoSeleccionado: selectedRange
     };
-  }, [filteredInvoices, clients, loading, exchangeRate]);
+  }, [filteredInvoices, invoices, clients, loading, exchangeRate, selectedRange]);
 
   // Procesar datos para el gráfico de facturación mensual - SEPARADO POR MONEDA
   const facturasPorMes = useMemo(() => {
@@ -144,7 +325,12 @@ export const useDashboard = (timeRange = null) => {
     const mesesMap = {};
     
     filteredInvoices.forEach(invoice => {
-      const fecha = new Date(invoice.fecha || invoice.date);
+      const fechaStr = invoice.fecha || invoice.date;
+      if (!fechaStr) return;
+      
+      const fecha = new Date(fechaStr);
+      if (isNaN(fecha.getTime())) return;
+      
       const mes = fecha.toLocaleString('es', { month: 'short' });
       const moneda = invoice.moneda || 'USD';
       const total = parseFloat(invoice.total) || 0;
@@ -216,7 +402,7 @@ export const useDashboard = (timeRange = null) => {
         valueInUSD = convertCurrency(value, 'VES', 'USD');
       }
       
-      const porcentaje = Math.round((valueInUSD / totalUSD) * 100);
+      const porcentaje = totalUSD > 0 ? Math.round((valueInUSD / totalUSD) * 100) : 0;
       
       // Formatear nombre para visualización
       const monedaEmojis = {
@@ -234,6 +420,56 @@ export const useDashboard = (timeRange = null) => {
         raw: value // Valor original sin formato
       };
     });
+  }, [filteredInvoices, loading, exchangeRate]);
+
+  // Facturas por año - Con validación para evitar undefined
+  const facturasPorAnio = useMemo(() => {
+    if (loading || !filteredInvoices.length) return [];
+
+    const aniosMap = {};
+    
+    // Asegurarse de que cada factura tenga fecha válida
+    filteredInvoices.forEach(invoice => {
+      // Validar que la fecha existe y es válida
+      const fechaStr = invoice.fecha || invoice.date;
+      if (!fechaStr) return; // Saltar si no hay fecha
+      
+      const fecha = new Date(fechaStr);
+      if (isNaN(fecha.getTime())) return; // Saltar si la fecha no es válida
+      
+      const anio = fecha.getFullYear().toString();
+      const moneda = invoice.moneda || 'USD';
+      const total = parseFloat(invoice.total) || 0;
+      
+      if (!aniosMap[anio]) {
+        aniosMap[anio] = { 
+          USD: 0, 
+          VES: 0,
+          total: 0 
+        };
+      }
+      
+      // Acumular por moneda
+      if (moneda === 'USD') {
+        aniosMap[anio].USD += total;
+        aniosMap[anio].total += total;
+      } else if (moneda === 'VES') {
+        aniosMap[anio].VES += total;
+        aniosMap[anio].total += convertCurrency(total, 'VES', 'USD');
+      } else {
+        // Otras monedas (si existen) se acumulan como USD
+        aniosMap[anio].USD += total;
+        aniosMap[anio].total += total;
+      }
+    });
+    
+    // Convertir a array y asegurarse de que todos los campos son números
+    return Object.entries(aniosMap).map(([name, data]) => ({
+      name,
+      USD: Math.round((data.USD || 0) * 100) / 100,
+      VES: Math.round((data.VES || 0) * 100) / 100,
+      total: Math.round((data.total || 0) * 100) / 100
+    }));
   }, [filteredInvoices, loading, exchangeRate]);
 
   // El resto del código permanece igual...
@@ -363,8 +599,10 @@ export const useDashboard = (timeRange = null) => {
     kpis,
     facturasPorMes,
     facturasPorTipo,
+    facturasPorAnio,
     facturasRecientes,
     clientesRecientes,
-    exchangeRate // Devolver el exchange rate actual
+    exchangeRate,
+    timeRange
   };
 };

@@ -14,13 +14,17 @@ import SalesChart from './components/SalesChart';
 import CurrencyDistribution from './components/CurrencyDistribution';
 import AnnualBillingChart from './components/AnnualBillingChart';
 import LatestTransactions from './components/LatestTransactions';
-import KPICards from './components/KPICards'; // Nuevo componente
+import KPICards from './components/KPICards';
+import TimeRangeSelector from './components/TimeRangeSelector';
 
 // Importamos nuestro hook personalizado
 import { useDashboard } from '../../hooks/useDashboard';
 
 // Importamos el servicio para la tasa de cambio
 import exchangeRateApi from '../../services/exchangeRateApi';
+
+// Importar constantes para las opciones de tiempo
+import { TIME_RANGES } from './constants/dashboardConstants';
 
 // Componente principal del Dashboard
 const Dashboard = () => {
@@ -29,14 +33,11 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState({ open: false, message: '', type: 'info' });
   
-  // Estado para el rango de fechas (fijo, sin selector visible)
-  const [timeRange] = useState(() => {
-    const now = new Date();
-    return {
-      startDate: new Date(now.getFullYear(), now.getMonth(), 1), // Primer día del mes actual
-      endDate: new Date(now.getFullYear(), now.getMonth() + 1, 0) // Último día del mes actual
-    };
-  });
+  // Estado para el rango de tiempo seleccionado (por defecto este mes)
+  const [selectedRange, setSelectedRange] = useState('thisMonth');
+  
+  // Estado para el rango de fechas personalizado
+  const [customDateRange, setCustomDateRange] = useState(null);
   
   // Cargar la tasa de cambio al iniciar el componente
   useEffect(() => {
@@ -95,16 +96,16 @@ const Dashboard = () => {
     };
   }, []);
   
-  // Utilizamos el hook personalizado pasando la tasa de cambio seleccionada
+  // Utilizamos el hook personalizado pasando el rango seleccionado
   const { 
     loading: dashboardLoading, 
     kpis, 
     facturasPorMes, 
     facturasPorTipo,
-    facturasPorAnio,
+    facturasPorAnio = [], // Definir un valor predeterminado
     facturasRecientes, 
     clientesRecientes 
-  } = useDashboard(timeRange, selectedRate);
+  } = useDashboard(selectedRange, customDateRange);
   
   // Handler para actualizar la tasa de cambio - MODIFICADO para evitar bucles
   const handleRateChange = (newRate) => {
@@ -124,6 +125,54 @@ const Dashboard = () => {
       open: true,
       message: `Tasa actualizada: ${newRate.toFixed(2)} VES/USD`,
       type: 'success'
+    });
+    
+    // Auto-cerrar la notificación después de 3 segundos
+    setTimeout(() => {
+      setNotification(prev => ({ ...prev, open: false }));
+    }, 3000);
+  };
+  
+  // Manejador para el cambio de rango de tiempo
+  const handleRangeChange = (newRange) => {
+    console.log(`Cambiando rango a: ${newRange}`);
+    setSelectedRange(newRange);
+    
+    // No mostrar notificación para el rango personalizado, ya que mostrará el diálogo
+    if (newRange !== 'custom') {
+      // Buscar etiqueta para mostrar en notificación
+      const rangeLabel = (() => {
+        const found = TIME_RANGES.find(r => r.value === newRange);
+        return found ? found.label : 'Personalizado';
+      })();
+      
+      // Mostrar notificación de cambio de rango
+      setNotification({
+        open: true,
+        message: `Período cambiado: ${rangeLabel}`,
+        type: 'info'
+      });
+      
+      // Auto-cerrar la notificación después de 2 segundos
+      setTimeout(() => {
+        setNotification(prev => ({ ...prev, open: false }));
+      }, 2000);
+    }
+  };
+  
+  // Manejador para el cambio de rango personalizado
+  const handleCustomRangeChange = (range) => {
+    console.log("Rango personalizado:", range);
+    setCustomDateRange(range);
+    
+    // Mostrar notificación con las fechas seleccionadas
+    const startDate = range.startDate.toLocaleDateString('es-ES');
+    const endDate = range.endDate.toLocaleDateString('es-ES');
+    
+    setNotification({
+      open: true,
+      message: `Período personalizado: ${startDate} al ${endDate}`,
+      type: 'info'
     });
     
     // Auto-cerrar la notificación después de 3 segundos
@@ -165,7 +214,8 @@ const Dashboard = () => {
             maxWidth: '80%',
             display: 'flex',
             alignItems: 'center',
-            bgcolor: notification.type === 'success' ? '#43a047' : '#e53935',
+            bgcolor: notification.type === 'success' ? '#43a047' : 
+                     notification.type === 'error' ? '#e53935' : '#1e88e5',
             color: 'white',
             px: 2,
             py: 1,
@@ -184,7 +234,15 @@ const Dashboard = () => {
         </Box>
       )}
       
-      {/* Tarjetas KPI - Ahora como componente */}
+      {/* Selector de Período */}
+      <TimeRangeSelector 
+        selectedRange={selectedRange} 
+        customDateRange={customDateRange}
+        onRangeChange={handleRangeChange}
+        onCustomRangeChange={handleCustomRangeChange}
+      />
+      
+      {/* Tarjetas KPI - Ahora con nuevas propiedades */}
       <KPICards 
         totalUSD={totalUSD}
         totalVES={totalVES}
@@ -195,6 +253,8 @@ const Dashboard = () => {
         cambioClientes={kpis.cambioClientes}
         exchangeRate={selectedRate}
         onRateChange={handleRateChange}
+        ventasAyerUSD={kpis.ventasAyerUSD}
+        ventasMesPasadoUSD={kpis.ventasMesPasadoUSD}
       />
 
       {/* Gráficos */}
@@ -210,10 +270,10 @@ const Dashboard = () => {
         </Grid>
       </Grid>
 
-      {/* Facturación Anual */}
+      {/* Facturación Anual - Con validación para evitar errores */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12}>
-          <AnnualBillingChart data={facturasPorAnio || []} />
+          <AnnualBillingChart data={Array.isArray(facturasPorAnio) ? facturasPorAnio : []} />
         </Grid>
       </Grid>
 

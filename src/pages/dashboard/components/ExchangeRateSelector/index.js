@@ -21,7 +21,8 @@ import exchangeRateApi from '../../../../services/exchangeRateApi';
 const ExchangeRateSelector = ({ onRateChange, totalVES, initialRate }) => {
   // Estado para la tasa de cambio - Inicialización con prop
   const [rate, setRate] = useState(initialRate || 66);
-  const [editRate, setEditRate] = useState(initialRate || 66);
+  // Cambiado a string para evitar problemas con el 0 al inicio
+  const [editRate, setEditRate] = useState((initialRate || 66).toString());
   const [isAutoMode, setIsAutoMode] = useState(true);
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -34,7 +35,7 @@ const ExchangeRateSelector = ({ onRateChange, totalVES, initialRate }) => {
   useEffect(() => {
     if (initialRate && Math.abs(initialRate - rate) > 0.01) {
       setRate(initialRate);
-      setEditRate(initialRate);
+      setEditRate(initialRate.toString()); // Convertir a string
       previousRate.current = initialRate;
     }
   }, [initialRate]); // Quitamos 'rate' de las dependencias
@@ -48,7 +49,7 @@ const ExchangeRateSelector = ({ onRateChange, totalVES, initialRate }) => {
       // Solo actualizar si el valor es suficientemente diferente
       if (Math.abs(newRate - rate) > 0.01) {
         setRate(newRate);
-        setEditRate(newRate);
+        setEditRate(newRate.toString()); // Convertir a string
         previousRate.current = newRate;
       }
       
@@ -93,7 +94,7 @@ const ExchangeRateSelector = ({ onRateChange, totalVES, initialRate }) => {
       // Solo actualizar si realmente hay un cambio significativo
       if (Math.abs(newRate - rate) > 0.01) {
         setRate(newRate);
-        setEditRate(newRate);
+        setEditRate(newRate.toString()); // Convertir a string
         previousRate.current = newRate;
         setIsAutoMode(mode === 'auto');
         
@@ -111,17 +112,20 @@ const ExchangeRateSelector = ({ onRateChange, totalVES, initialRate }) => {
 
   // Manejar cambios en el formulario de edición
   const handleRateChange = (e) => {
-    setEditRate(parseFloat(e.target.value) || 0);
+    // Almacenar como string, permitiendo editar libremente
+    setEditRate(e.target.value);
   };
 
   // Guardar cambios manuales
   const saveManualRate = async () => {
     try {
-      // Solo actualizar si hay un cambio real
-      if (Math.abs(editRate - rate) > 0.01) {
-        await exchangeRateApi.setManualRate(editRate);
-        setRate(editRate);
-        previousRate.current = editRate;
+      // Convertir a número para validación y almacenamiento
+      const numericRate = parseFloat(editRate) || 0;
+      // Solo actualizar si hay un cambio real y es un número válido
+      if (numericRate > 0 && Math.abs(numericRate - rate) > 0.01) {
+        await exchangeRateApi.setManualRate(numericRate);
+        setRate(numericRate);
+        previousRate.current = numericRate;
         setIsAutoMode(false);
       }
       setIsEditing(false);
@@ -143,7 +147,7 @@ const ExchangeRateSelector = ({ onRateChange, totalVES, initialRate }) => {
         // Verificar que realmente hay un cambio
         if (Math.abs(result.rate - rate) > 0.01) {
           setRate(result.rate);
-          setEditRate(result.rate);
+          setEditRate(result.rate.toString()); // Convertir a string
           previousRate.current = result.rate;
         }
       } else {
@@ -163,7 +167,7 @@ const ExchangeRateSelector = ({ onRateChange, totalVES, initialRate }) => {
   // Cancelar edición
   const handleCancelEdit = () => {
     setIsEditing(false);
-    setEditRate(rate);
+    setEditRate(rate.toString()); // Restaurar valor actual como string
   };
 
   // Formatear moneda
@@ -245,7 +249,7 @@ const ExchangeRateSelector = ({ onRateChange, totalVES, initialRate }) => {
         <Box sx={{ mb: 0.5, display: 'flex', alignItems: 'center' }}>
           <TextField
             label="Tasa"
-            type="number"
+            type="text" // Cambiado de "number" a "text" para permitir edición libre
             value={editRate}
             onChange={handleRateChange}
             variant="outlined"

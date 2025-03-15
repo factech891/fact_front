@@ -12,6 +12,8 @@ import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import PeopleIcon from '@mui/icons-material/People';
 import InfoIcon from '@mui/icons-material/Info';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import ExchangeRateSelector from '../ExchangeRateSelector';
 
 const KPICards = ({ 
@@ -23,7 +25,9 @@ const KPICards = ({
   cambioFacturas, 
   cambioClientes, 
   exchangeRate, 
-  onRateChange 
+  onRateChange,
+  ventasAyerUSD,
+  ventasMesPasadoUSD
 }) => {
   return (
     <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -39,7 +43,15 @@ const KPICards = ({
           position: 'relative',
           overflow: 'visible'
         }}>
-          <CardContent sx={{ py: 1.5, px: 2, position: 'relative' }}>
+          <CardContent sx={{ 
+            py: 1.5, 
+            px: 2, 
+            position: 'relative',
+            height: '100%',
+            pb: '12px !important', // Importante para anular el padding-bottom por defecto
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
             <Box sx={{ 
               position: 'absolute',
               top: '-10px',
@@ -58,52 +70,105 @@ const KPICards = ({
               </Avatar>
             </Box>
             
-            <Typography variant="subtitle2" color="#CCC" sx={{ fontSize: '0.85rem' }}>
-              💵 Ingresos USD
-            </Typography>
-            
-            <Typography 
-              variant="h4" 
-              color="white" 
-              sx={{ 
-                mt: 1, 
-                mb: 0.5, 
-                fontWeight: 'bold',
-                fontSize: '1.8rem'
-              }}
-            >
-              {new Intl.NumberFormat('es-ES').format(Math.round(totalUSD))}
-            </Typography>
-            
-            <Typography 
-              variant="body2" 
-              color="#AAA"
-              sx={{ fontSize: '0.75rem' }}
-            >
-              Equivale a: {new Intl.NumberFormat('es-ES').format(Math.round(totalUSD * exchangeRate))} VES
-            </Typography>
-            
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                color: cambioIngresos >= 0 ? '#4CAF50' : '#F44336', 
-                display: 'flex',
-                alignItems: 'center',
-                mt: 1
-              }}
-            >
-              {cambioIngresos >= 0 ? '↑' : '↓'} {Math.abs(cambioIngresos)}% este mes
-            </Typography>
-            
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center',
-              mt: 1
-            }}>
-              <InfoIcon sx={{ fontSize: 14, color: '#AAA', mr: 0.5 }} />
-              <Typography variant="caption" color="#AAA">
-                Tasa: {exchangeRate.toFixed(2)} VES/USD
+            <Box sx={{ mb: 0.5 }}>
+              <Typography variant="subtitle2" color="#CCC" sx={{ fontSize: '0.8rem' }}>
+                💵 Ingresos USD
               </Typography>
+            </Box>
+            
+            <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', mb: 0.5 }}>
+              <Typography 
+                variant="h4" 
+                color="white" 
+                sx={{ 
+                  fontWeight: 'bold',
+                  fontSize: '1.7rem',
+                  lineHeight: 1.2
+                }}
+              >
+                {new Intl.NumberFormat('es-ES').format(Math.round(totalUSD))}
+              </Typography>
+              
+              <Typography 
+                variant="body2" 
+                color="#AAA"
+                sx={{ fontSize: '0.7rem' }}
+              >
+                ≈ {new Intl.NumberFormat('es-ES').format(Math.round(totalUSD * exchangeRate))} VES
+              </Typography>
+            </Box>
+            
+            <Box sx={{ display: 'flex', flexDirection: 'column', mt: 'auto' }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: cambioIngresos >= 0 ? '#4CAF50' : '#F44336', 
+                  display: 'flex',
+                  alignItems: 'center',
+                  fontSize: '0.75rem'
+                }}
+              >
+                {cambioIngresos >= 0 ? 
+                  <TrendingUpIcon sx={{ fontSize: 14, mr: 0.3 }} /> : 
+                  <TrendingDownIcon sx={{ fontSize: 14, mr: 0.3 }} />
+                }
+                {cambioIngresos >= 0 ? '+' : ''}{Math.abs(cambioIngresos)}% este mes
+              </Typography>
+              
+              {/* Comparación con ayer */}
+              {ventasAyerUSD !== undefined && (
+                <Box sx={{ mt: 0.5 }}>
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      color: totalUSD > ventasAyerUSD ? '#4CAF50' : '#F44336', 
+                      fontSize: '0.7rem',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    {totalUSD > ventasAyerUSD ? 
+                      <TrendingUpIcon sx={{ fontSize: 12, mr: 0.3 }} /> : 
+                      <TrendingDownIcon sx={{ fontSize: 12, mr: 0.3 }} />
+                    }
+                    vs Ayer: {Math.abs(totalUSD - ventasAyerUSD).toFixed(0)} USD
+                    ({Math.abs((totalUSD / Math.max(ventasAyerUSD, 1) - 1) * 100).toFixed(1)}%)
+                  </Typography>
+                </Box>
+              )}
+              
+              {/* Comparación con mes anterior */}
+              {ventasMesPasadoUSD !== undefined && (
+                <Box sx={{ mt: 0.5 }}>
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      color: totalUSD > ventasMesPasadoUSD ? '#4CAF50' : '#F44336', 
+                      fontSize: '0.7rem',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    {totalUSD > ventasMesPasadoUSD ? 
+                      <TrendingUpIcon sx={{ fontSize: 12, mr: 0.3 }} /> : 
+                      <TrendingDownIcon sx={{ fontSize: 12, mr: 0.3 }} />
+                    }
+                    vs Mes anterior: {Math.abs(totalUSD - ventasMesPasadoUSD).toFixed(0)} USD
+                    ({Math.abs((totalUSD / Math.max(ventasMesPasadoUSD, 1) - 1) * 100).toFixed(1)}%)
+                  </Typography>
+                </Box>
+              )}
+              
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center',
+                mt: 0.5
+              }}>
+                <InfoIcon sx={{ fontSize: 12, color: '#AAA', mr: 0.5 }} />
+                <Typography variant="caption" color="#AAA" sx={{ fontSize: '0.7rem' }}>
+                  Tasa: {exchangeRate.toFixed(2)} VES/USD
+                </Typography>
+              </Box>
             </Box>
           </CardContent>
         </Card>
@@ -121,7 +186,15 @@ const KPICards = ({
           position: 'relative',
           overflow: 'visible'
         }}>
-          <CardContent sx={{ py: 1.5, px: 2, position: 'relative' }}>
+          <CardContent sx={{ 
+            py: 1.5, 
+            px: 2, 
+            position: 'relative',
+            height: '100%',
+            pb: '12px !important',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
             <Box sx={{ 
               position: 'absolute',
               top: '-10px',
@@ -140,41 +213,50 @@ const KPICards = ({
               </Avatar>
             </Box>
             
-            <Typography variant="subtitle2" color="#CCC" sx={{ fontSize: '0.85rem' }}>
-              💰 Ingresos VES
-            </Typography>
+            <Box sx={{ mb: 0.5 }}>
+              <Typography variant="subtitle2" color="#CCC" sx={{ fontSize: '0.8rem' }}>
+                💰 Ingresos VES
+              </Typography>
+            </Box>
             
-            <Typography 
-              variant="h4" 
-              color="white" 
-              sx={{ 
-                mt: 1, 
-                mb: 0.5, 
-                fontWeight: 'bold',
-                fontSize: '1.8rem'
-              }}
-            >
-              {new Intl.NumberFormat('es-ES').format(Math.round(totalVES))}
-            </Typography>
+            <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', mb: 0.5 }}>
+              <Typography 
+                variant="h4" 
+                color="white" 
+                sx={{ 
+                  fontWeight: 'bold',
+                  fontSize: '1.7rem',
+                  lineHeight: 1.2
+                }}
+              >
+                {new Intl.NumberFormat('es-ES').format(Math.round(totalVES))}
+              </Typography>
+              
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: cambioIngresos >= 0 ? '#4CAF50' : '#F44336', 
+                  display: 'flex',
+                  alignItems: 'center',
+                  fontSize: '0.75rem'
+                }}
+              >
+                {cambioIngresos >= 0 ? 
+                  <TrendingUpIcon sx={{ fontSize: 14, mr: 0.3 }} /> : 
+                  <TrendingDownIcon sx={{ fontSize: 14, mr: 0.3 }} />
+                }
+                {cambioIngresos >= 0 ? '+' : ''}{Math.abs(cambioIngresos)}% este mes
+              </Typography>
+            </Box>
             
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                color: cambioIngresos >= 0 ? '#4CAF50' : '#F44336', 
-                display: 'flex',
-                alignItems: 'center',
-                mt: 0.5,
-                mb: 1
-              }}
-            >
-              {cambioIngresos >= 0 ? '↑' : '↓'} {Math.abs(cambioIngresos)}% este mes
-            </Typography>
-            
-            {/* Selector de tasa de cambio */}
-            <ExchangeRateSelector 
-              onRateChange={onRateChange}
-              totalVES={totalVES}
-            />
+            {/* Exchange Rate Selector */}
+            <Box sx={{ mt: 'auto' }}>
+              <ExchangeRateSelector 
+                onRateChange={onRateChange}
+                totalVES={totalVES}
+                initialRate={exchangeRate} // Añadido para sincronización
+              />
+            </Box>
           </CardContent>
         </Card>
       </Grid>
@@ -191,7 +273,15 @@ const KPICards = ({
           position: 'relative',
           overflow: 'visible'
         }}>
-          <CardContent sx={{ py: 1.5, px: 2, position: 'relative' }}>
+          <CardContent sx={{ 
+            py: 1.5, 
+            px: 2, 
+            position: 'relative',
+            height: '100%',
+            pb: '12px !important',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
             <Box sx={{ 
               position: 'absolute',
               top: '-10px',
@@ -210,34 +300,48 @@ const KPICards = ({
               </Avatar>
             </Box>
             
-            <Typography variant="subtitle2" color="#CCC" sx={{ fontSize: '0.85rem' }}>
-              📊 Facturas
-            </Typography>
+            <Box sx={{ mb: 0.5 }}>
+              <Typography variant="subtitle2" color="#CCC" sx={{ fontSize: '0.8rem' }}>
+                📊 Facturas
+              </Typography>
+            </Box>
             
-            <Typography 
-              variant="h4" 
-              color="white" 
-              sx={{ 
-                mt: 1, 
-                mb: 0.5, 
-                fontWeight: 'bold',
-                fontSize: '1.8rem'
-              }}
-            >
-              {totalFacturas}
-            </Typography>
+            <Box sx={{ 
+              flexGrow: 1, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              justifyContent: 'center'
+            }}>
+              <Typography 
+                variant="h4" 
+                color="white" 
+                sx={{ 
+                  fontWeight: 'bold',
+                  fontSize: '1.7rem',
+                  lineHeight: 1.2
+                }}
+              >
+                {totalFacturas}
+              </Typography>
+            </Box>
             
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                color: cambioFacturas >= 0 ? '#4CAF50' : '#F44336', 
-                display: 'flex',
-                alignItems: 'center',
-                mt: 1
-              }}
-            >
-              {cambioFacturas >= 0 ? '↑' : '↓'} {Math.abs(cambioFacturas)}% este mes
-            </Typography>
+            <Box sx={{ mt: 'auto' }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: cambioFacturas >= 0 ? '#4CAF50' : '#F44336', 
+                  display: 'flex',
+                  alignItems: 'center',
+                  fontSize: '0.75rem'
+                }}
+              >
+                {cambioFacturas >= 0 ? 
+                  <TrendingUpIcon sx={{ fontSize: 14, mr: 0.3 }} /> : 
+                  <TrendingDownIcon sx={{ fontSize: 14, mr: 0.3 }} />
+                }
+                {cambioFacturas >= 0 ? '+' : ''}{Math.abs(cambioFacturas)}% este mes
+              </Typography>
+            </Box>
           </CardContent>
         </Card>
       </Grid>
@@ -254,7 +358,15 @@ const KPICards = ({
           position: 'relative',
           overflow: 'visible'
         }}>
-          <CardContent sx={{ py: 1.5, px: 2, position: 'relative' }}>
+          <CardContent sx={{ 
+            py: 1.5, 
+            px: 2, 
+            position: 'relative',
+            height: '100%',
+            pb: '12px !important',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
             <Box sx={{ 
               position: 'absolute',
               top: '-10px',
@@ -273,34 +385,48 @@ const KPICards = ({
               </Avatar>
             </Box>
             
-            <Typography variant="subtitle2" color="#CCC" sx={{ fontSize: '0.85rem' }}>
-              👥 Clientes
-            </Typography>
+            <Box sx={{ mb: 0.5 }}>
+              <Typography variant="subtitle2" color="#CCC" sx={{ fontSize: '0.8rem' }}>
+                👥 Clientes
+              </Typography>
+            </Box>
             
-            <Typography 
-              variant="h4" 
-              color="white" 
-              sx={{ 
-                mt: 1, 
-                mb: 0.5, 
-                fontWeight: 'bold',
-                fontSize: '1.8rem'
-              }}
-            >
-              {totalClientes}
-            </Typography>
+            <Box sx={{ 
+              flexGrow: 1, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              justifyContent: 'center'
+            }}>
+              <Typography 
+                variant="h4" 
+                color="white" 
+                sx={{ 
+                  fontWeight: 'bold',
+                  fontSize: '1.7rem',
+                  lineHeight: 1.2
+                }}
+              >
+                {totalClientes}
+              </Typography>
+            </Box>
             
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                color: cambioClientes >= 0 ? '#4CAF50' : '#F44336', 
-                display: 'flex',
-                alignItems: 'center',
-                mt: 1
-              }}
-            >
-              {cambioClientes >= 0 ? '↑' : '↓'} {Math.abs(cambioClientes)}% este mes
-            </Typography>
+            <Box sx={{ mt: 'auto' }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: cambioClientes >= 0 ? '#4CAF50' : '#F44336', 
+                  display: 'flex',
+                  alignItems: 'center',
+                  fontSize: '0.75rem'
+                }}
+              >
+                {cambioClientes >= 0 ? 
+                  <TrendingUpIcon sx={{ fontSize: 14, mr: 0.3 }} /> : 
+                  <TrendingDownIcon sx={{ fontSize: 14, mr: 0.3 }} />
+                }
+                {cambioClientes >= 0 ? '+' : ''}{Math.abs(cambioClientes)}% este mes
+              </Typography>
+            </Box>
           </CardContent>
         </Card>
       </Grid>
