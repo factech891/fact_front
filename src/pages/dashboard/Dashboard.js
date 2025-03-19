@@ -102,6 +102,7 @@ const Dashboard = () => {
     kpis, 
     facturasPorMes, 
     facturasPorTipo,
+    facturasPorDia,
     facturasPorAnio = [], // Definir un valor predeterminado
     facturasRecientes, 
     clientesRecientes 
@@ -257,12 +258,12 @@ const Dashboard = () => {
         ventasMesPasadoUSD={kpis.ventasMesPasadoUSD}
       />
 
-      {/* Gráficos - ACTUALIZADO: usar misma data para ambos gráficos */}
+      {/* Gráficos - ACTUALIZADO: usar la data correcta para cada gráfico */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {/* Gráfico de Facturación Diaria */}
         <Grid item xs={12} md={6}>
           <DailyBillingChart 
-            data={facturasPorMes}
+            data={facturasPorDia}  // CORREGIDO: Ahora usa facturasPorDia en lugar de facturasPorMes
             title="Facturación Diaria"
           />
         </Grid>

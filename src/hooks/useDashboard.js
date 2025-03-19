@@ -365,6 +365,83 @@ export const useDashboard = (selectedRange = 'thisMonth', customDateRange = null
     }));
   }, [filteredInvoices, loading, exchangeRate]);
 
+  // FUNCIÓN MEJORADA: Procesar datos para el gráfico de facturación diaria
+  const facturasPorDia = useMemo(() => {
+    if (loading || !filteredInvoices.length) return [];
+
+    // Crear un mapa para organizar facturas por día
+    const diasMap = {};
+    
+    // Agrupar facturas por día
+    filteredInvoices.forEach(invoice => {
+      const fechaStr = invoice.fecha || invoice.date;
+      if (!fechaStr) return;
+      
+      // Convertir la fecha a objeto Date
+      const fecha = new Date(fechaStr);
+      if (isNaN(fecha.getTime())) return;
+      
+      // Extraer el día y mes
+      const dia = fecha.getDate();
+      
+      // Mapeo de números de mes a abreviaturas en español
+      const mesesAbr = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+      const mesAbr = mesesAbr[fecha.getMonth()];
+      
+      // Crear clave para la fecha formateada como "13 mar"
+      const fechaFormateada = `${dia} ${mesAbr}`;
+      
+      // Inicializar entrada si no existe
+      if (!diasMap[fechaFormateada]) {
+        diasMap[fechaFormateada] = {
+          fecha: fecha,
+          USD: 0,
+          VES: 0,
+          total: 0
+        };
+      }
+      
+      // Acumular montos por moneda
+      const moneda = invoice.moneda || 'USD';
+      const total = parseFloat(invoice.total) || 0;
+      
+      if (moneda === 'USD') {
+        diasMap[fechaFormateada].USD += total;
+      } else if (moneda === 'VES') {
+        diasMap[fechaFormateada].VES += total;
+      }
+      
+      // Calcular total en USD (para tener un total unificado)
+      if (moneda === 'USD') {
+        diasMap[fechaFormateada].total += total;
+      } else if (moneda === 'VES') {
+        diasMap[fechaFormateada].total += convertCurrency(total, 'VES', 'USD');
+      }
+    });
+    
+    // Convertir a array y formatear para el gráfico
+    const resultado = Object.entries(diasMap).map(([fechaFormateada, datos]) => ({
+      name: fechaFormateada,
+      USD: Math.round(datos.USD * 100) / 100,
+      VES: Math.round(datos.VES * 100) / 100,
+      total: Math.round(datos.total * 100) / 100
+    }));
+    
+    // Ordenar por fecha
+    return resultado.sort((a, b) => {
+      const partsA = a.name.split(' ');
+      const partsB = b.name.split(' ');
+      
+      if (partsA.length < 2 || partsB.length < 2) return 0;
+      
+      const dayA = parseInt(partsA[0], 10);
+      const dayB = parseInt(partsB[0], 10);
+      
+      // Si ambos son del mismo mes, ordenar por día
+      return dayA - dayB;
+    });
+  }, [filteredInvoices, loading, exchangeRate]);
+
   // Distribución por moneda - PORCENTAJES PRECISOS
   const facturasPorTipo = useMemo(() => {
     if (loading || !filteredInvoices.length) return [];
@@ -598,6 +675,7 @@ export const useDashboard = (selectedRange = 'thisMonth', customDateRange = null
     loading,
     kpis,
     facturasPorMes,
+    facturasPorDia,
     facturasPorTipo,
     facturasPorAnio,
     facturasRecientes,
