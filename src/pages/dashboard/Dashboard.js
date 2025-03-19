@@ -11,7 +11,7 @@ import CloseIcon from '@mui/icons-material/Close';
 
 // Importamos los componentes personalizados
 import SalesChart from './components/SalesChart';
-import CurrencyDistribution from './components/CurrencyDistribution';
+import DailyBillingChart from './components/DailyBillingChart'; // Nuevo componente
 import AnnualBillingChart from './components/AnnualBillingChart';
 import LatestTransactions from './components/LatestTransactions';
 import KPICards from './components/KPICards';
@@ -257,16 +257,19 @@ const Dashboard = () => {
         ventasMesPasadoUSD={kpis.ventasMesPasadoUSD}
       />
 
-      {/* Gráficos */}
+      {/* Gráficos - ACTUALIZADO: usar misma data para ambos gráficos */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        {/* Gráfico de Facturación Mensual */}
-        <Grid item xs={12} lg={8}>
-          <SalesChart data={facturasPorMes} />
+        {/* Gráfico de Facturación Diaria */}
+        <Grid item xs={12} md={6}>
+          <DailyBillingChart 
+            data={facturasPorMes}
+            title="Facturación Diaria"
+          />
         </Grid>
-
-        {/* Gráfico de Distribución por Moneda */}
-        <Grid item xs={12} lg={4}>
-          <CurrencyDistribution data={facturasPorTipo} title="Distribución por Moneda" />
+        
+        {/* Gráfico de Facturación Mensual */}
+        <Grid item xs={12} md={6}>
+          <SalesChart data={facturasPorMes} />
         </Grid>
       </Grid>
 
