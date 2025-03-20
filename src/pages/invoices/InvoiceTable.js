@@ -1,6 +1,7 @@
 // src/pages/invoices/InvoiceTable.js
+import { useState } from 'react';
 import { DataGrid } from '@mui/x-data-grid';
-import { Card, IconButton, Tooltip, Chip } from '@mui/material';
+import { Box, IconButton, Tooltip, Chip, Menu, MenuItem } from '@mui/material';
 import { 
   Edit, 
   Delete, 
@@ -8,7 +9,66 @@ import {
   FileDownload 
 } from '@mui/icons-material';
 
-export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDownload }) => {
+export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDownload, onStatusChange }) => {
+  const [statusMenu, setStatusMenu] = useState(null);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+
+  const handleStatusClick = (event, invoice) => {
+    event.stopPropagation(); // Prevenir que se seleccione la fila
+    setStatusMenu(event.currentTarget);
+    setSelectedInvoice(invoice);
+  };
+
+  const handleStatusClose = () => {
+    setStatusMenu(null);
+    setSelectedInvoice(null);
+  };
+
+  const handleStatusChange = (newStatus) => {
+    if (onStatusChange && selectedInvoice) {
+      onStatusChange(selectedInvoice._id, newStatus);
+    }
+    handleStatusClose();
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'draft':
+        return 'Borrador';
+      case 'pending':
+        return 'Pendiente';
+      case 'paid':
+        return 'Pagada';
+      case 'cancelled':
+        return 'Anulada';
+      case 'overdue':
+        return 'Vencida';
+      case 'partial':
+        return 'Pago Parcial';
+      default:
+        return 'Borrador';
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'draft':
+        return 'default';
+      case 'pending':
+        return 'warning';
+      case 'paid':
+        return 'success';
+      case 'cancelled':
+        return 'error';
+      case 'overdue':
+        return 'error';
+      case 'partial':
+        return 'info';
+      default:
+        return 'default';
+    }
+  };
+
   const columns = [
     { 
       field: 'number', 
@@ -48,11 +108,15 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
       renderCell: (params) => {
         const status = params.value || 'draft';
         return (
-          <Chip
-            label={status === 'paid' ? 'Pagada' : status === 'pending' ? 'Pendiente' : 'Borrador'}
-            color={status === 'paid' ? 'success' : status === 'pending' ? 'warning' : 'default'}
-            size="small"
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Chip
+              label={getStatusLabel(status)}
+              color={getStatusColor(status)}
+              size="small"
+              sx={{ mr: 1, cursor: 'pointer' }}
+              onClick={(e) => handleStatusClick(e, params.row)}
+            />
+          </Box>
         );
       }
     },
@@ -125,24 +189,57 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
   }));
 
   return (
-    <Card sx={{ width: '100%', minHeight: 400 }}>
+    <>
       <DataGrid
         rows={processedRows}
         columns={columns}
         pageSize={10}
-        rowsPerPageOptions={[5, 10, 25]}
+        rowsPerPageOptions={[5, 10, 25, 100]}
         autoHeight
         disableSelectionOnClick
         loading={invoices.length === 0}
         components={{
           NoRowsOverlay: () => (
-            <div style={{ padding: 20, textAlign: 'center' }}>
-              No hay facturas disponibles
-            </div>
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', p: 2 }}>
+              <Box>No hay facturas disponibles</Box>
+            </Box>
           )
         }}
+        sx={{
+          '& .MuiDataGrid-columnHeaders': {
+            backgroundColor: '#f9f9f9',
+          },
+          '& .MuiDataGrid-cell': {
+            borderBottom: '1px solid #f0f0f0'
+          }
+        }}
       />
-    </Card>
+
+      <Menu
+        anchorEl={statusMenu}
+        open={Boolean(statusMenu)}
+        onClose={handleStatusClose}
+      >
+        <MenuItem onClick={() => handleStatusChange('draft')}>
+          <Chip label="Borrador" size="small" color="default" sx={{ minWidth: '80px' }} />
+        </MenuItem>
+        <MenuItem onClick={() => handleStatusChange('pending')}>
+          <Chip label="Pendiente" size="small" color="warning" sx={{ minWidth: '80px' }} />
+        </MenuItem>
+        <MenuItem onClick={() => handleStatusChange('paid')}>
+          <Chip label="Pagada" size="small" color="success" sx={{ minWidth: '80px' }} />
+        </MenuItem>
+        <MenuItem onClick={() => handleStatusChange('partial')}>
+          <Chip label="Pago Parcial" size="small" color="info" sx={{ minWidth: '80px' }} />
+        </MenuItem>
+        <MenuItem onClick={() => handleStatusChange('overdue')}>
+          <Chip label="Vencida" size="small" color="error" sx={{ minWidth: '80px' }} />
+        </MenuItem>
+        <MenuItem onClick={() => handleStatusChange('cancelled')}>
+          <Chip label="Anulada" size="small" color="error" sx={{ minWidth: '80px' }} />
+        </MenuItem>
+      </Menu>
+    </>
   );
 };
 

@@ -107,3 +107,27 @@ export const generatePDF = async (id) => {
         throw error;
     }
 };
+
+// Nueva función para actualizar el estado de una factura
+export const updateInvoiceStatus = async (id, newStatus) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/invoices/${id}/status`, {
+            method: 'PATCH',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}` // Si usas autenticación
+            },
+            body: JSON.stringify({ status: newStatus }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `Error HTTP: ${response.status}`);
+        }
+
+        return response.json();
+    } catch (error) {
+        console.error('Error al actualizar estado de factura:', error);
+        throw error;
+    }
+};

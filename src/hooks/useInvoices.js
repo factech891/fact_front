@@ -1,15 +1,15 @@
 // src/hooks/useInvoices.js
 import { useState, useEffect } from 'react';
-import { invoicesApi } from '../services/api';
+import { fetchInvoices, saveInvoice as apiSaveInvoice, deleteInvoice as apiDeleteInvoice, updateInvoiceStatus } from '../services/InvoicesApi';
 
 export const useInvoices = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchInvoices = async () => {
+  const fetchAllInvoices = async () => {
     try {
-      const data = await invoicesApi.getAll();
+      const data = await fetchInvoices();
       setInvoices(data);
       setLoading(false);
     } catch (error) {
@@ -20,10 +20,8 @@ export const useInvoices = () => {
 
   const saveInvoice = async (invoice) => {
     try {
-      const savedInvoice = invoice._id 
-        ? await invoicesApi.update(invoice._id, invoice)
-        : await invoicesApi.create(invoice);
-      await fetchInvoices();
+      const savedInvoice = await apiSaveInvoice(invoice);
+      await fetchAllInvoices();
       return savedInvoice;
     } catch (error) {
       setError(error.message);
@@ -33,8 +31,18 @@ export const useInvoices = () => {
 
   const deleteInvoice = async (id) => {
     try {
-      await invoicesApi.delete(id);
-      await fetchInvoices();
+      await apiDeleteInvoice(id);
+      await fetchAllInvoices();
+    } catch (error) {
+      setError(error.message);
+      throw error;
+    }
+  };
+
+  const changeInvoiceStatus = async (id, newStatus) => {
+    try {
+      await updateInvoiceStatus(id, newStatus);
+      await fetchAllInvoices();
     } catch (error) {
       setError(error.message);
       throw error;
@@ -42,8 +50,16 @@ export const useInvoices = () => {
   };
 
   useEffect(() => {
-    fetchInvoices();
+    fetchAllInvoices();
   }, []);
 
-  return { invoices, loading, error, saveInvoice, deleteInvoice };
+  return { 
+    invoices, 
+    loading, 
+    error, 
+    saveInvoice, 
+    deleteInvoice, 
+    changeInvoiceStatus,
+    refreshInvoices: fetchAllInvoices
+  };
 };

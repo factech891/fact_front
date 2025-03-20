@@ -1,6 +1,6 @@
 // src/pages/invoices/Invoices.js
 import { useState } from 'react';
-import { Box, Button, Typography, Snackbar, Alert } from '@mui/material';
+import { Box, Button, Typography, Snackbar, Alert, Paper } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import { InvoiceTable } from './InvoiceTable';
 import { InvoiceForm } from './InvoiceForm';
@@ -17,7 +17,7 @@ const Invoices = () => {
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState(null);
 
-  const { invoices, loading: loadingInvoices, saveInvoice, deleteInvoice } = useInvoices();
+  const { invoices, loading: loadingInvoices, saveInvoice, deleteInvoice, changeInvoiceStatus } = useInvoices();
   const { clients, loading: loadingClients } = useClients();
   const { products, loading: loadingProducts } = useProducts();
 
@@ -96,6 +96,28 @@ const Invoices = () => {
       }
     }
   };
+  
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      await changeInvoiceStatus(id, newStatus);
+      setError({
+        severity: 'success',
+        message: `Estado de la factura actualizado a "${newStatus === 'draft' ? 'Borrador' : 
+                                                     newStatus === 'pending' ? 'Pendiente' : 
+                                                     newStatus === 'paid' ? 'Pagada' : 
+                                                     newStatus === 'cancelled' ? 'Anulada' :
+                                                     newStatus === 'overdue' ? 'Vencida' :
+                                                     newStatus === 'partial' ? 'Pago Parcial' : 
+                                                     newStatus}"`
+      });
+    } catch (err) {
+      console.error('Error al cambiar el estado de la factura:', err);
+      setError({
+        severity: 'error',
+        message: 'Error al cambiar el estado de la factura'
+      });
+    }
+  };
 
   if (loadingInvoices || loadingClients || loadingProducts) {
     return <Typography>Cargando...</Typography>;
@@ -103,8 +125,7 @@ const Invoices = () => {
 
   return (
     <Box>
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h4">Facturas</Typography>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -113,17 +134,20 @@ const Invoices = () => {
             setOpenForm(true);
           }}
         >
-          Nueva Factura
+          NUEVA FACTURA
         </Button>
       </Box>
 
-      <InvoiceTable
-        invoices={invoices}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onPreview={handlePreview}
-        onDownload={handleDownload}
-      />
+      <Paper elevation={0} sx={{ mb: 3, p: 0, borderRadius: '8px', overflow: 'hidden' }}>
+        <InvoiceTable
+          invoices={invoices}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onPreview={handlePreview}
+          onDownload={handleDownload}
+          onStatusChange={handleStatusChange}
+        />
+      </Paper>
 
       <InvoiceForm
         open={openForm}
