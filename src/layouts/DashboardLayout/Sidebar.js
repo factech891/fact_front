@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLocation, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
@@ -12,57 +12,144 @@ import {
   Divider,
   IconButton,
   Avatar,
-  Tooltip
+  Tooltip,
+  Chip
 } from '@mui/material';
 
-// Importa los iconos que necesitas
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import ReceiptIcon from '@mui/icons-material/Receipt';
-import PeopleIcon from '@mui/icons-material/People';
-import Inventory2Icon from '@mui/icons-material/Inventory2';
-import SettingsIcon from '@mui/icons-material/Settings';
+// Iconos para control del sidebar
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import LogoutIcon from '@mui/icons-material/Logout';
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
-import StarIcon from '@mui/icons-material/Star';
 
-const Sidebar = ({ companyName = "Transportes Express", open = true, onToggle }) => {
+const Sidebar = ({ companyName = "Transportes Express" }) => {
   const location = useLocation();
+  const [open, setOpen] = useState(true);
+
+  const handleToggle = () => {
+    setOpen(!open);
+  };
   
-  // Configuración de los items del menú
+  // Configuración de los items del menú con emojis coloridos
   const menuItems = [
     {
       id: 'dashboard',
       text: 'Dashboard',
-      icon: <DashboardIcon />,
+      icon: (
+        <Box sx={{ 
+          width: 24, 
+          height: 24, 
+          display: 'flex', 
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <span role="img" aria-label="home" style={{ fontSize: '20px' }}>🏠</span>
+        </Box>
+      ),
       path: '/',
     },
     {
       id: 'invoices',
       text: 'Facturas',
-      icon: <ReceiptIcon />,
+      icon: (
+        <Box sx={{ 
+          width: 24, 
+          height: 24, 
+          display: 'flex', 
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <span role="img" aria-label="invoice" style={{ fontSize: '20px' }}>📄</span>
+        </Box>
+      ),
       path: '/invoices',
     },
     {
       id: 'clients',
       text: 'Clientes',
-      icon: <PeopleIcon />,
+      icon: (
+        <Box sx={{ 
+          width: 24, 
+          height: 24, 
+          display: 'flex', 
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <span role="img" aria-label="clients" style={{ fontSize: '20px' }}>👥</span>
+        </Box>
+      ),
       path: '/clients',
     },
     {
       id: 'products',
       text: 'Productos',
-      icon: <Inventory2Icon />,
+      icon: (
+        <Box sx={{ 
+          width: 24, 
+          height: 24, 
+          display: 'flex', 
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <span role="img" aria-label="products" style={{ fontSize: '20px' }}>📦</span>
+        </Box>
+      ),
       path: '/products',
     },
     {
       id: 'settings',
       text: 'Configuración',
-      icon: <SettingsIcon />,
+      icon: (
+        <Box sx={{ 
+          width: 24, 
+          height: 24, 
+          display: 'flex', 
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <span role="img" aria-label="settings" style={{ fontSize: '20px' }}>⚙️</span>
+        </Box>
+      ),
       path: '/settings',
     },
   ];
+
+  // Asistente IA icon
+  const aiAssistantIcon = (
+    <Box sx={{ 
+      width: 24, 
+      height: 24, 
+      display: 'flex', 
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      <span role="img" aria-label="ai-assistant" style={{ fontSize: '20px' }}>🤖</span>
+    </Box>
+  );
+
+  // Soporte icon
+  const supportIcon = (
+    <Box sx={{ 
+      width: 24, 
+      height: 24, 
+      display: 'flex', 
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      <span role="img" aria-label="support" style={{ fontSize: '20px' }}>❓</span>
+    </Box>
+  );
+
+  // Logout icon
+  const logoutIcon = (
+    <Box sx={{ 
+      width: 24, 
+      height: 24, 
+      display: 'flex', 
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      <span role="img" aria-label="logout" style={{ fontSize: '20px' }}>🚪</span>
+    </Box>
+  );
 
   // Genera las iniciales de la empresa para el avatar
   const getCompanyInitials = () => {
@@ -83,6 +170,9 @@ const Sidebar = ({ companyName = "Transportes Express", open = true, onToggle })
   // Ancho del drawer
   const drawerWidth = open ? 240 : 72;
 
+  // Color principal
+  const mainColor = '#2196F3';
+
   return (
     <Drawer
       variant="permanent"
@@ -92,15 +182,17 @@ const Sidebar = ({ companyName = "Transportes Express", open = true, onToggle })
         '& .MuiDrawer-paper': {
           width: drawerWidth,
           boxSizing: 'border-box',
-          bgcolor: '#4477CE', // Azul similar al de la captura
-          color: 'white',
+          bgcolor: '#ffffff',
+          color: '#333333',
           transition: theme => theme.transitions.create('width', {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.enteringScreen,
           }),
           display: 'flex',
           flexDirection: 'column',
-          height: '100%'
+          height: '100%',
+          borderRight: '1px solid #e0e0e0',
+          overflowX: 'hidden'
         },
       }}
     >
@@ -111,104 +203,293 @@ const Sidebar = ({ companyName = "Transportes Express", open = true, onToggle })
           alignItems: 'center',
           justifyContent: open ? 'space-between' : 'center',
           padding: theme => theme.spacing(2),
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          borderBottom: '1px solid #e0e0e0',
+          height: '72px', // Altura fija para evitar cambios de tamaño
+          position: 'relative'
         }}
       >
         {open ? (
           <>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Avatar sx={{ bgcolor: 'rgba(255, 255, 255, 0.2)', color: 'white' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Avatar sx={{ 
+                bgcolor: mainColor, 
+                color: 'white',
+              }}>
                 {getCompanyInitials()}
               </Avatar>
-              <Typography variant="subtitle1" noWrap>
-                {companyName}
-              </Typography>
+              <Box>
+                <Typography variant="subtitle1" fontWeight="bold" color="#333333" noWrap>
+                  {companyName}
+                </Typography>
+                <Typography variant="caption" color="#666666">
+                  Sistema de Facturación
+                </Typography>
+              </Box>
             </Box>
-            <IconButton onClick={onToggle} sx={{ color: 'white' }}>
-              <ChevronLeftIcon />
+            <IconButton 
+              onClick={handleToggle} 
+              sx={{ 
+                color: 'white',
+                bgcolor: mainColor,
+                width: 30,
+                height: 30,
+                '&:hover': {
+                  bgcolor: '#1976D2',
+                }
+              }}
+            >
+              <ChevronLeftIcon fontSize="small" />
             </IconButton>
           </>
         ) : (
-          <IconButton onClick={onToggle} sx={{ color: 'white' }}>
-            <ChevronRightIcon />
-          </IconButton>
+          <>
+            <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <Avatar sx={{ 
+                bgcolor: mainColor, 
+                color: 'white',
+                mb: 0.5
+              }}>
+                {getCompanyInitials()}
+              </Avatar>
+            </Box>
+            {/* Botón de expandir colocado fuera del sidebar pero visible */}
+            <IconButton 
+              onClick={handleToggle} 
+              sx={{ 
+                position: 'absolute', 
+                right: '-15px', 
+                top: '20px', 
+                bgcolor: mainColor, 
+                color: 'white',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.2)', 
+                width: 30, 
+                height: 30,
+                '&:hover': {
+                  bgcolor: '#1976D2',
+                }
+              }}
+            >
+              <ChevronRightIcon fontSize="small" />
+            </IconButton>
+          </>
         )}
       </Box>
 
       {/* Menú principal */}
-      <List>
-        {menuItems.map((item) => (
-          <ListItem 
-            key={item.id} 
-            disablePadding 
-            sx={{ display: 'block' }}
-          >
-            <ListItemButton
-              component={RouterLink}
-              to={item.path}
-              selected={isActive(item.path)}
-              sx={{
-                minHeight: 48,
-                justifyContent: open ? 'initial' : 'center',
-                px: 2.5,
-                py: 1.5,
-                my: 0.5,
-                mx: 1,
-                borderRadius: 1,
-                '&.Mui-selected': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                  },
-                },
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                },
+      <List sx={{ px: 1, py: 2 }}>
+        {menuItems.map((item) => {
+          const active = isActive(item.path);
+          return (
+            <ListItem 
+              key={item.id} 
+              disablePadding 
+              sx={{ 
+                display: 'block',
+                position: 'relative',
+                mb: 0.5
               }}
             >
-              <ListItemIcon
+              {active && (
+                <Box 
+                  sx={{ 
+                    position: 'absolute',
+                    left: 0,
+                    top: '15%',
+                    width: 4,
+                    height: '70%',
+                    backgroundColor: mainColor,
+                    borderRadius: '0 4px 4px 0'
+                  }} 
+                />
+              )}
+              <ListItemButton
+                component={RouterLink}
+                to={item.path}
+                selected={active}
                 sx={{
-                  minWidth: 0,
-                  mr: open ? 2 : 'auto',
-                  justifyContent: 'center',
-                  color: 'white',
+                  minHeight: 48,
+                  justifyContent: open ? 'initial' : 'center',
+                  px: 2,
+                  py: 1,
+                  borderRadius: 1,
+                  backgroundColor: active ? 'rgba(33, 150, 243, 0.08)' : 'transparent',
+                  '&:hover': {
+                    backgroundColor: 'rgba(33, 150, 243, 0.12)',
+                  },
                 }}
               >
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText 
-                primary={item.text} 
-                sx={{ 
-                  opacity: open ? 1 : 0,
-                  '& .MuiTypography-root': {
-                    fontWeight: isActive(item.path) ? 'bold' : 'normal',
-                  }
-                }} 
-              />
-            </ListItemButton>
-          </ListItem>
-        ))}
+                <Tooltip title={open ? "" : item.text} placement="right">
+                  <ListItemIcon
+                    sx={{
+                      minWidth: 0,
+                      mr: open ? 2 : 'auto',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+                </Tooltip>
+                <ListItemText 
+                  primary={item.text} 
+                  sx={{ 
+                    opacity: open ? 1 : 0,
+                    '& .MuiTypography-root': {
+                      fontWeight: active ? 'medium' : 'normal',
+                      color: active ? mainColor : '#333333',
+                    }
+                  }} 
+                />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
       </List>
+
+      <Divider sx={{ mx: 2 }} />
+
+      {/* Plan Premium */}
+      {open ? (
+        <Box 
+          sx={{ 
+            mx: 2, 
+            my: 2, 
+            py: 1.5,
+            px: 2, 
+            borderRadius: 2, 
+            bgcolor: 'rgba(255, 196, 0, 0.1)',
+            border: '1px solid rgba(255, 196, 0, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5
+          }}
+        >
+          <Box sx={{ fontSize: 20, display: 'flex', alignItems: 'center' }}>
+            <span role="img" aria-label="star">⭐</span>
+          </Box>
+          <Box>
+            <Typography variant="subtitle2" fontWeight="bold" color="#333333">
+              Plan Premium
+            </Typography>
+            <Typography variant="caption" color="#666666">
+              Versión 1
+            </Typography>
+          </Box>
+        </Box>
+      ) : (
+        <Box 
+          sx={{ 
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            mt: 2,
+            mb: 2
+          }}
+        >
+          <Tooltip title="Plan Premium" placement="right">
+            <Avatar
+              sx={{
+                width: 36,
+                height: 36,
+                bgcolor: 'rgba(255, 196, 0, 0.2)',
+                color: '#FFB800',
+                fontSize: 18
+              }}
+            >
+              ⭐
+            </Avatar>
+          </Tooltip>
+        </Box>
+      )}
 
       <Box sx={{ flexGrow: 1 }} /> {/* Espacio flexible */}
 
-      {/* Footer del sidebar */}
-      <Box sx={{ p: 2, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-        {open && (
-          <>
-            {/* Plan actual */}
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-              <StarIcon sx={{ color: '#FFD700', mr: 1 }} />
-              <Typography variant="body2">Plan Premium</Typography>
+      {/* Asistente IA - Rediseñado y mejorado */}
+      {open ? (
+        <Box 
+          sx={{ 
+            mx: 2, 
+            mb: 2, 
+            overflow: 'hidden',
+            borderRadius: 2,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+            border: '1px solid rgba(33, 150, 243, 0.1)'
+          }}
+        >
+          <Box 
+            sx={{ 
+              bgcolor: mainColor, 
+              p: 1.5, 
+              display: 'flex', 
+              alignItems: 'center',
+              gap: 1
+            }}
+          >
+            <Box 
+              sx={{ 
+                width: 32, 
+                height: 32, 
+                bgcolor: 'rgba(255,255,255,0.2)', 
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <span role="img" aria-label="robot" style={{ fontSize: '18px' }}>🤖</span>
             </Box>
-            
-            {/* Versión */}
-            <Typography variant="caption" color="rgba(255, 255, 255, 0.7)" sx={{ mb: 2, display: 'block' }}>
-              Versión 1
+            <Typography variant="subtitle2" fontWeight="medium" color="white">
+              Asistente IA
             </Typography>
-          </>
-        )}
-        
+          </Box>
+          <Box 
+            sx={{ 
+              bgcolor: 'white', 
+              p: 1.5, 
+              display: 'flex', 
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <Chip
+              label="Próximamente"
+              size="small"
+              sx={{
+                bgcolor: 'rgba(33, 150, 243, 0.08)',
+                color: mainColor,
+                fontWeight: 'medium',
+                border: '1px solid rgba(33, 150, 243, 0.2)'
+              }}
+            />
+          </Box>
+        </Box>
+      ) : (
+        <Box 
+          sx={{ 
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            mb: 2
+          }}
+        >
+          <Tooltip title="Asistente IA - Próximamente" placement="right">
+            <Avatar
+              sx={{
+                width: 42,
+                height: 42,
+                bgcolor: mainColor,
+                color: 'white',
+                fontSize: 18,
+                boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)'
+              }}
+            >
+              🤖
+            </Avatar>
+          </Tooltip>
+        </Box>
+      )}
+
+      {/* Footer del sidebar */}
+      <Box sx={{ px: 2, pb: 2, pt: 1, borderTop: '1px solid #e0e0e0' }}>
         {/* Botón de soporte */}
         <ListItemButton
           sx={{
@@ -217,14 +498,18 @@ const Sidebar = ({ companyName = "Transportes Express", open = true, onToggle })
             justifyContent: open ? 'initial' : 'center',
             minHeight: 42,
             '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              backgroundColor: 'rgba(0, 0, 0, 0.04)',
             },
           }}
         >
-          <ListItemIcon sx={{ minWidth: 0, mr: open ? 2 : 'auto', color: 'white' }}>
-            <HelpOutlineIcon />
-          </ListItemIcon>
-          {open && <ListItemText primary="Soporte" />}
+          <Tooltip title={open ? "" : "Soporte"} placement="right">
+            <ListItemIcon sx={{ minWidth: 0, mr: open ? 2 : 'auto' }}>
+              {supportIcon}
+            </ListItemIcon>
+          </Tooltip>
+          {open && <ListItemText primary="Soporte" sx={{ 
+            '& .MuiTypography-root': { color: '#666666' },
+          }} />}
         </ListItemButton>
         
         {/* Botón de cerrar sesión */}
@@ -234,14 +519,18 @@ const Sidebar = ({ companyName = "Transportes Express", open = true, onToggle })
             justifyContent: open ? 'initial' : 'center',
             minHeight: 42,
             '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              backgroundColor: 'rgba(0, 0, 0, 0.04)',
             },
           }}
         >
-          <ListItemIcon sx={{ minWidth: 0, mr: open ? 2 : 'auto', color: 'white' }}>
-            <LogoutIcon />
-          </ListItemIcon>
-          {open && <ListItemText primary="Cerrar sesión" />}
+          <Tooltip title={open ? "" : "Cerrar sesión"} placement="right">
+            <ListItemIcon sx={{ minWidth: 0, mr: open ? 2 : 'auto' }}>
+              {logoutIcon}
+            </ListItemIcon>
+          </Tooltip>
+          {open && <ListItemText primary="Cerrar sesión" sx={{ 
+            '& .MuiTypography-root': { color: '#666666' },
+          }} />}
         </ListItemButton>
       </Box>
     </Drawer>
