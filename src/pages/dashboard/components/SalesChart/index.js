@@ -135,7 +135,7 @@ const SalesChart = ({ data = [], title = "Facturación Mensual" }) => {
     <AnimatedCard
       style={cardAnimation}
       sx={{
-        bgcolor: '#1E1E1E',
+        bgcolor: '#1e1e1e',
         borderRadius: 3,
         border: '1px solid rgba(255, 255, 255, 0.08)',
         boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
