@@ -7,19 +7,23 @@ import {
   Tooltip, 
   Typography,
   Grid,
-  Paper
+  Paper,
+  Chip,
+  Fade,
+  Badge,
+  Popover
 } from '@mui/material';
-import { ResponsiveBar } from '@nivo/bar';
 import InfoIcon from '@mui/icons-material/Info';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import TodayIcon from '@mui/icons-material/Today';
+import AssignmentIcon from '@mui/icons-material/Assignment';
 
-// Componente DailyBillingChart con calendario y velas simples
+// Componente DailyBillingChart optimizado para trabajar con useDashboard
 const DailyBillingChart = ({ 
   data = [], 
   title = "Facturación Diaria",
+  exchangeRate = 40, // Tasa de cambio por defecto
 }) => {
   // Inicializar al mes actual
   const currentDate = new Date();
@@ -27,20 +31,26 @@ const DailyBillingChart = ({
   const [currentYear, setCurrentYear] = useState(currentDate.getFullYear());
   const [selectedDay, setSelectedDay] = useState(null);
   const [calendarData, setCalendarData] = useState([]);
-  const [showBarChart, setShowBarChart] = useState(false);
   
-  // Procesar datos para el calendario y las barras
+  // Estado para el popover
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [popoverDay, setPopoverDay] = useState(null);
+
+  // Procesar datos para el calendario
   useEffect(() => {
-    console.log("Datos recibidos en DailyBillingChart:", data);
-    
     if (!data || data.length === 0) return;
     
-    // Crear un mapa para agrupar facturas por día
-    const dailyData = {};
+    // Agrupar facturas por día exacto
+    const diasMap = {};
     
     data.forEach(item => {
-      // Extraer día y mes de name (formato: "13 mar")
-      const dateParts = item.name.split(' ');
+      if (!item.name) return;
+      
+      // La clave es directamente el nombre (ej: "20 mar")
+      const dateKey = item.name;
+      
+      // Extraer día del nombre (formato: "20 mar")
+      const dateParts = dateKey.split(' ');
       if (dateParts.length < 2) return;
       
       const day = parseInt(dateParts[0], 10);
@@ -55,23 +65,36 @@ const DailyBillingChart = ({
       const month = monthMap[monthAbbr];
       
       // Solo procesar si el mes/año coincide con el seleccionado
-      if (month === currentMonth && !isNaN(day)) {
-        const dateKey = `${day}`;
-        
-        if (!dailyData[dateKey]) {
-          dailyData[dateKey] = {
+      if (month === currentMonth) {
+        if (!diasMap[day]) {
+          diasMap[day] = {
             day,
             total: 0,
             USD: 0,
             VES: 0,
-            facturas: 0
+            facturas: 0,
+            invoiceList: []
           };
         }
         
-        dailyData[dateKey].total += item.total || 0;
-        dailyData[dateKey].USD += item.USD || 0;
-        dailyData[dateKey].VES += item.VES || 0;
-        dailyData[dateKey].facturas += 1;
+        // Actualizar totales
+        diasMap[day].USD += item.USD || 0;
+        diasMap[day].VES += item.VES || 0;
+        
+        // Calcular total en USD (convertir VES a USD usando la tasa de cambio)
+        const vesInUsd = (item.VES || 0) / exchangeRate;
+        diasMap[day].total = diasMap[day].USD + vesInUsd;
+        
+        // IMPORTANTE: Incrementar contador de facturas
+        diasMap[day].facturas = (item.facturas || 1);
+        
+        // Información de la factura para detalles (si necesitas guardar detalles adicionales)
+        diasMap[day].invoiceList.push({
+          id: item.id || `Factura-${diasMap[day].invoiceList.length + 1}`,
+          USD: item.USD || 0,
+          VES: item.VES || 0,
+          total: (item.USD || 0) + ((item.VES || 0) / exchangeRate) // Total en USD
+        });
       }
     });
     
@@ -92,13 +115,13 @@ const DailyBillingChart = ({
     
     // Días del mes
     for (let day = 1; day <= daysInMonth; day++) {
-      const hasData = dailyData[day] !== undefined;
+      const hasData = diasMap[day] !== undefined;
       
       days.push({
         value: day,
         isEmpty: false,
         hasData,
-        ...(hasData ? dailyData[day] : { total: 0, USD: 0, VES: 0, facturas: 0 })
+        ...(hasData ? diasMap[day] : { total: 0, USD: 0, VES: 0, facturas: 0, invoiceList: [] })
       });
     }
     
@@ -114,7 +137,7 @@ const DailyBillingChart = ({
     }
     
     setCalendarData(days);
-  }, [data, currentMonth, currentYear]);
+  }, [data, currentMonth, currentYear, exchangeRate]);
   
   // Nombre de los meses
   const monthNames = [
@@ -133,7 +156,7 @@ const DailyBillingChart = ({
     } else {
       setCurrentMonth(currentMonth - 1);
     }
-    setSelectedDay(null);
+    handlePopoverClose();
   };
   
   // Navegar al mes siguiente
@@ -144,20 +167,25 @@ const DailyBillingChart = ({
     } else {
       setCurrentMonth(currentMonth + 1);
     }
-    setSelectedDay(null);
+    handlePopoverClose();
   };
   
-  // Seleccionar un día para ver detalles
-  const handleDayClick = (day) => {
+  // Manejar clic en un día (abrir popover)
+  const handleDayClick = (event, day) => {
     if (day.hasData) {
-      setSelectedDay(day);
+      setAnchorEl(event.currentTarget);
+      setPopoverDay(day);
     }
   };
   
-  // Alternar entre calendario y gráfico de barras
-  const toggleView = () => {
-    setShowBarChart(!showBarChart);
+  // Cerrar popover
+  const handlePopoverClose = () => {
+    setAnchorEl(null);
+    setPopoverDay(null);
   };
+  
+  // Verificar si el popover está abierto
+  const open = Boolean(anchorEl);
   
   // Formatear valor monetario
   const formatCurrency = (value, currency = 'USD') => {
@@ -169,80 +197,55 @@ const DailyBillingChart = ({
     });
   };
   
-  // Generar datos para el gráfico de barras
-  const getBarChartData = () => {
-    return calendarData
-      .filter(day => day.hasData)
-      .map(day => ({
-        day: day.value,
-        value: day.total,
-        USD: day.USD,
-        VES: day.VES,
-        facturas: day.facturas,
-        formattedDay: `${day.value} ${monthNames[currentMonth].substring(0, 3)}`
-      }))
-      .sort((a, b) => a.day - b.day);
-  };
-  
-  // Componente de barra personalizado para mostrar velas
-  const CustomBar = ({ bar }) => {
-    if (!bar || !bar.data) return null;
+  // Determinar el color para el día basado en la comparación con el día anterior
+  const getDayColor = (day, index) => {
+    if (!day.hasData) return { 
+      bg: '#333', 
+      border: 'none',
+      isUp: null 
+    };
     
-    const { x, y, width, height, data } = bar;
+    // Buscar el día anterior con datos
+    let prevDay = null;
+    let i = index - 1;
     
-    // Calcular colores basados en valor comparativo con el día anterior
-    let color = '#4CAF50'; // Verde por defecto
-    const barChartData = getBarChartData();
-    const currentIndex = barChartData.findIndex(item => item.day === data.day);
-    
-    // Si hay un día anterior para comparar
-    if (currentIndex > 0) {
-      const previousValue = barChartData[currentIndex - 1].value;
-      // Rojo si el valor actual es menor que el anterior
-      if (data.value < previousValue) {
-        color = '#FF5252';
+    while (i >= 0) {
+      if (calendarData[i].hasData) {
+        prevDay = calendarData[i];
+        break;
       }
+      i--;
     }
     
-    // Ancho ajustado para simular vela
-    const candleWidth = width * 0.6;
-    const xPos = x + (width - candleWidth) / 2;
+    // Si no hay día anterior, usar color neutro
+    if (!prevDay) {
+      return { 
+        bg: '#2E7D32', 
+        border: 'none',
+        isUp: null 
+      };
+    }
     
-    return (
-      <g>
-        {/* Línea vertical */}
-        <line
-          x1={x + width / 2}
-          y1={y - 10}
-          x2={x + width / 2}
-          y2={y + height + 5}
-          stroke={color}
-          strokeWidth={1}
-        />
-        
-        {/* Cuerpo de la vela */}
-        <rect
-          x={xPos}
-          y={y}
-          width={candleWidth}
-          height={height}
-          fill={color}
-          rx={2}
-        />
-        
-        {/* Etiqueta con el valor */}
-        <text
-          x={x + width / 2}
-          y={y - 15}
-          textAnchor="middle"
-          fill="#CCC"
-          fontSize={10}
-        >
-          {data.value.toFixed(0)}
-        </text>
-      </g>
-    );
+    // Comparar con el día anterior
+    const isUp = day.total >= prevDay.total;
+    
+    if (isUp) {
+      return { 
+        bg: '#2E7D32', 
+        border: 'none',
+        isUp: true 
+      };
+    } else {
+      return { 
+        bg: '#C62828', 
+        border: 'none',
+        isUp: false 
+      };
+    }
   };
+  
+  // Encontrar el día con el valor máximo
+  const maxDayValue = Math.max(...calendarData.filter(day => day.hasData).map(day => day.total), 0);
   
   return (
     <Card
@@ -250,35 +253,29 @@ const DailyBillingChart = ({
         bgcolor: '#1E1E1E',
         borderRadius: 2,
         border: '1px solid #333',
-        height: '100%'
+        height: '100%',
+        overflow: 'hidden'
       }}
     >
-      <CardContent sx={{ p: 3, position: 'relative' }}>
+      <CardContent sx={{ p: 2 }}>
         <Box sx={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center', 
           mb: 2 
         }}>
-          <Typography variant="h6" color="white" sx={{ display: 'flex', alignItems: 'center' }}>
-            {title}
-            <Tooltip title="Muestra la facturación diaria en el calendario. Los días con facturas se destacan y muestran el monto total.">
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography variant="h6" color="white">
+              {title}
+            </Typography>
+            <Tooltip title="Muestra la facturación diaria en el calendario. Los días con facturas se destacan y muestran el número de facturas.">
               <InfoIcon fontSize="small" sx={{ ml: 1, color: '#AAA', cursor: 'pointer' }} />
             </Tooltip>
-          </Typography>
-          
-          <Box>
-            <IconButton 
-              size="small" 
-              sx={{ color: '#AAA', mr: 1 }}
-              onClick={toggleView}
-            >
-              <TodayIcon fontSize="small" />
-            </IconButton>
-            <IconButton size="small" sx={{ color: '#AAA' }}>
-              <MoreVertIcon fontSize="small" />
-            </IconButton>
           </Box>
+          
+          <IconButton size="small" sx={{ color: '#AAA' }}>
+            <MoreVertIcon fontSize="small" />
+          </IconButton>
         </Box>
         
         {/* Control de navegación del mes */}
@@ -290,139 +287,46 @@ const DailyBillingChart = ({
         }}>
           <IconButton 
             size="small" 
-            sx={{ color: '#AAA' }}
+            sx={{ 
+              color: '#AAA',
+              bgcolor: 'rgba(255,255,255,0.05)',
+              '&:hover': {
+                bgcolor: 'rgba(255,255,255,0.1)'
+              }
+            }}
             onClick={goToPrevMonth}
           >
             <ArrowBackIcon />
           </IconButton>
           
-          <Typography variant="subtitle1" color="white">
+          <Typography 
+            variant="h6" 
+            color="white"
+            sx={{
+              fontWeight: 'bold',
+              letterSpacing: '0.5px'
+            }}
+          >
             {monthNames[currentMonth]} {currentYear}
           </Typography>
           
           <IconButton 
             size="small" 
-            sx={{ color: '#AAA' }}
+            sx={{ 
+              color: '#AAA',
+              bgcolor: 'rgba(255,255,255,0.05)',
+              '&:hover': {
+                bgcolor: 'rgba(255,255,255,0.1)'
+              }
+            }}
             onClick={goToNextMonth}
           >
             <ArrowForwardIcon />
           </IconButton>
         </Box>
         
-        {showBarChart ? (
-          // Gráfico de barras con velas
-          <Box sx={{ height: 300 }}>
-            <ResponsiveBar
-              data={getBarChartData()}
-              keys={['value']}
-              indexBy="formattedDay"
-              margin={{ top: 50, right: 30, bottom: 50, left: 60 }}
-              padding={0.3}
-              valueScale={{ type: 'linear' }}
-              indexScale={{ type: 'band', round: true }}
-              colors={'#4CAF50'}
-              borderRadius={4}
-              axisTop={null}
-              axisRight={null}
-              axisBottom={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: 0,
-                legend: 'Día',
-                legendPosition: 'middle',
-                legendOffset: 32,
-                tickValues: getBarChartData().map(d => d.formattedDay),
-                renderTick: (tick) => {
-                  return (
-                    <g transform={`translate(${tick.x},${tick.y})`}>
-                      <line stroke="#555" y2="6" />
-                      <text
-                        textAnchor="middle"
-                        dominantBaseline="text-before-edge"
-                        style={{ fill: '#CCC', fontSize: 10 }}
-                        y={10}
-                      >
-                        {tick.value}
-                      </text>
-                    </g>
-                  );
-                }
-              }}
-              axisLeft={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: 0,
-                legend: 'Monto',
-                legendPosition: 'middle',
-                legendOffset: -40,
-                format: value => `$${value.toFixed(0)}`,
-                tickValues: 5,
-                renderTick: (tick) => {
-                  return (
-                    <g transform={`translate(${tick.x},${tick.y})`}>
-                      <line stroke="#555" x2="-6" />
-                      <text
-                        textAnchor="end"
-                        dominantBaseline="middle"
-                        style={{ fill: '#CCC', fontSize: 10 }}
-                        x={-10}
-                      >
-                        {`$${tick.value.toFixed(0)}`}
-                      </text>
-                    </g>
-                  );
-                }
-              }}
-              enableGridX={false}
-              enableGridY={true}
-              gridYValues={5}
-              theme={{
-                axis: {
-                  domain: {
-                    line: {
-                      stroke: '#444'
-                    }
-                  },
-                  ticks: {
-                    line: {
-                      stroke: '#444'
-                    }
-                  },
-                  grid: {
-                    line: {
-                      stroke: '#333',
-                      strokeDasharray: '3 3'
-                    }
-                  }
-                }
-              }}
-              barComponent={CustomBar}
-              tooltip={({ data }) => (
-                <div
-                  style={{
-                    padding: 12,
-                    background: '#242424',
-                    border: '1px solid #444',
-                    borderRadius: 4,
-                    color: '#CCC'
-                  }}
-                >
-                  <strong>Día {data.formattedDay}</strong>
-                  <div style={{ marginTop: 5 }}>
-                    <div>Total: {formatCurrency(data.value, 'USD')}</div>
-                    <div>USD: {formatCurrency(data.USD, 'USD')}</div>
-                    <div>VES: {formatCurrency(data.VES, 'VES')}</div>
-                    <div>Facturas: {data.facturas}</div>
-                  </div>
-                </div>
-              )}
-              animate={true}
-              role="application"
-              ariaLabel="Facturación diaria"
-            />
-          </Box>
-        ) : (
-          // Calendario con días destacados
+        {/* Calendario optimizado */}
+        <Box sx={{ mb: 2 }}>
           <Grid container spacing={1}>
             {/* Días de la semana */}
             {weekDays.map((day, index) => (
@@ -432,9 +336,8 @@ const DailyBillingChart = ({
                   align="center" 
                   sx={{ 
                     display: 'block', 
-                    fontWeight: 'bold',
-                    color: '#AAA',
-                    mb: 1
+                    fontWeight: 'medium',
+                    color: '#AAA'
                   }}
                 >
                   {day}
@@ -443,171 +346,297 @@ const DailyBillingChart = ({
             ))}
             
             {/* Celdas del calendario */}
-            {calendarData.map((day, index) => (
-              <Grid item xs={12/7} key={`day-${index}`}>
-                {day.isEmpty ? (
-                  <Box 
-                    sx={{ 
-                      height: 50, 
-                      bgcolor: 'transparent' 
-                    }}
-                  />
-                ) : (
-                  <Paper
-                    elevation={day.hasData ? 3 : 0}
-                    sx={{
-                      p: 1,
-                      height: 50,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      borderRadius: 1,
-                      cursor: day.hasData ? 'pointer' : 'default',
-                      position: 'relative',
-                      bgcolor: day.hasData ? (
-                        // Si hay un día anterior para comparar, colorear según la comparación
-                        index > 0 && calendarData[index-1].hasData ?
-                          (day.total >= calendarData[index-1].total ? '#2E7D32' : '#C62828') :
-                          '#2E7D32'
-                      ) : '#333',
-                      opacity: day.hasData ? 1 : 0.6,
-                      border: selectedDay?.value === day.value ? '2px solid #FFF' : 'none',
-                      '&:hover': {
-                        bgcolor: day.hasData ? (
-                          index > 0 && calendarData[index-1].hasData ?
-                            (day.total >= calendarData[index-1].total ? '#388E3C' : '#D32F2F') :
-                            '#388E3C'
-                        ) : '#333',
-                        boxShadow: day.hasData ? '0 0 8px rgba(255,255,255,0.3)' : 'none'
-                      }
-                    }}
-                    onClick={() => handleDayClick(day)}
-                  >
-                    <Typography 
-                      variant="caption" 
+            {calendarData.map((day, index) => {
+              const { bg, isUp } = day.hasData ? getDayColor(day, index) : { bg: '#333', isUp: null };
+              const hasMultipleInvoices = day.facturas > 1;
+              
+              return (
+                <Grid item xs={12/7} key={`day-${index}`}>
+                  {day.isEmpty ? (
+                    <Box 
                       sx={{ 
-                        fontWeight: 'bold', 
-                        color: day.hasData ? 'white' : '#777'
+                        height: 60, 
+                        bgcolor: 'transparent' 
                       }}
+                    />
+                  ) : (
+                    <Paper
+                      elevation={day.hasData ? 3 : 0}
+                      sx={{
+                        p: day.hasData ? 1 : 0.5,
+                        height: 60,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        borderRadius: 1,
+                        cursor: day.hasData ? 'pointer' : 'default',
+                        position: 'relative',
+                        bgcolor: day.hasData ? bg : '#333',
+                        opacity: day.hasData ? 1 : 0.6,
+                        boxShadow: day.hasData ? '0 2px 4px rgba(0,0,0,0.2)' : 'none',
+                        overflow: 'visible',
+                        transition: 'all 0.15s ease-in-out',
+                        '&:hover': day.hasData ? {
+                          transform: 'translateY(-2px)',
+                          boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                          opacity: 0.95
+                        } : {}
+                      }}
+                      onClick={(e) => day.hasData && handleDayClick(e, day)}
                     >
-                      {day.value}
-                    </Typography>
-                    {day.hasData && (
-                      <Typography 
-                        variant="caption" 
-                        sx={{ 
-                          fontSize: '0.7rem', 
-                          color: 'white'
-                        }}
-                      >
-                        ${day.total.toFixed(0)}
-                      </Typography>
-                    )}
-                    {day.hasData && day.facturas > 1 && (
-                      <Box
-                        sx={{
-                          position: 'absolute',
-                          top: 2,
-                          right: 2,
-                          width: 12,
-                          height: 12,
-                          borderRadius: '50%',
-                          bgcolor: '#FFC107',
-                          display: 'flex',
-                          justifyContent: 'center',
-                          alignItems: 'center'
-                        }}
-                      >
+                      <Box sx={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        mb: day.hasData ? 1 : 0
+                      }}>
                         <Typography 
-                          variant="caption" 
+                          variant="body2" 
                           sx={{ 
-                            fontSize: '8px', 
-                            color: 'black',
-                            lineHeight: 1
+                            fontWeight: 'bold', 
+                            color: day.hasData ? 'white' : '#777'
                           }}
                         >
-                          {day.facturas}
+                          {day.value}
                         </Typography>
+                        
+                        {day.hasData && day.total > maxDayValue * 0.7 && (
+                          <Box
+                            sx={{
+                              width: 10,
+                              height: 10,
+                              borderRadius: '50%',
+                              bgcolor: '#FFD700',
+                              ml: 0.5
+                            }}
+                          />
+                        )}
                       </Box>
-                    )}
-                  </Paper>
-                )}
-              </Grid>
-            ))}
+                      
+                      {day.hasData && (
+                        <>
+                          <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+                            <Badge 
+                              badgeContent={day.facturas} 
+                              color="primary" 
+                              anchorOrigin={{
+                                vertical: 'bottom',
+                                horizontal: 'right',
+                              }}
+                              sx={{
+                                '& .MuiBadge-badge': {
+                                  fontSize: '0.65rem',
+                                  height: 16,
+                                  minWidth: 16,
+                                  padding: '0 4px',
+                                  bgcolor: '#1976D2', // Azul más estándar
+                                  fontWeight: 'bold'
+                                }
+                              }}
+                            >
+                              <AssignmentIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.8)' }} />
+                            </Badge>
+                          </Box>
+                        </>
+                      )}
+                    </Paper>
+                  )}
+                </Grid>
+              );
+            })}
           </Grid>
-        )}
-        
-        {/* Detalles del día seleccionado */}
-        {selectedDay && !showBarChart && (
-          <Box sx={{ mt: 2 }}>
-            <Paper
-              sx={{
-                p: 2,
-                bgcolor: '#333',
-                borderRadius: 2,
-                border: '1px solid #444'
-              }}
-            >
-              <Typography variant="subtitle1" color="white" gutterBottom>
-                Detalles del día {selectedDay.value} de {monthNames[currentMonth]}
-              </Typography>
-              
-              <Grid container spacing={2} sx={{ mt: 1 }}>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="#AAA">USD:</Typography>
-                  <Typography variant="body1" color="#4CAF50">
-                    {formatCurrency(selectedDay.USD, 'USD')}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="#AAA">VES:</Typography>
-                  <Typography variant="body1" color="#2196F3">
-                    {formatCurrency(selectedDay.VES, 'VES')}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="#AAA">Facturas:</Typography>
-                  <Typography variant="body1" color="white">
-                    {selectedDay.facturas}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="#AAA">Total:</Typography>
-                  <Typography variant="body1" color="white">
-                    {formatCurrency(selectedDay.total, 'USD')}
-                  </Typography>
-                </Grid>
-              </Grid>
-            </Paper>
-          </Box>
-        )}
-        
-        {/* Leyenda */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, gap: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Box sx={{ width: 12, height: 12, borderRadius: '2px', bgcolor: '#4CAF50', mr: 1 }}></Box>
-            <Typography variant="caption" color="#AAA">Aumento vs día anterior</Typography>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Box sx={{ width: 12, height: 12, borderRadius: '2px', bgcolor: '#FF5252', mr: 1 }}></Box>
-            <Typography variant="caption" color="#AAA">Disminución vs día anterior</Typography>
-          </Box>
         </Box>
         
-        {/* Información de depuración condicional */}
-        {data.length === 0 && (
-          <Box sx={{ mt: 3, p: 2, bgcolor: '#333', borderRadius: 2 }}>
-            <Typography variant="caption" color="#FFC107">
-              No hay datos disponibles. Asegúrate de que:
-            </Typography>
-            <ul style={{ margin: '8px 0', paddingLeft: 20, color: '#AAA', fontSize: '12px' }}>
-              <li>El hook useDashboard.js contiene la función facturasPorDia actualizada</li>
-              <li>Dashboard.js está pasando facturasPorDia a este componente</li>
-              <li>El rango de fechas seleccionado contiene facturas</li>
-            </ul>
+        {/* Popover con detalles del día */}
+        <Popover
+          open={open}
+          anchorEl={anchorEl}
+          onClose={handlePopoverClose}
+          anchorOrigin={{
+            vertical: 'top',
+            horizontal: 'center',
+          }}
+          transformOrigin={{
+            vertical: 'bottom',
+            horizontal: 'center',
+          }}
+          slotProps={{
+            paper: {
+              sx: {
+                bgcolor: 'rgba(37, 37, 37, 0.96)',
+                color: 'white',
+                borderRadius: 2,
+                border: '1px solid rgba(255,255,255,0.1)',
+                backdropFilter: 'blur(10px)',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                maxWidth: 320,
+                width: '100%'
+              }
+            }
+          }}
+        >
+          {popoverDay && (
+            <Box sx={{ p: 2 }}>
+              <Typography 
+                variant="subtitle1" 
+                color="white" 
+                gutterBottom
+                sx={{ 
+                  fontWeight: 'bold',
+                  borderBottom: '1px solid rgba(255,255,255,0.1)',
+                  pb: 1
+                }}
+              >
+                Detalles del día {popoverDay.value} de {monthNames[currentMonth]}
+              </Typography>
+              
+              <Grid container spacing={2} sx={{ mt: 0.5 }}>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="#AAA" sx={{ display: 'block', mb: 0.5 }}>
+                    USD:
+                  </Typography>
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      color: '#4CAF50',
+                      fontWeight: 'bold' 
+                    }}
+                  >
+                    {formatCurrency(popoverDay.USD, 'USD')}
+                  </Typography>
+                </Grid>
+                
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="#AAA" sx={{ display: 'block', mb: 0.5 }}>
+                    VES:
+                  </Typography>
+                  <Typography 
+                    variant="h6"
+                    sx={{ 
+                      color: '#2196F3',
+                      fontWeight: 'bold' 
+                    }}
+                  >
+                    {formatCurrency(popoverDay.VES, 'VES')}
+                  </Typography>
+                </Grid>
+                
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="#AAA" sx={{ display: 'block', mb: 0.5 }}>
+                    Facturas:
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography 
+                      variant="h6" 
+                      sx={{ 
+                        color: 'white',
+                        fontWeight: 'bold' 
+                      }}
+                    >
+                      {popoverDay.facturas}
+                    </Typography>
+                    
+                    <Chip 
+                      label={popoverDay.facturas === 1 ? "factura" : "facturas"}
+                      size="small"
+                      sx={{
+                        ml: 1,
+                        bgcolor: 'rgba(255,255,255,0.1)',
+                        color: '#AAA',
+                        height: 20
+                      }}
+                    />
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="#AAA" sx={{ display: 'block', mb: 0.5 }}>
+                    Total:
+                  </Typography>
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      color: 'white',
+                      fontWeight: 'bold' 
+                    }}
+                  >
+                    {formatCurrency(popoverDay.total, 'USD')}
+                  </Typography>
+                </Grid>
+                
+                {/* IMPORTANTE: He eliminado completamente la sección que mostraba la lista de facturas */}
+              </Grid>
+            </Box>
+          )}
+        </Popover>
+        
+        {/* Leyenda */}
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          flexWrap: 'wrap',
+          mt: 2,
+          gap: 2
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Box 
+              sx={{ 
+                width: 12, 
+                height: 12, 
+                borderRadius: '2px', 
+                bgcolor: '#2E7D32', 
+                mr: 1 
+              }}
+            />
+            <Typography variant="caption" color="#AAA">Aumento vs día anterior</Typography>
           </Box>
-        )}
+          
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Box 
+              sx={{ 
+                width: 12, 
+                height: 12, 
+                borderRadius: '2px', 
+                bgcolor: '#C62828', 
+                mr: 1 
+              }}
+            />
+            <Typography variant="caption" color="#AAA">Disminución vs día anterior</Typography>
+          </Box>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Box 
+              sx={{ 
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                bgcolor: '#FFD700',
+                mr: 1 
+              }}
+            />
+            <Typography variant="caption" color="#AAA">Mayor facturación del mes</Typography>
+          </Box>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Badge 
+              badgeContent="2+" 
+              color="primary" 
+              sx={{
+                mr: 1,
+                '& .MuiBadge-badge': {
+                  bgcolor: '#1976D2',
+                  fontSize: '0.65rem',
+                  height: 16,
+                  minWidth: 16,
+                  padding: '0 4px'
+                }
+              }}
+            >
+              <AssignmentIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.8)' }} />
+            </Badge>
+            <Typography variant="caption" color="#AAA">Múltiples facturas</Typography>
+          </Box>
+        </Box>
       </CardContent>
     </Card>
   );

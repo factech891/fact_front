@@ -26,6 +26,20 @@ import exchangeRateApi from '../../services/exchangeRateApi';
 // Importar constantes para las opciones de tiempo
 import { TIME_RANGES } from './constants/dashboardConstants';
 
+// Función para obtener datos del dashboard desde la API
+const fetchDashboardData = async () => {
+  try {
+    const response = await fetch('http://localhost:5002/api/invoices/dashboard-data');
+    if (!response.ok) {
+      throw new Error(`Error al obtener datos del dashboard: ${response.status}`);
+    }
+    return response.json();
+  } catch (error) {
+    console.error('Error al obtener datos del dashboard:', error);
+    throw error;
+  }
+};
+
 // Componente principal del Dashboard
 const Dashboard = () => {
   // Estado para la tasa de cambio seleccionada
@@ -38,6 +52,24 @@ const Dashboard = () => {
   
   // Estado para el rango de fechas personalizado
   const [customDateRange, setCustomDateRange] = useState(null);
+  
+  // Estado para los datos obtenidos de la API
+  const [dashboardData, setDashboardData] = useState({ facturacionDiaria: [] });
+  
+  // Cargar datos del dashboard desde la API
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        const data = await fetchDashboardData();
+        console.log('Datos recibidos del endpoint dashboard-data:', data);
+        setDashboardData(data);
+      } catch (error) {
+        console.error('Error cargando datos del dashboard:', error);
+      }
+    };
+    
+    loadDashboardData();
+  }, []); // Se ejecuta solo al montar el componente
   
   // Cargar la tasa de cambio al iniciar el componente
   useEffect(() => {
@@ -258,18 +290,18 @@ const Dashboard = () => {
         ventasMesPasadoUSD={kpis.ventasMesPasadoUSD}
       />
 
-      {/* Gráficos - ACTUALIZADO: usar la data correcta para cada gráfico */}
+      {/* Reorganización de los gráficos */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        {/* Gráfico de Facturación Diaria */}
-        <Grid item xs={12} md={6}>
+        {/* Gráfico de Facturación Diaria a ancho completo */}
+        <Grid item xs={12}>
           <DailyBillingChart 
-            data={facturasPorDia}  // CORREGIDO: Ahora usa facturasPorDia en lugar de facturasPorMes
+            data={dashboardData.facturacionDiaria}
             title="Facturación Diaria"
           />
         </Grid>
         
         {/* Gráfico de Facturación Mensual */}
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12}>
           <SalesChart data={facturasPorMes} />
         </Grid>
       </Grid>

@@ -368,9 +368,12 @@ export const useDashboard = (selectedRange = 'thisMonth', customDateRange = null
   // FUNCIÓN MEJORADA: Procesar datos para el gráfico de facturación diaria
   const facturasPorDia = useMemo(() => {
     if (loading || !filteredInvoices.length) return [];
-
+    
     // Crear un mapa para organizar facturas por día
     const diasMap = {};
+    
+    // Contador total de facturas procesadas para verificación
+    let totalFacturasProcesadas = 0;
     
     // Agrupar facturas por día
     filteredInvoices.forEach(invoice => {
@@ -397,9 +400,16 @@ export const useDashboard = (selectedRange = 'thisMonth', customDateRange = null
           fecha: fecha,
           USD: 0,
           VES: 0,
-          total: 0
+          total: 0,
+          facturas: 0  // Inicializar contador de facturas
         };
       }
+      
+      // Incrementar contador de facturas para este día
+      diasMap[fechaFormateada].facturas += 1;
+      
+      // Incrementar contador total para verificación
+      totalFacturasProcesadas += 1;
       
       // Acumular montos por moneda
       const moneda = invoice.moneda || 'USD';
@@ -419,26 +429,25 @@ export const useDashboard = (selectedRange = 'thisMonth', customDateRange = null
       }
     });
     
-    // Convertir a array y formatear para el gráfico
+    // Validación de integridad: verificar que contamos todas las facturas
+    console.log(`Total facturas procesadas: ${totalFacturasProcesadas}, Total facturas filtradas: ${filteredInvoices.length}`);
+    
+    // Convertir a array y formatear para el gráfico, asegurando que el conteo de facturas se incluye correctamente
     const resultado = Object.entries(diasMap).map(([fechaFormateada, datos]) => ({
       name: fechaFormateada,
       USD: Math.round(datos.USD * 100) / 100,
       VES: Math.round(datos.VES * 100) / 100,
-      total: Math.round(datos.total * 100) / 100
+      total: Math.round(datos.total * 100) / 100,
+      // Asegurarse de que el número de facturas es un entero y no es undefined
+      facturas: parseInt(datos.facturas) || 0,
+      // Añadir fecha original para facilitar ordenación
+      fechaObj: datos.fecha
     }));
     
-    // Ordenar por fecha
+    // Ordenar por fecha (primero por mes y luego por día)
     return resultado.sort((a, b) => {
-      const partsA = a.name.split(' ');
-      const partsB = b.name.split(' ');
-      
-      if (partsA.length < 2 || partsB.length < 2) return 0;
-      
-      const dayA = parseInt(partsA[0], 10);
-      const dayB = parseInt(partsB[0], 10);
-      
-      // Si ambos son del mismo mes, ordenar por día
-      return dayA - dayB;
+      // Usar los objetos fecha completos para comparación correcta
+      return a.fechaObj - b.fechaObj;
     });
   }, [filteredInvoices, loading, exchangeRate]);
 
@@ -681,6 +690,7 @@ export const useDashboard = (selectedRange = 'thisMonth', customDateRange = null
     facturasRecientes,
     clientesRecientes,
     exchangeRate,
-    timeRange
+    timeRange,
+    filteredInvoices
   };
 };
