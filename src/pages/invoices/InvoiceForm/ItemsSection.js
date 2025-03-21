@@ -116,14 +116,14 @@ const ItemsSection = ({
         {/* Tabla de servicios seleccionados */}
         {items.length > 0 && (
           <Box sx={{ 
-            backgroundColor: 'white', 
+            backgroundColor: '#1E1E1E', 
             borderRadius: '4px',
             overflow: 'hidden',
             mt: 2
           }}>
             <TableContainer>
               <Table>
-                <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
+                <TableHead sx={{ backgroundColor: '#1E1E1E' }}>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 'bold' }}>Código</TableCell>
                     <TableCell sx={{ fontWeight: 'bold' }}>Descripción</TableCell>

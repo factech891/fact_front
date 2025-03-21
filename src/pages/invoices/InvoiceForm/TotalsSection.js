@@ -11,7 +11,7 @@ const TotalsSection = ({ subtotal, tax, total, moneda }) => {
       justifyContent: 'flex-end'
     }}>
       <Box sx={{ 
-        backgroundColor: 'white', 
+        backgroundColor: '#1E1E1E', 
         borderRadius: '4px',
         p: 2,
         minWidth: '300px',
