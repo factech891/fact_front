@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Box, Button, Typography, Snackbar, Alert, Paper } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
-import { InvoiceTable } from './InvoiceTable';
+import InvoiceTable from './InvoiceTable';
 import { InvoiceForm } from './InvoiceForm';
 import { InvoicePreview } from './InvoicePreview/InvoicePreview';
 import { useInvoices } from '../../hooks/useInvoices';

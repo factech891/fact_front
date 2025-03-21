@@ -25,7 +25,8 @@ export const saveInvoice = async (invoice) => {
             product: item.product?._id || item.product,  // Asegurar ObjectID válido
             quantity: item.quantity || item.cantidad,    // Adaptación de nombres
             price: item.price || item.precioUnitario,    // Adaptación de nombres
-            subtotal: item.subtotal || (item.quantity * item.price) // Cálculo seguro
+            subtotal: item.subtotal || (item.quantity * item.price), // Cálculo seguro
+            taxExempt: item.taxExempt || false          // Nuevo campo para manejar exención por ítem
         }));
 
         // Estructura final validada con el modelo
@@ -37,14 +38,18 @@ export const saveInvoice = async (invoice) => {
             subtotal: invoice.subtotal,
             tax: invoice.tax || invoice.iva,
             total: invoice.total,
-            status: invoice.status || 'draft'  // Valor por defecto válido
+            status: invoice.status || 'draft',  // Valor por defecto válido
+            moneda: invoice.moneda || 'USD',    // NO ELIMINAR - Este campo sí existe en el modelo
+            condicionesPago: invoice.condicionesPago || 'Contado',  // NO ELIMINAR - Este campo sí existe
+            diasCredito: invoice.diasCredito || 30       // NO ELIMINAR - Este campo sí existe
         };
 
         // Campos eliminados que no existen en el modelo
-        delete invoiceData.moneda;
-        delete invoiceData.condicionesPago;
-        delete invoiceData.diasCredito;
-        delete invoiceData.empresa;
+        // CORRECCIÓN: No eliminar campos que SÍ existen en el modelo
+        delete invoiceData.empresa;  // Solo eliminamos empresa que no está en el modelo
+
+        console.log('Enviando datos de factura:', invoiceData);
+        console.log('Moneda seleccionada:', invoiceData.moneda);
 
         const response = await fetch(url, {
             method,
