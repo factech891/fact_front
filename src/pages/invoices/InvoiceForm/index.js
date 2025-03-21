@@ -115,17 +115,20 @@ export const InvoiceForm = ({ open, onClose, invoice, onSave, clients = [], prod
 
   const handleProductSelect = (event, values) => {
     console.log('Productos seleccionados:', values);
-    const newItems = values.map(product => ({
+    
+    // Verificación defensiva - si values es undefined o null, usar array vacío
+    const safeValues = values || [];
+    
+    const newItems = safeValues.map(product => ({
       product: product._id,
-      codigo: product.codigo,
-      descripcion: product.nombre,
+      codigo: product.codigo || '',
+      descripcion: product.nombre || '',
       quantity: 1,
-      price: product.precio,
+      price: product.precio || 0,
       taxExempt: product.isExempt || false,
-      subtotal: product.precio
+      subtotal: product.precio || 0
     }));
-
-    setSelectedProducts(values);
+    setSelectedProducts(safeValues);
     
     // Primero actualizamos los items
     const updatedFormData = {
