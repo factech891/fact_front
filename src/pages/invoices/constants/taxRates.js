@@ -14,19 +14,19 @@ export const PAYMENT_CONDITIONS = {
 
 // Tipos de moneda aceptados
 export const CURRENCY_TYPES = {
-  USD: 'USD',  // Dólares
-  VES: 'VES'   // Bolívares
+  VES: 'VES',   // Bolívares (ahora primero)
+  USD: 'USD'    // Dólares (ahora segundo)
 };
 
 // Lista de monedas para menús y selects
 export const CURRENCY_LIST = [
   {
-    value: CURRENCY_TYPES.USD,
-    label: 'Dólares (USD)'
-  },
-  {
     value: CURRENCY_TYPES.VES,
     label: 'Bolívares (VES)'
+  },
+  {
+    value: CURRENCY_TYPES.USD,
+    label: 'Dólares (USD)'
   }
 ];
 

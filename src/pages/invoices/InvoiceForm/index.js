@@ -28,7 +28,7 @@ export const InvoiceForm = ({ open, onClose, invoice, onSave, clients = [], prod
     tax: 0,
     total: 0,
     number: '',
-    moneda: 'USD',
+    moneda: 'VES',  // Cambiado a VES por defecto
     condicionesPago: 'Contado',
     diasCredito: 30,
     status: 'draft',
@@ -80,7 +80,7 @@ export const InvoiceForm = ({ open, onClose, invoice, onSave, clients = [], prod
         tax: 0,
         total: 0,
         number: '',  // El número se obtendrá del backend o quedará en blanco
-        moneda: 'USD',
+        moneda: 'VES',  // Cambiado a VES por defecto
         condicionesPago: 'Contado',
         diasCredito: 30,
         status: 'draft',
