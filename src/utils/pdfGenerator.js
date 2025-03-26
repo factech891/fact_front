@@ -1,4 +1,4 @@
-// utils/pdfGenerator.js - NUEVA VERSIÓN CON HTML2CANVAS
+// utils/pdfGenerator.js - ADAPTADO CON HTML2CANVAS
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -24,7 +24,7 @@ export const generatePDF = async (invoice, options = {}) => {
     }
     
     // Configurar opciones para html2canvas
-    const canvas = await html2canvas(element.querySelector('div.MuiPaper-root'), {
+    const canvas = await html2canvas(element.querySelector('.MuiPaper-root'), {
       scale: 2, // Mayor escala para mejor calidad
       useCORS: true, // Permite cargar imágenes de otros dominios (como logos)
       logging: false,

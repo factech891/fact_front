@@ -13,9 +13,9 @@ export const InvoiceItemsTable = ({ items = [], moneda = 'VES', theme = {} }) =>
     borderCollapse: 'collapse'
   };
   
-  // CAMBIA ESTE ESTILO - Encabezado de la tabla
+  // Usar el color del tema para el encabezado
   const headerCellStyle = {
-    backgroundColor: '#003366', // Cambia de rojo a azul marino
+    backgroundColor: theme.primary || '#003366', // Usa el color primario del tema
     color: '#FFFFFF',
     padding: '10px 8px',
     fontWeight: 'bold',
@@ -26,8 +26,8 @@ export const InvoiceItemsTable = ({ items = [], moneda = 'VES', theme = {} }) =>
   // Estilo de celdas normales
   const cellStyle = {
     padding: '8px',
-    borderBottom: '1px solid #ddd',
-    color: '#333',
+    borderBottom: `1px solid ${theme.border || '#ddd'}`,
+    color: theme.text?.primary || '#333',
     backgroundColor: '#FFFFFF' // Añade fondo blanco explícito
   };
   
