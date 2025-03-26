@@ -1,97 +1,75 @@
 // src/pages/invoices/InvoicePreview/InvoiceItemsTable.js
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TableRow 
-} from '@mui/material';
+import React from 'react';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 
-const getStyles = (theme) => ({
-  tableContainer: {
-    marginBottom: '20px',
-    border: `1px solid ${theme.border}`,
-    borderRadius: '6px',
-    overflow: 'hidden',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-  },
-  tableHeader: {
-    backgroundColor: theme.primary,
-    color: 'white',
-    fontSize: theme.fontSize.small,
-    padding: '10px 16px',
-    fontWeight: '600',
-    letterSpacing: '0.5px',
-    background: theme.gradient
-  },
-  tableRow: {
-    '&:nth-of-type(odd)': {
-      backgroundColor: theme.background.secondary
-    },
-    '&:nth-of-type(even)': {
-      backgroundColor: theme.background.primary
-    }
-  },
-  tableCell: {
-    fontSize: theme.fontSize.body,
-    padding: '8px 16px',
-    color: theme.text.primary,
-    borderBottom: `1px solid ${theme.border}`
-  },
-  numericCell: {
-    fontSize: theme.fontSize.body,
-    padding: '8px 16px',
-    color: theme.text.primary,
-    fontFamily: 'monospace',
-    borderBottom: `1px solid ${theme.border}`
-  }
-});
-
-export const InvoiceItemsTable = ({ items = [], moneda = 'USD', theme }) => {
+export const InvoiceItemsTable = ({ items = [], moneda = 'VES', theme = {} }) => {
   if (!items || items.length === 0) return null;
-
-  const styles = getStyles(theme);
-
-  const formatNumber = (number) => {
-    return new Intl.NumberFormat('es-VE', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(number);
+  
+  // Estilos base
+  const tableStyle = {
+    width: '100%',
+    marginTop: '20px',
+    marginBottom: '20px',
+    borderCollapse: 'collapse'
   };
-
+  
+  // CAMBIA ESTE ESTILO - Encabezado de la tabla
+  const headerCellStyle = {
+    backgroundColor: '#003366', // Cambia de rojo a azul marino
+    color: '#FFFFFF',
+    padding: '10px 8px',
+    fontWeight: 'bold',
+    textAlign: 'left',
+    borderBottom: '2px solid #ddd'
+  };
+  
+  // Estilo de celdas normales
+  const cellStyle = {
+    padding: '8px',
+    borderBottom: '1px solid #ddd',
+    color: '#333',
+    backgroundColor: '#FFFFFF' // Añade fondo blanco explícito
+  };
+  
   return (
-    <TableContainer sx={styles.tableContainer}>
-      <Table>
+    <TableContainer component={Paper} elevation={0} className="invoice-items-table" 
+      sx={{ backgroundColor: 'transparent' }}> {/* Contenedor transparente */}
+      <Table style={tableStyle}>
         <TableHead>
           <TableRow>
-            <TableCell width="15%" sx={styles.tableHeader}>Código</TableCell>
-            <TableCell width="40%" sx={styles.tableHeader}>Descripción</TableCell>
-            <TableCell width="15%" align="right" sx={styles.tableHeader}>Cantidad</TableCell>
-            <TableCell width="15%" align="right" sx={styles.tableHeader}>Precio Unit.</TableCell>
-            <TableCell width="15%" align="right" sx={styles.tableHeader}>Total</TableCell>
+            <TableCell style={{...headerCellStyle, width: '15%'}}>Código</TableCell>
+            <TableCell style={{...headerCellStyle, width: '35%'}}>Descripción</TableCell>
+            <TableCell style={{...headerCellStyle, width: '10%', textAlign: 'center'}}>Cantidad</TableCell>
+            <TableCell style={{...headerCellStyle, width: '15%', textAlign: 'right'}}>Precio Unit.</TableCell>
+            <TableCell style={{...headerCellStyle, width: '15%', textAlign: 'right'}}>Total</TableCell>
+            <TableCell style={{...headerCellStyle, width: '10%', textAlign: 'center'}}>Exento IVA</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {items.map((item, index) => (
-            <TableRow key={index} sx={styles.tableRow}>
-              <TableCell sx={styles.tableCell}>
-                {item.product?.codigo || item.codigo || ''}
-              </TableCell>
-              <TableCell sx={styles.tableCell}>
-                {item.product?.nombre || item.descripcion || ''}
-              </TableCell>
-              <TableCell align="right" sx={styles.numericCell}>
-                {formatNumber(item.quantity)}
-              </TableCell>
-              <TableCell align="right" sx={styles.numericCell}>
-                {moneda} {formatNumber(item.price)}
-              </TableCell>
-              <TableCell align="right" sx={styles.numericCell}>
-                {moneda} {formatNumber(item.quantity * item.price)}
-              </TableCell>
-            </TableRow>
-          ))}
+          {items.map((item, index) => {
+            // Aplicar color alternado a las filas
+            const rowColor = index % 2 === 0 ? '#FFFFFF' : '#F9F9F9';
+            
+            return (
+              <TableRow key={index} style={{ backgroundColor: rowColor }}>
+                <TableCell style={cellStyle}>{item.codigo || ''}</TableCell>
+                <TableCell style={cellStyle}>{item.descripcion || ''}</TableCell>
+                <TableCell style={{...cellStyle, textAlign: 'center'}}>
+                  {typeof item.cantidad === 'number' ? item.cantidad.toFixed(2) : '1.00'}
+                </TableCell>
+                <TableCell style={{...cellStyle, textAlign: 'right'}}>
+                  {moneda} {typeof item.precioUnitario === 'number' ? item.precioUnitario.toFixed(2) : '0.00'}
+                </TableCell>
+                <TableCell style={{...cellStyle, textAlign: 'right'}}>
+                  {moneda} {((typeof item.cantidad === 'number' ? item.cantidad : 1) * 
+                           (typeof item.precioUnitario === 'number' ? item.precioUnitario : 0)).toFixed(2)}
+                </TableCell>
+                <TableCell style={{...cellStyle, textAlign: 'center'}} className="exento-iva-column">
+                  {item.exentoIva ? '✓' : '✗'}
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </TableContainer>

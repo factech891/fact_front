@@ -1,101 +1,80 @@
 // src/pages/invoices/InvoicePreview/InvoiceTotals.js
+import React from 'react';
 import { Box, Typography, Divider } from '@mui/material';
 
-const getStyles = (theme) => ({
-  totalsContainer: {
-    width: '300px',
+export const InvoiceTotals = ({ invoice, theme = {} }) => {
+  if (!invoice) return null;
+  
+  // Asegurarnos de tener los items
+  const items = invoice.items || [];
+  console.log('Calculando totales para items:', items);
+  
+  // Calcular subtotal
+  const subtotal = items.reduce((sum, item) => {
+    const cantidad = typeof item.cantidad === 'number' ? item.cantidad : 1;
+    const precio = typeof item.precioUnitario === 'number' ? item.precioUnitario : 0;
+    return sum + (cantidad * precio);
+  }, 0);
+  
+  // Calcular IVA (16%) solo para items no exentos
+  const iva = items.reduce((sum, item) => {
+    if (item.exentoIva !== true) {
+      const cantidad = typeof item.cantidad === 'number' ? item.cantidad : 1;
+      const precio = typeof item.precioUnitario === 'number' ? item.precioUnitario : 0;
+      return sum + ((cantidad * precio) * 0.16);
+    }
+    return sum;
+  }, 0);
+  
+  // Total
+  const total = subtotal + iva;
+  
+  console.log('Totales calculados:', { subtotal, iva, total });
+  
+  // Estilos
+  const containerStyle = {
+    width: '40%',
     marginLeft: 'auto',
     marginTop: '20px',
-    padding: '15px 20px',
-    backgroundColor: theme.background.primary,
-    border: `1px solid ${theme.border}`,
-    borderRadius: '6px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-    position: 'relative',
-    '&::before': {
-      content: '""',
-      position: 'absolute',
-      top: 0,
-      right: 0,
-      bottom: 0,
-      width: '3px',
-      background: theme.gradient
-    }
-  },
-  row: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '8px',
-    fontSize: theme.fontSize.body,
-    color: theme.text.primary
-  },
-  totalRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    fontWeight: '600',
-    fontSize: theme.fontSize.subtitle,
-    color: theme.primary,
-    marginTop: '8px'
-  },
-  label: {
-    fontWeight: '500'
-  },
-  amount: {
-    fontFamily: 'monospace',
-    minWidth: '120px',
-    textAlign: 'right'
-  },
-  divider: {
-    margin: '12px 0',
-    backgroundColor: theme.border
-  },
-  totalAmount: {
-    fontFamily: 'monospace',
-    minWidth: '120px',
-    textAlign: 'right',
-    fontWeight: '600',
-    color: theme.primary
-  }
-});
-
-export const InvoiceTotals = ({ invoice, theme }) => {
-  const styles = getStyles(theme);
-
-  const formatNumber = (number) => {
-    return new Intl.NumberFormat('es-VE', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(number || 0);
+    padding: '15px',
+    backgroundColor: '#a7abae',
+    borderRadius: '4px'
   };
-
-  const subtotal = invoice.subtotal || 0;
-  const iva = invoice.tax || invoice.iva || subtotal * 0.16;
-  const total = invoice.total || subtotal + iva;
-
+  
+  const rowStyle = {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginBottom: '8px'
+  };
+  
+  const totalRowStyle = {
+    ...rowStyle,
+    marginTop: '10px',
+    paddingTop: '10px',
+    borderTop: '1px solid #333',
+    fontWeight: 'bold'
+  };
+  
   return (
-    <Box sx={styles.totalsContainer}>
-      <Box sx={styles.row}>
-        <Typography sx={styles.label}>Subtotal:</Typography>
-        <Typography sx={styles.amount}>
-          {invoice.moneda} {formatNumber(subtotal)}
+    <Box sx={containerStyle} className="invoice-totals">
+      <Box sx={rowStyle}>
+        <Typography variant="body1">Subtotal:</Typography>
+        <Typography variant="body1" className="subtotal-value">
+          {invoice.moneda || 'VES'} {subtotal.toFixed(2)}
         </Typography>
       </Box>
       
-      <Box sx={styles.row}>
-        <Typography sx={styles.label}>IVA (16%):</Typography>
-        <Typography sx={styles.amount}>
-          {invoice.moneda} {formatNumber(iva)}
+      <Box sx={rowStyle}>
+        <Typography variant="body1">IVA (16%):</Typography>
+        <Typography variant="body1" className="iva-value">
+          {invoice.moneda || 'VES'} {iva.toFixed(2)}
         </Typography>
       </Box>
       
-      <Divider sx={styles.divider} />
-      
-      <Box sx={styles.totalRow}>
-        <Typography>TOTAL:</Typography>
-        <Typography sx={styles.totalAmount}>
-          {invoice.moneda} {formatNumber(total)}
+      <Box sx={totalRowStyle}>
+        <Typography variant="body1">Total:</Typography>
+        <Typography variant="body1" className="total-value">
+          {invoice.moneda || 'VES'} {total.toFixed(2)}
         </Typography>
       </Box>
     </Box>
