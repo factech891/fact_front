@@ -13,9 +13,9 @@ export const InvoiceItemsTable = ({ items = [], moneda = 'VES', theme = {} }) =>
     borderCollapse: 'collapse'
   };
   
-  // Usar el color del tema para el encabezado
+  // Encabezado de la tabla
   const headerCellStyle = {
-    backgroundColor: theme.primary || '#003366', // Usa el color primario del tema
+    backgroundColor: theme.primary || '#003366',
     color: '#FFFFFF',
     padding: '10px 8px',
     fontWeight: 'bold',
@@ -26,14 +26,39 @@ export const InvoiceItemsTable = ({ items = [], moneda = 'VES', theme = {} }) =>
   // Estilo de celdas normales
   const cellStyle = {
     padding: '8px',
-    borderBottom: `1px solid ${theme.border || '#ddd'}`,
-    color: theme.text?.primary || '#333',
-    backgroundColor: '#FFFFFF' // Añade fondo blanco explícito
+    borderBottom: '1px solid #ddd',
+    color: '#333',
+    backgroundColor: '#FFFFFF'
+  };
+  
+  // Estilos para los indicadores de exento
+  const exentoStyle = {
+    backgroundColor: '#4caf50',
+    color: 'white',
+    fontWeight: 'bold',
+    padding: '4px 8px',
+    borderRadius: '12px',
+    display: 'inline-block',
+    fontSize: '12px',
+    width: '80px',
+    textAlign: 'center'
+  };
+  
+  const noExentoStyle = {
+    backgroundColor: '#f44336',
+    color: 'white',
+    fontWeight: 'bold',
+    padding: '4px 8px',
+    borderRadius: '12px',
+    display: 'inline-block',
+    fontSize: '12px',
+    width: '80px',
+    textAlign: 'center'
   };
   
   return (
     <TableContainer component={Paper} elevation={0} className="invoice-items-table" 
-      sx={{ backgroundColor: 'transparent' }}> {/* Contenedor transparente */}
+      sx={{ backgroundColor: 'transparent' }}>
       <Table style={tableStyle}>
         <TableHead>
           <TableRow>
@@ -65,7 +90,11 @@ export const InvoiceItemsTable = ({ items = [], moneda = 'VES', theme = {} }) =>
                            (typeof item.precioUnitario === 'number' ? item.precioUnitario : 0)).toFixed(2)}
                 </TableCell>
                 <TableCell style={{...cellStyle, textAlign: 'center'}} className="exento-iva-column">
-                  {item.exentoIva ? '✓' : '✗'}
+                  <div 
+                    style={item.exentoIva ? exentoStyle : noExentoStyle}
+                  >
+                    {item.exentoIva ? 'EXENTO' : 'NO'}
+                  </div>
                 </TableCell>
               </TableRow>
             );

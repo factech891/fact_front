@@ -1,4 +1,4 @@
-// utils/pdfGenerator.js - ADAPTADO CON HTML2CANVAS
+// utils/pdfGenerator.js - CORREGIDO (Sin página en blanco)
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -29,7 +29,10 @@ export const generatePDF = async (invoice, options = {}) => {
       useCORS: true, // Permite cargar imágenes de otros dominios (como logos)
       logging: false,
       allowTaint: true,
-      backgroundColor: '#ffffff'
+      backgroundColor: '#ffffff',
+      // Capturar solo lo que es visible en la página
+      height: element.querySelector('.MuiPaper-root').offsetHeight - 30, // Reducimos un poco la altura para evitar capturar elementos ocultos
+      windowHeight: element.querySelector('.MuiPaper-root').offsetHeight
     });
     
     // Restaurar elementos ocultos
@@ -59,7 +62,7 @@ export const generatePDF = async (invoice, options = {}) => {
     
     // Si la altura calculada es mayor que la altura del PDF, ajustamos
     if (imgHeight > pdfHeight) {
-      imgHeight = pdfHeight;
+      imgHeight = pdfHeight * 0.9; // Usamos solo el 90% de la altura para evitar desbordes
       imgWidth = imgHeight * ratio;
     }
     
@@ -69,26 +72,7 @@ export const generatePDF = async (invoice, options = {}) => {
     // Añadir la imagen al PDF
     pdf.addImage(imgData, 'PNG', x, 0, imgWidth, imgHeight);
     
-    // Si la factura es más larga que una página, podemos añadir páginas adicionales
-    if (canvasHeight > pdfHeight * (canvasWidth / pdfWidth)) {
-      // Calculamos cuántas páginas necesitamos
-      const pageCount = Math.ceil(canvasHeight / (canvasWidth * pdfHeight / pdfWidth));
-      
-      // Si son más de una página, añadimos las páginas adicionales
-      for (let i = 1; i < pageCount; i++) {
-        pdf.addPage();
-        pdf.addImage(
-          imgData, 
-          'PNG', 
-          x, 
-          -(i * pdfHeight), // Posición vertical negativa para "desplazar" hacia arriba
-          imgWidth, 
-          imgHeight
-        );
-      }
-    }
-    
-    // Guardar PDF
+    // Guardamos directamente sin añadir páginas adicionales
     pdf.save(fileName);
     
     console.log('PDF generado correctamente:', fileName);

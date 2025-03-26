@@ -1,5 +1,5 @@
 // src/pages/invoices/InvoicePreview/InvoicePreview.js
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Paper,
   Dialog,
@@ -61,6 +61,13 @@ export const InvoicePreview = ({ open, onClose, invoice }) => {
   const theme = invoiceThemes[currentStyle];
   const styles = getStyles(theme);
   const { company, loading } = useCompany();
+
+  // Este efecto es para depuración - muestra lo que se está recibiendo
+  useEffect(() => {
+    if (invoice) {
+      console.log("Invoice recibida en Preview:", JSON.stringify(invoice, null, 2));
+    }
+  }, [invoice]);
 
   const handleDownload = async () => {
     if (!invoice) {
