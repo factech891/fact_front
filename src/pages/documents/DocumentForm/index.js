@@ -12,26 +12,22 @@ import {
   Grid,
   Snackbar,
   Alert,
-  IconButton,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  TextField
+  IconButton
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
   Save as SaveIcon
 } from '@mui/icons-material';
 
-// Importamos componentes del módulo de facturas
-import ClientSection from '../../invoices/InvoiceForm/ClientSection';
-import ItemsSection from '../../invoices/InvoiceForm/ItemsSection';
-import TotalsSection from '../../invoices/InvoiceForm/TotalsSection';
+// Importar secciones del formulario
+import DocumentSection from './DocumentSection';
+import ClientSection from './ClientSection';
+import ItemsSection from './ItemsSection';
+import TotalsSection from './TotalsSection';
 
 // Importar servicios y constantes
 import { getDocument, createDocument, updateDocument } from '../../../services/DocumentsApi';
-import { DOCUMENT_TYPES, DOCUMENT_TYPE_NAMES, DOCUMENT_VALIDITY_DAYS } from '../constants/documentTypes';
+import { DOCUMENT_TYPES, DOCUMENT_STATUS, DOCUMENT_VALIDITY_DAYS } from '../constants/documentTypes';
 import { useClients } from '../../../hooks/useClients';
 import { useProducts } from '../../../hooks/useProducts';
 
@@ -52,7 +48,7 @@ const DocumentForm = () => {
   const [formData, setFormData] = useState({
     type: searchParams.get('type') || DOCUMENT_TYPES.QUOTE,
     documentNumber: '',
-    date: new Date(),
+    date: new Date().toISOString().split('T')[0], // Formato YYYY-MM-DD
     expiryDate: null,
     client: null,
     items: [],
@@ -61,9 +57,17 @@ const DocumentForm = () => {
     subtotal: 0,
     taxAmount: 0,
     total: 0,
-    currency: 'EUR',
-    status: 'DRAFT'
+    currency: 'USD',
+    status: DOCUMENT_STATUS.DRAFT,
+    paymentTerms: 'Contado',
+    creditDays: 0
   });
+
+  // Estados para la selección de productos
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  
+  // Estado para validaciones
+  const [errors, setErrors] = useState({});
   
   // Estados de UI
   const [loading, setLoading] = useState(false);
@@ -79,13 +83,38 @@ const DocumentForm = () => {
           setLoading(true);
           const data = await getDocument(id);
           if (data) {
-            // Formatear fechas como objetos Date
+            // Formatear fechas a formato YYYY-MM-DD
+            const dateFormatted = data.date 
+              ? new Date(data.date).toISOString().split('T')[0] 
+              : new Date().toISOString().split('T')[0];
+              
+            const expiryDateFormatted = data.expiryDate 
+              ? new Date(data.expiryDate).toISOString().split('T')[0] 
+              : null;
+              
             const formattedData = {
               ...data,
-              date: data.date ? new Date(data.date) : new Date(),
-              expiryDate: data.expiryDate ? new Date(data.expiryDate) : null
+              date: dateFormatted,
+              expiryDate: expiryDateFormatted,
+              paymentTerms: data.paymentTerms || 'Contado',
+              creditDays: data.creditDays || 0
             };
+            
             setFormData(formattedData);
+            
+            // Configurar productos seleccionados
+            if (data.items && data.items.length > 0 && products.length > 0) {
+              const itemProducts = data.items.map(item => {
+                const product = products.find(p => p._id === item.product);
+                return product || {
+                  _id: item.product,
+                  codigo: item.code || '',
+                  nombre: item.name || ''
+                };
+              }).filter(Boolean);
+              
+              setSelectedProducts(itemProducts);
+            }
           }
         } catch (err) {
           console.error('Error al cargar documento:', err);
@@ -97,16 +126,18 @@ const DocumentForm = () => {
     };
     
     fetchDocument();
-  }, [id]);
+  }, [id, products]);
   
-  // Calcular fecha de vencimiento cuando cambia el tipo o la fecha
+  // Calcular fecha de vencimiento
   useEffect(() => {
     if (formData.date && formData.type) {
       const validityDays = DOCUMENT_VALIDITY_DAYS[formData.type];
       if (validityDays !== null) {
-        const expiryDate = new Date(formData.date);
-        expiryDate.setDate(expiryDate.getDate() + validityDays);
-        setFormData(prev => ({ ...prev, expiryDate }));
+        // Convertir la fecha de string a Date, sumar días, y volver a string
+        const dateObj = new Date(formData.date);
+        dateObj.setDate(dateObj.getDate() + validityDays);
+        const expiryDateStr = dateObj.toISOString().split('T')[0];
+        setFormData(prev => ({ ...prev, expiryDate: expiryDateStr }));
       } else {
         setFormData(prev => ({ ...prev, expiryDate: null }));
       }
@@ -118,6 +149,73 @@ const DocumentForm = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
   
+  // Manejar cambios en productos seleccionados
+  const handleProductSelect = (products) => {
+    setSelectedProducts(products);
+    
+    // Transformar productos seleccionados a items
+    const items = products.map(product => {
+      // Buscar si ya existe un item para este producto
+      const existingItem = formData.items.find(i => i.product === product._id);
+      
+      if (existingItem) {
+        return existingItem;
+      } else {
+        // Crear nuevo item
+        return {
+          product: product._id,
+          codigo: product.codigo,
+          descripcion: product.nombre,
+          quantity: 1,
+          price: product.precio || 0,
+          taxExempt: false,
+          taxRate: 16, // Tasa por defecto
+          subtotal: product.precio || 0,
+          total: product.precio || 0
+        };
+      }
+    });
+    
+    // Actualizar items en formData
+    setFormData(prev => ({ 
+      ...prev, 
+      items,
+    }));
+    
+    // Actualizar totales
+    calculateTotals(items);
+  };
+  
+  // Manejar cambios en items
+  const handleItemChange = (updatedItems) => {
+    setFormData(prev => ({ ...prev, items: updatedItems }));
+    
+    // Recalcular totales
+    calculateTotals(updatedItems);
+  };
+  
+  // Calcular totales
+  const calculateTotals = (items) => {
+    const subtotal = items.reduce((sum, item) => 
+      sum + ((item.quantity || 1) * (item.price || 0)), 0
+    );
+    
+    const taxAmount = items.reduce((sum, item) => {
+      if (item.taxExempt) return sum;
+      const itemSubtotal = (item.quantity || 1) * (item.price || 0);
+      return sum + (itemSubtotal * (item.taxRate || 16) / 100);
+    }, 0);
+    
+    const total = subtotal + taxAmount;
+    
+    setFormData(prev => ({ 
+      ...prev, 
+      subtotal,
+      taxAmount,
+      total
+    }));
+  };
+  
   // Navegación de stepper
   const handleNext = () => {
     setActiveStep(prev => prev + 1);
@@ -127,16 +225,63 @@ const DocumentForm = () => {
     setActiveStep(prev => prev - 1);
   };
   
+  // Validar formulario
+  const validateForm = () => {
+    const newErrors = {};
+    
+    // Validar cliente
+    if (!formData.client) {
+      newErrors.client = 'Debe seleccionar un cliente';
+    }
+    
+    // Validar items
+    if (!formData.items.length) {
+      newErrors.items = 'Debe agregar al menos un ítem';
+    }
+    
+    // Validar condiciones de pago
+    if (formData.paymentTerms === 'Crédito' && (!formData.creditDays || formData.creditDays <= 0)) {
+      newErrors.diasCredito = 'Debe especificar días de crédito válidos';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+  
+  // Preparar datos para enviar al API
+  const prepareDataForSubmit = () => {
+    // Convertir fechas a formato ISO para el API
+    const dateFormatted = formData.date ? new Date(formData.date).toISOString() : null;
+    const expiryDateFormatted = formData.expiryDate ? new Date(formData.expiryDate).toISOString() : null;
+    
+    return {
+      ...formData,
+      date: dateFormatted,
+      expiryDate: expiryDateFormatted
+    };
+  };
+  
   // Guardar documento
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Validar formulario
+    if (!validateForm()) {
+      setSnackbar({
+        open: true,
+        message: 'Por favor, corrija los errores antes de guardar',
+        severity: 'error'
+      });
+      return;
+    }
+    
     try {
       setSaving(true);
+      const dataToSubmit = prepareDataForSubmit();
       
       if (id) {
         // Actualizar documento existente
-        await updateDocument(id, formData);
+        await updateDocument(id, dataToSubmit);
         setSnackbar({
           open: true,
           message: 'Documento actualizado correctamente',
@@ -144,7 +289,7 @@ const DocumentForm = () => {
         });
       } else {
         // Crear nuevo documento
-        const result = await createDocument(formData);
+        const result = await createDocument(dataToSubmit);
         setSnackbar({
           open: true,
           message: 'Documento creado correctamente',
@@ -172,136 +317,6 @@ const DocumentForm = () => {
   const handleGoBack = () => {
     navigate('/documents');
   };
-  
-  // Renderizar campo de fecha simple (sin MUI DatePicker para evitar problemas)
-  const SimpleDateField = ({ label, value, onChange, helperText }) => {
-    const dateValue = value ? value.toISOString().split('T')[0] : '';
-    
-    const handleDateChange = (e) => {
-      const newDate = e.target.value ? new Date(e.target.value) : null;
-      onChange(newDate);
-    };
-    
-    return (
-      <TextField
-        label={label}
-        type="date"
-        value={dateValue}
-        onChange={handleDateChange}
-        fullWidth
-        size="small"
-        InputLabelProps={{ shrink: true }}
-        helperText={helperText}
-      />
-    );
-  };
-  
-  // Sección de documento
-  const DocumentSection = () => (
-    <Box sx={{ mt: 2 }}>
-      <Typography variant="h6" gutterBottom>
-        Información del Documento
-      </Typography>
-      
-      <Grid container spacing={3}>
-        {/* Tipo de documento */}
-        <Grid item xs={12} md={6}>
-          <FormControl fullWidth size="small">
-            <InputLabel id="document-type-label">Tipo de Documento</InputLabel>
-            <Select
-              labelId="document-type-label"
-              value={formData.type}
-              label="Tipo de Documento"
-              onChange={(e) => handleFieldChange('type', e.target.value)}
-            >
-              <MenuItem value={DOCUMENT_TYPES.QUOTE}>{DOCUMENT_TYPE_NAMES[DOCUMENT_TYPES.QUOTE]}</MenuItem>
-              <MenuItem value={DOCUMENT_TYPES.PROFORMA}>{DOCUMENT_TYPE_NAMES[DOCUMENT_TYPES.PROFORMA]}</MenuItem>
-              <MenuItem value={DOCUMENT_TYPES.DELIVERY_NOTE}>{DOCUMENT_TYPE_NAMES[DOCUMENT_TYPES.DELIVERY_NOTE]}</MenuItem>
-            </Select>
-          </FormControl>
-        </Grid>
-        
-        {/* Número de documento */}
-        <Grid item xs={12} md={6}>
-          <TextField
-            label="Número de Documento"
-            value={formData.documentNumber || ''}
-            onChange={(e) => handleFieldChange('documentNumber', e.target.value)}
-            fullWidth
-            size="small"
-            helperText="Se generará automáticamente si se deja en blanco"
-          />
-        </Grid>
-        
-        {/* Fecha */}
-        <Grid item xs={12} md={6}>
-          <SimpleDateField
-            label="Fecha"
-            value={formData.date}
-            onChange={(value) => handleFieldChange('date', value)}
-            helperText="Fecha del documento"
-          />
-        </Grid>
-        
-        {/* Fecha de vencimiento */}
-        {DOCUMENT_VALIDITY_DAYS[formData.type] !== null && (
-          <Grid item xs={12} md={6}>
-            <SimpleDateField
-              label="Fecha de Vencimiento"
-              value={formData.expiryDate}
-              onChange={(value) => handleFieldChange('expiryDate', value)}
-              helperText={`Vence a los ${DOCUMENT_VALIDITY_DAYS[formData.type]} días`}
-            />
-          </Grid>
-        )}
-        
-        {/* Moneda */}
-        <Grid item xs={12} md={6}>
-          <FormControl fullWidth size="small">
-            <InputLabel id="currency-label">Moneda</InputLabel>
-            <Select
-              labelId="currency-label"
-              value={formData.currency || 'EUR'}
-              label="Moneda"
-              onChange={(e) => handleFieldChange('currency', e.target.value)}
-            >
-              <MenuItem value="EUR">Euro (€)</MenuItem>
-              <MenuItem value="USD">Dólar ($)</MenuItem>
-              <MenuItem value="GBP">Libra Esterlina (£)</MenuItem>
-            </Select>
-          </FormControl>
-        </Grid>
-        
-        {/* Notas */}
-        <Grid item xs={12}>
-          <TextField
-            label="Notas"
-            value={formData.notes || ''}
-            onChange={(e) => handleFieldChange('notes', e.target.value)}
-            fullWidth
-            multiline
-            rows={3}
-            size="small"
-            helperText="Notas adicionales para el documento"
-          />
-        </Grid>
-        
-        {/* Términos */}
-        <Grid item xs={12}>
-          <TextField
-            label="Términos y Condiciones"
-            value={formData.terms || ''}
-            onChange={(e) => handleFieldChange('terms', e.target.value)}
-            fullWidth
-            multiline
-            rows={3}
-            size="small"
-            helperText="Términos y condiciones del documento"
-          />
-        </Grid>
-      </Grid>
-    </Box>
-  );
 
   return (
     <Box component="form" onSubmit={handleSubmit} noValidate>
@@ -314,7 +329,7 @@ const DocumentForm = () => {
                 <ArrowBackIcon />
               </IconButton>
               <Typography variant="h4">
-                {id ? 'Editar' : 'Nuevo'} {DOCUMENT_TYPE_NAMES[formData.type]}
+                {id ? 'Editar' : 'Nueva'} Cotización
               </Typography>
             </Box>
           </Grid>
@@ -343,25 +358,34 @@ const DocumentForm = () => {
 
         {/* Contenido del paso actual */}
         <Box>
-          {activeStep === 0 && <DocumentSection />}
+          {activeStep === 0 && (
+            <DocumentSection 
+              formData={formData} 
+              onFieldChange={handleFieldChange}
+            />
+          )}
           {activeStep === 1 && (
             <ClientSection 
-              formData={formData} 
-              onChange={handleFieldChange} 
-              clients={clients} 
+              formData={formData}
+              clients={clients}
+              errors={errors}
+              onFieldChange={handleFieldChange}
             />
           )}
           {activeStep === 2 && (
             <ItemsSection 
-              formData={formData} 
-              onChange={handleFieldChange} 
-              products={products} 
+              formData={formData}
+              selectedProducts={selectedProducts}
+              products={products}
+              errors={errors}
+              onProductSelect={handleProductSelect}
+              onItemChange={handleItemChange}
             />
           )}
           {activeStep === 3 && (
             <TotalsSection 
               formData={formData} 
-              onChange={handleFieldChange} 
+              onFieldChange={handleFieldChange}
             />
           )}
         </Box>

@@ -25,7 +25,6 @@ import {
   Search as SearchIcon,
   Transform as ConvertIcon
 } from '@mui/icons-material';
-import { format } from 'date-fns';
 import { DOCUMENT_TYPE_NAMES, DOCUMENT_STATUS, DOCUMENT_STATUS_NAMES, DOCUMENT_STATUS_COLORS } from './constants/documentTypes';
 
 const DocumentTable = ({ documents = [], onDelete, onConvert }) => {
@@ -66,10 +65,27 @@ const DocumentTable = ({ documents = [], onDelete, onConvert }) => {
     navigate(`/documents/view/${id}`);
   };
 
-  // Formatear fecha
-  const formatDate = (dateString) => {
+  // Formatear fecha para mostrar en tabla
+  const formatDisplayDate = (dateString) => {
     if (!dateString) return '—';
-    return format(new Date(dateString), 'dd/MM/yyyy');
+    try {
+      // Si es una fecha en formato ISO
+      if (dateString.includes('T')) {
+        const d = new Date(dateString);
+        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+      }
+      
+      // Si ya está en formato YYYY-MM-DD
+      const parts = dateString.split('-');
+      if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+      
+      return dateString;
+    } catch (e) {
+      console.error('Error formateando fecha:', e);
+      return dateString || '—';
+    }
   };
 
   // Formatear moneda
@@ -130,7 +146,7 @@ const DocumentTable = ({ documents = [], onDelete, onConvert }) => {
                     <TableCell>{document.documentNumber || '—'}</TableCell>
                     <TableCell>{DOCUMENT_TYPE_NAMES[document.type]}</TableCell>
                     <TableCell>{document.client?.name || '—'}</TableCell>
-                    <TableCell>{formatDate(document.date)}</TableCell>
+                    <TableCell>{formatDisplayDate(document.date)}</TableCell>
                     <TableCell>
                       {formatCurrency(document.total, document.currency)}
                     </TableCell>

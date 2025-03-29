@@ -1,187 +1,146 @@
-import React, { useEffect, useState } from 'react';
+// src/pages/documents/DocumentForm/DocumentSection.js
+import React from 'react';
 import {
-  Grid,
-  TextField,
-  Typography,
-  Divider,
   Box,
+  Typography,
+  Grid,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  FormHelperText
+  TextField
 } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { es } from 'date-fns/locale';
-import { addDays } from 'date-fns';
-import DocumentTypeSelector from '../components/DocumentTypeSelector';
-import { DOCUMENT_TYPES, DOCUMENT_VALIDITY_DAYS } from '../constants/documentTypes';
+import { DOCUMENT_TYPES, DOCUMENT_TYPE_NAMES, DOCUMENT_VALIDITY_DAYS, DOCUMENT_STATUS } from '../constants/documentTypes';
+import { CURRENCY_LIST } from '../../invoices/constants/taxRates';
 
-// Solución alternativa para DatePicker sin usar AdapterDateFns
-const SimpleDatePicker = ({ label, value, onChange, helperText }) => {
-  // Convertir la fecha a formato yyyy-MM-dd para el input
-  const dateValue = value 
-    ? new Date(value).toISOString().split('T')[0] 
-    : '';
-
-  const handleChange = (e) => {
-    const newDate = e.target.value ? new Date(e.target.value) : null;
-    onChange(newDate);
-  };
-
+const DocumentSection = ({ formData, onFieldChange }) => {
   return (
-    <TextField
-      label={label}
-      type="date"
-      fullWidth
-      size="small"
-      value={dateValue}
-      onChange={handleChange}
-      helperText={helperText}
-      InputLabelProps={{ shrink: true }}
-    />
-  );
-};
-
-const DocumentSection = ({ formData, onChange }) => {
-  // Update expiry date based on document type and date
-  useEffect(() => {
-    if (formData.date && formData.type) {
-      const validityDays = DOCUMENT_VALIDITY_DAYS[formData.type];
-      // If the document type has a validity period, calculate expiry date
-      if (validityDays !== null) {
-        const newExpiryDate = addDays(new Date(formData.date), validityDays);
-        onChange('expiryDate', newExpiryDate);
-      } else {
-        // If the document type doesn't have expiry, set to null
-        onChange('expiryDate', null);
-      }
-    }
-  }, [formData.type, formData.date, onChange]);
-
-  // Handle document type change
-  const handleTypeChange = (event) => {
-    onChange('type', event.target.value);
-  };
-
-  // Handle date changes
-  const handleDateChange = (date) => {
-    onChange('date', date);
-  };
-
-  const handleExpiryDateChange = (date) => {
-    onChange('expiryDate', date);
-  };
-
-  return (
-    <Box>
+    <Box sx={{ mt: 2 }}>
       <Typography variant="h6" gutterBottom>
         Información del Documento
       </Typography>
-      <Divider sx={{ mb: 3 }} />
-
+      
       <Grid container spacing={3}>
-        {/* Document Type */}
+        {/* Tipo de documento */}
         <Grid item xs={12} md={6}>
           <FormControl fullWidth size="small">
             <InputLabel id="document-type-label">Tipo de Documento</InputLabel>
             <Select
               labelId="document-type-label"
-              value={formData.type || DOCUMENT_TYPES.QUOTE}
+              value={formData.type}
               label="Tipo de Documento"
-              onChange={handleTypeChange}
+              onChange={(e) => onFieldChange('type', e.target.value)}
             >
-              <MenuItem value={DOCUMENT_TYPES.QUOTE}>Presupuesto</MenuItem>
-              <MenuItem value={DOCUMENT_TYPES.PROFORMA}>Factura Proforma</MenuItem>
-              <MenuItem value={DOCUMENT_TYPES.DELIVERY_NOTE}>Nota de Entrega</MenuItem>
+              <MenuItem value={DOCUMENT_TYPES.QUOTE}>{DOCUMENT_TYPE_NAMES[DOCUMENT_TYPES.QUOTE]}</MenuItem>
+              <MenuItem value={DOCUMENT_TYPES.PROFORMA}>{DOCUMENT_TYPE_NAMES[DOCUMENT_TYPES.PROFORMA]}</MenuItem>
+              <MenuItem value={DOCUMENT_TYPES.DELIVERY_NOTE}>{DOCUMENT_TYPE_NAMES[DOCUMENT_TYPES.DELIVERY_NOTE]}</MenuItem>
             </Select>
-            <FormHelperText>Seleccione el tipo de documento</FormHelperText>
           </FormControl>
         </Grid>
-
-        {/* Document Number */}
+        
+        {/* Número de documento */}
         <Grid item xs={12} md={6}>
           <TextField
-            fullWidth
             label="Número de Documento"
-            variant="outlined"
-            size="small"
             value={formData.documentNumber || ''}
-            onChange={(e) => onChange('documentNumber', e.target.value)}
-            placeholder="Se generará automáticamente si lo deja en blanco"
-            helperText="Número de referencia del documento"
+            onChange={(e) => onFieldChange('documentNumber', e.target.value)}
+            fullWidth
+            size="small"
+            helperText="Se generará automáticamente si se deja en blanco"
           />
         </Grid>
-
-        {/* Document Date */}
+        
+        {/* Fecha */}
         <Grid item xs={12} md={6}>
-          <SimpleDatePicker
-            label="Fecha del Documento"
-            value={formData.date || new Date()}
-            onChange={handleDateChange}
-            helperText="Fecha de emisión del documento"
+          <TextField
+            label="Fecha"
+            type="date"
+            value={formData.date || ''}
+            onChange={(e) => onFieldChange('date', e.target.value)}
+            fullWidth
+            size="small"
+            InputLabelProps={{ shrink: true }}
+            helperText="Fecha del documento"
           />
         </Grid>
-
-        {/* Expiry Date - Only if the document type has a validity period */}
+        
+        {/* Fecha de vencimiento */}
         {DOCUMENT_VALIDITY_DAYS[formData.type] !== null && (
           <Grid item xs={12} md={6}>
-            <SimpleDatePicker
+            <TextField
               label="Fecha de Vencimiento"
-              value={formData.expiryDate || null}
-              onChange={handleExpiryDateChange}
-              helperText="Fecha de vencimiento del documento"
+              type="date"
+              value={formData.expiryDate || ''}
+              onChange={(e) => onFieldChange('expiryDate', e.target.value)}
+              fullWidth
+              size="small"
+              InputLabelProps={{ shrink: true }}
+              helperText={`Vence a los ${DOCUMENT_VALIDITY_DAYS[formData.type]} días`}
             />
           </Grid>
         )}
-
-        {/* Currency */}
+        
+        {/* Moneda */}
         <Grid item xs={12} md={6}>
           <FormControl fullWidth size="small">
             <InputLabel id="currency-label">Moneda</InputLabel>
             <Select
               labelId="currency-label"
-              value={formData.currency || 'EUR'}
+              value={formData.currency || 'USD'}
               label="Moneda"
-              onChange={(e) => onChange('currency', e.target.value)}
+              onChange={(e) => onFieldChange('currency', e.target.value)}
             >
-              <MenuItem value="EUR">Euro (€)</MenuItem>
-              <MenuItem value="USD">Dólar ($)</MenuItem>
-              <MenuItem value="GBP">Libra Esterlina (£)</MenuItem>
+              {CURRENCY_LIST.map((currency) => (
+                <MenuItem key={currency.value} value={currency.value}>
+                  {currency.label}
+                </MenuItem>
+              ))}
             </Select>
-            <FormHelperText>Moneda en la que se emite el documento</FormHelperText>
           </FormControl>
         </Grid>
-
-        {/* Document Notes */}
+        
+        {/* Estado */}
+        <Grid item xs={12} md={6}>
+          <FormControl fullWidth size="small">
+            <InputLabel id="status-label">Estado</InputLabel>
+            <Select
+              labelId="status-label"
+              value={formData.status}
+              label="Estado"
+              onChange={(e) => onFieldChange('status', e.target.value)}
+            >
+              <MenuItem value={DOCUMENT_STATUS.DRAFT}>Borrador</MenuItem>
+              <MenuItem value={DOCUMENT_STATUS.SENT}>Enviado</MenuItem>
+              <MenuItem value={DOCUMENT_STATUS.APPROVED}>Aprobado</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+        
+        {/* Notas */}
         <Grid item xs={12}>
           <TextField
-            fullWidth
             label="Notas"
-            variant="outlined"
-            size="small"
+            value={formData.notes || ''}
+            onChange={(e) => onFieldChange('notes', e.target.value)}
+            fullWidth
             multiline
             rows={3}
-            value={formData.notes || ''}
-            onChange={(e) => onChange('notes', e.target.value)}
-            helperText="Notas o comentarios adicionales para este documento"
+            size="small"
+            helperText="Notas adicionales para el documento"
           />
         </Grid>
-
-        {/* Terms and Conditions */}
+        
+        {/* Términos */}
         <Grid item xs={12}>
           <TextField
-            fullWidth
             label="Términos y Condiciones"
-            variant="outlined"
-            size="small"
+            value={formData.terms || ''}
+            onChange={(e) => onFieldChange('terms', e.target.value)}
+            fullWidth
             multiline
             rows={3}
-            value={formData.terms || ''}
-            onChange={(e) => onChange('terms', e.target.value)}
-            helperText="Términos y condiciones aplicables al documento"
+            size="small"
+            helperText="Términos y condiciones del documento"
           />
         </Grid>
       </Grid>
