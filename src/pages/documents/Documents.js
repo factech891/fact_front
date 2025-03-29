@@ -1,4 +1,6 @@
 // src/pages/documents/Documents.js
+
+// Mantén los imports necesarios
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -12,20 +14,13 @@ import {
   DialogContent,
   DialogActions,
   Snackbar,
-  Alert,
-  IconButton,
-  Menu,
-  MenuItem
+  Alert
 } from '@mui/material';
 import {
-  Add as AddIcon,
-  FilterList as FilterIcon,
-  CloudDownload as ExportIcon,
-  MoreVert as MoreVertIcon
+  Add as AddIcon
 } from '@mui/icons-material';
 import DocumentTable from './DocumentTable';
 import { getDocuments, deleteDocument } from '../../services/DocumentsApi';
-import { DOCUMENT_TYPES, DOCUMENT_TYPE_NAMES } from './constants/documentTypes';
 
 const Documents = () => {
   const navigate = useNavigate();
@@ -35,7 +30,6 @@ const Documents = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [anchorEl, setAnchorEl] = useState(null);
 
   // Cargar documentos
   useEffect(() => {
@@ -55,24 +49,9 @@ const Documents = () => {
     fetchDocuments();
   }, []);
 
-  // Menú de tipos de documento
-  const handleMenuClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  // Crear nuevo documento
+  // Crear nuevo documento - simplificado
   const handleCreateNew = () => {
     navigate('/documents/new');
-  };
-
-  // Crear documento con tipo específico
-  const handleCreateType = (type) => {
-    navigate(`/documents/new?type=${type}`);
-    handleMenuClose();
   };
 
   // Solicitar eliminar documento
@@ -118,47 +97,14 @@ const Documents = () => {
             </Typography>
           </Grid>
           <Grid item>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<FilterIcon />}
-              >
-                Filtrar
-              </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<ExportIcon />}
-              >
-                Exportar
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={handleCreateNew}
-              >
-                Nueva Cotización
-              </Button>
-              <IconButton size="small" onClick={handleMenuClick}>
-                <MoreVertIcon />
-              </IconButton>
-              <Menu
-                anchorEl={anchorEl}
-                open={Boolean(anchorEl)}
-                onClose={handleMenuClose}
-              >
-                <MenuItem onClick={() => handleCreateType(DOCUMENT_TYPES.QUOTE)}>
-                  Nuevo Presupuesto
-                </MenuItem>
-                <MenuItem onClick={() => handleCreateType(DOCUMENT_TYPES.PROFORMA)}>
-                  Nueva Factura Proforma
-                </MenuItem>
-                <MenuItem onClick={() => handleCreateType(DOCUMENT_TYPES.DELIVERY_NOTE)}>
-                  Nueva Nota de Entrega
-                </MenuItem>
-              </Menu>
-            </Box>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleCreateNew}
+              color="primary"
+            >
+              Nueva Cotización
+            </Button>
           </Grid>
         </Grid>
       </Box>
@@ -185,8 +131,7 @@ const Documents = () => {
         <DialogContent>
           {documentToDelete && (
             <Typography>
-              ¿Está seguro de que desea eliminar el {DOCUMENT_TYPE_NAMES[documentToDelete.type]} 
-              #{documentToDelete.documentNumber}?
+              ¿Está seguro de que desea eliminar este documento?
               Esta acción no se puede deshacer.
             </Typography>
           )}

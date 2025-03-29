@@ -145,7 +145,11 @@ const DocumentTable = ({ documents = [], onDelete, onConvert }) => {
                   <TableRow key={document._id} hover>
                     <TableCell>{document.documentNumber || '—'}</TableCell>
                     <TableCell>{DOCUMENT_TYPE_NAMES[document.type]}</TableCell>
-                    <TableCell>{document.client?.name || '—'}</TableCell>
+                    <TableCell>
+                      {document.client ? (
+                        document.client.nombre || document.client.name || '—'
+                      ) : '—'}
+                    </TableCell>
                     <TableCell>{formatDisplayDate(document.date)}</TableCell>
                     <TableCell>
                       {formatCurrency(document.total, document.currency)}
