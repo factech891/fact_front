@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
@@ -61,6 +61,22 @@ const Sidebar = ({ companyName = "Transportes Express" }) => {
         </Box>
       ),
       path: '/invoices',
+    },
+    {
+      id: 'documents',
+      text: 'Cotizaciones',
+      icon: (
+        <Box sx={{ 
+          width: 24, 
+          height: 24, 
+          display: 'flex', 
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <span role="img" aria-label="quotes" style={{ fontSize: '20px' }}>📋</span>
+        </Box>
+      ),
+      path: '/documents',
     },
     {
       id: 'clients',
@@ -163,6 +179,13 @@ const Sidebar = ({ companyName = "Transportes Express" }) => {
 
   // Determina si un item está activo
   const isActive = (path) => {
+    if (!path) return false;
+    
+    // Para la ruta de documentos, consideramos activo incluso con parámetros
+    if (path === '/documents' && location.pathname.startsWith('/documents')) {
+      return true;
+    }
+    
     return location.pathname === path ||
            (path !== '/' && location.pathname.startsWith(path));
   };
@@ -279,6 +302,7 @@ const Sidebar = ({ companyName = "Transportes Express" }) => {
       <List sx={{ px: 1, py: 2 }}>
         {menuItems.map((item) => {
           const active = isActive(item.path);
+          
           return (
             <ListItem 
               key={item.id} 
@@ -304,8 +328,7 @@ const Sidebar = ({ companyName = "Transportes Express" }) => {
               )}
               <ListItemButton
                 component={RouterLink}
-                to={item.path}
-                selected={active}
+                to={item.path || '#'}
                 sx={{
                   minHeight: 48,
                   justifyContent: open ? 'initial' : 'center',
