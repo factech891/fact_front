@@ -19,6 +19,32 @@ import { addDays } from 'date-fns';
 import DocumentTypeSelector from '../components/DocumentTypeSelector';
 import { DOCUMENT_TYPES, DOCUMENT_VALIDITY_DAYS } from '../constants/documentTypes';
 
+// Solución alternativa para DatePicker sin usar AdapterDateFns
+const SimpleDatePicker = ({ label, value, onChange, helperText }) => {
+  // Convertir la fecha a formato yyyy-MM-dd para el input
+  const dateValue = value 
+    ? new Date(value).toISOString().split('T')[0] 
+    : '';
+
+  const handleChange = (e) => {
+    const newDate = e.target.value ? new Date(e.target.value) : null;
+    onChange(newDate);
+  };
+
+  return (
+    <TextField
+      label={label}
+      type="date"
+      fullWidth
+      size="small"
+      value={dateValue}
+      onChange={handleChange}
+      helperText={helperText}
+      InputLabelProps={{ shrink: true }}
+    />
+  );
+};
+
 const DocumentSection = ({ formData, onChange }) => {
   // Update expiry date based on document type and date
   useEffect(() => {
@@ -59,11 +85,20 @@ const DocumentSection = ({ formData, onChange }) => {
       <Grid container spacing={3}>
         {/* Document Type */}
         <Grid item xs={12} md={6}>
-          <DocumentTypeSelector 
-            value={formData.type} 
-            onChange={handleTypeChange}
-            helperText="Seleccione el tipo de documento"
-          />
+          <FormControl fullWidth size="small">
+            <InputLabel id="document-type-label">Tipo de Documento</InputLabel>
+            <Select
+              labelId="document-type-label"
+              value={formData.type || DOCUMENT_TYPES.QUOTE}
+              label="Tipo de Documento"
+              onChange={handleTypeChange}
+            >
+              <MenuItem value={DOCUMENT_TYPES.QUOTE}>Presupuesto</MenuItem>
+              <MenuItem value={DOCUMENT_TYPES.PROFORMA}>Factura Proforma</MenuItem>
+              <MenuItem value={DOCUMENT_TYPES.DELIVERY_NOTE}>Nota de Entrega</MenuItem>
+            </Select>
+            <FormHelperText>Seleccione el tipo de documento</FormHelperText>
+          </FormControl>
         </Grid>
 
         {/* Document Number */}
@@ -82,41 +117,23 @@ const DocumentSection = ({ formData, onChange }) => {
 
         {/* Document Date */}
         <Grid item xs={12} md={6}>
-          <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-            <DatePicker
-              label="Fecha del Documento"
-              value={formData.date || null}
-              onChange={handleDateChange}
-              format="dd/MM/yyyy"
-              slotProps={{ 
-                textField: { 
-                  fullWidth: true, 
-                  size: "small",
-                  helperText: "Fecha de emisión del documento" 
-                } 
-              }}
-            />
-          </LocalizationProvider>
+          <SimpleDatePicker
+            label="Fecha del Documento"
+            value={formData.date || new Date()}
+            onChange={handleDateChange}
+            helperText="Fecha de emisión del documento"
+          />
         </Grid>
 
         {/* Expiry Date - Only if the document type has a validity period */}
         {DOCUMENT_VALIDITY_DAYS[formData.type] !== null && (
           <Grid item xs={12} md={6}>
-            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-              <DatePicker
-                label="Fecha de Vencimiento"
-                value={formData.expiryDate || null}
-                onChange={handleExpiryDateChange}
-                format="dd/MM/yyyy"
-                slotProps={{ 
-                  textField: { 
-                    fullWidth: true, 
-                    size: "small",
-                    helperText: "Fecha de vencimiento del documento" 
-                  } 
-                }}
-              />
-            </LocalizationProvider>
+            <SimpleDatePicker
+              label="Fecha de Vencimiento"
+              value={formData.expiryDate || null}
+              onChange={handleExpiryDateChange}
+              helperText="Fecha de vencimiento del documento"
+            />
           </Grid>
         )}
 

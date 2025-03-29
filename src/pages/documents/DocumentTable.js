@@ -1,4 +1,6 @@
+// src/pages/documents/DocumentTable.js
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Table,
@@ -8,101 +10,85 @@ import {
   TableHead,
   TableRow,
   TablePagination,
-  TableSortLabel,
   Paper,
   IconButton,
   Tooltip,
   TextField,
-  InputAdornment
+  InputAdornment,
+  Chip
 } from '@mui/material';
-import { 
-  Search as SearchIcon, 
+import {
   Visibility as VisibilityIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Send as SendIcon
+  Send as SendIcon,
+  Search as SearchIcon,
+  Transform as ConvertIcon
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import DocumentStatusChip from './components/DocumentStatusChip';
-import DocumentActions from './components/DocumentActions';
-import { DOCUMENT_TYPE_NAMES } from './constants/documentTypes';
+import { DOCUMENT_TYPE_NAMES, DOCUMENT_STATUS, DOCUMENT_STATUS_NAMES, DOCUMENT_STATUS_COLORS } from './constants/documentTypes';
 
-// Helper function for sorting
-function descendingComparator(a, b, orderBy) {
-  if (b[orderBy] < a[orderBy]) {
-    return -1;
-  }
-  if (b[orderBy] > a[orderBy]) {
-    return 1;
-  }
-  return 0;
-}
-
-function getComparator(order, orderBy) {
-  return order === 'desc'
-    ? (a, b) => descendingComparator(a, b, orderBy)
-    : (a, b) => -descendingComparator(a, b, orderBy);
-}
-
-function DocumentTable({ documents, onDelete, onSend }) {
+const DocumentTable = ({ documents = [], onDelete, onConvert }) => {
   const navigate = useNavigate();
-  const [order, setOrder] = useState('desc');
-  const [orderBy, setOrderBy] = useState('createdAt');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Handle sorting
-  const handleRequestSort = (property) => {
-    const isAsc = orderBy === property && order === 'asc';
-    setOrder(isAsc ? 'desc' : 'asc');
-    setOrderBy(property);
-  };
+  // Filtrar documentos según el término de búsqueda
+  const filteredDocuments = documents.filter(doc => {
+    const term = searchTerm.toLowerCase();
+    return (
+      doc.documentNumber?.toLowerCase().includes(term) ||
+      doc.client?.name?.toLowerCase().includes(term) ||
+      DOCUMENT_TYPE_NAMES[doc.type]?.toLowerCase().includes(term) ||
+      DOCUMENT_STATUS_NAMES[doc.status]?.toLowerCase().includes(term)
+    );
+  });
 
-  // Handle edit document
-  const handleEdit = (id) => {
-    navigate(`/documents/edit/${id}`);
-  };
-
-  // Handle preview document
-  const handlePreview = (id) => {
-    navigate(`/documents/view/${id}`);
-  };
-
-  // Handle pagination changes
+  // Manejar cambio de página
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
 
+  // Manejar cambio de filas por página
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
 
-  // Filter documents based on search term
-  const filteredDocuments = documents.filter((doc) => {
-    const searchString = searchTerm.toLowerCase();
-    return (
-      doc.documentNumber?.toLowerCase().includes(searchString) ||
-      doc.client?.name?.toLowerCase().includes(searchString) ||
-      DOCUMENT_TYPE_NAMES[doc.type]?.toLowerCase().includes(searchString) ||
-      doc.client?.taxId?.toLowerCase().includes(searchString)
-    );
-  });
+  // Manejar clic en editar
+  const handleEdit = (id) => {
+    navigate(`/documents/edit/${id}`);
+  };
 
-  // Sort and paginate
-  const sortedDocuments = filteredDocuments
-    .sort(getComparator(order, orderBy))
-    .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  // Manejar clic en ver
+  const handleView = (id) => {
+    navigate(`/documents/view/${id}`);
+  };
+
+  // Formatear fecha
+  const formatDate = (dateString) => {
+    if (!dateString) return '—';
+    return format(new Date(dateString), 'dd/MM/yyyy');
+  };
+
+  // Formatear moneda
+  const formatCurrency = (amount, currency = 'EUR') => {
+    if (amount === undefined || amount === null) return '—';
+    return new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: currency
+    }).format(amount);
+  };
 
   return (
-    <Box sx={{ width: '100%' }}>
+    <Box>
+      {/* Buscador */}
       <Box sx={{ mb: 2 }}>
         <TextField
           fullWidth
-          variant="outlined"
-          placeholder="Buscar documento..."
+          size="small"
+          placeholder="Buscar documentos..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           InputProps={{
@@ -112,124 +98,114 @@ function DocumentTable({ documents, onDelete, onSend }) {
               </InputAdornment>
             ),
           }}
-          size="small"
         />
       </Box>
-      <Paper sx={{ width: '100%', mb: 2 }}>
-        <TableContainer>
-          <Table sx={{ minWidth: 750 }} aria-labelledby="tableTitle" size="medium">
-            <TableHead>
+
+      {/* Tabla */}
+      <TableContainer component={Paper} variant="outlined">
+        <Table size="small">
+          <TableHead>
+            <TableRow sx={{ backgroundColor: 'action.hover' }}>
+              <TableCell>Número</TableCell>
+              <TableCell>Tipo</TableCell>
+              <TableCell>Cliente</TableCell>
+              <TableCell>Fecha</TableCell>
+              <TableCell>Total</TableCell>
+              <TableCell>Estado</TableCell>
+              <TableCell align="right">Acciones</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filteredDocuments.length === 0 ? (
               <TableRow>
-                <TableCell>
-                  <TableSortLabel
-                    active={orderBy === 'documentNumber'}
-                    direction={orderBy === 'documentNumber' ? order : 'asc'}
-                    onClick={() => handleRequestSort('documentNumber')}
-                  >
-                    Número
-                  </TableSortLabel>
+                <TableCell colSpan={7} align="center">
+                  No se encontraron documentos
                 </TableCell>
-                <TableCell>
-                  <TableSortLabel
-                    active={orderBy === 'type'}
-                    direction={orderBy === 'type' ? order : 'asc'}
-                    onClick={() => handleRequestSort('type')}
-                  >
-                    Tipo
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell>
-                  <TableSortLabel
-                    active={orderBy === 'client.name'}
-                    direction={orderBy === 'client.name' ? order : 'asc'}
-                    onClick={() => handleRequestSort('client.name')}
-                  >
-                    Cliente
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell>
-                  <TableSortLabel
-                    active={orderBy === 'createdAt'}
-                    direction={orderBy === 'createdAt' ? order : 'asc'}
-                    onClick={() => handleRequestSort('createdAt')}
-                  >
-                    Fecha
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell>
-                  <TableSortLabel
-                    active={orderBy === 'total'}
-                    direction={orderBy === 'total' ? order : 'asc'}
-                    onClick={() => handleRequestSort('total')}
-                  >
-                    Total
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell>
-                  <TableSortLabel
-                    active={orderBy === 'status'}
-                    direction={orderBy === 'status' ? order : 'asc'}
-                    onClick={() => handleRequestSort('status')}
-                  >
-                    Estado
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell align="right">Acciones</TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
-              {sortedDocuments.map((document) => (
-                <TableRow hover key={document._id}>
-                  <TableCell>{document.documentNumber || '-'}</TableCell>
-                  <TableCell>{DOCUMENT_TYPE_NAMES[document.type]}</TableCell>
-                  <TableCell>{document.client?.name}</TableCell>
-                  <TableCell>
-                    {document.createdAt ? format(new Date(document.createdAt), 'dd/MM/yyyy') : '-'}
-                  </TableCell>
-                  <TableCell>
-                    {new Intl.NumberFormat('es-ES', {
-                      style: 'currency',
-                      currency: document.currency || 'EUR'
-                    }).format(document.total || 0)}
-                  </TableCell>
-                  <TableCell>
-                    <DocumentStatusChip status={document.status} />
-                  </TableCell>
-                  <TableCell align="right">
-                    <DocumentActions 
-                      document={document} 
-                      onEdit={() => handleEdit(document._id)}
-                      onPreview={() => handlePreview(document._id)}
-                      onDelete={() => onDelete(document._id)}
-                      onSend={() => onSend(document._id)}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
-              {sortedDocuments.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    No se encontraron documentos
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={filteredDocuments.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-          labelRowsPerPage="Filas por página"
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
-        />
-      </Paper>
+            ) : (
+              filteredDocuments
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((document) => (
+                  <TableRow key={document._id} hover>
+                    <TableCell>{document.documentNumber || '—'}</TableCell>
+                    <TableCell>{DOCUMENT_TYPE_NAMES[document.type]}</TableCell>
+                    <TableCell>{document.client?.name || '—'}</TableCell>
+                    <TableCell>{formatDate(document.date)}</TableCell>
+                    <TableCell>
+                      {formatCurrency(document.total, document.currency)}
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={DOCUMENT_STATUS_NAMES[document.status]} 
+                        color={DOCUMENT_STATUS_COLORS[document.status]}
+                        size="small"
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Tooltip title="Ver">
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleView(document._id)}
+                        >
+                          <VisibilityIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      
+                      <Tooltip title="Editar">
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleEdit(document._id)}
+                          disabled={document.status === DOCUMENT_STATUS.CONVERTED}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      
+                      {document.status !== DOCUMENT_STATUS.CONVERTED && (
+                        <Tooltip title="Convertir a Factura">
+                          <IconButton 
+                            size="small" 
+                            onClick={() => onConvert && onConvert(document._id)}
+                            color="primary"
+                          >
+                            <ConvertIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      
+                      <Tooltip title="Eliminar">
+                        <IconButton 
+                          size="small" 
+                          onClick={() => onDelete && onDelete(document._id)}
+                          disabled={document.status === DOCUMENT_STATUS.CONVERTED}
+                          color="error"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      {/* Paginación */}
+      <TablePagination
+        rowsPerPageOptions={[5, 10, 25]}
+        component="div"
+        count={filteredDocuments.length}
+        rowsPerPage={rowsPerPage}
+        page={page}
+        onPageChange={handleChangePage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+        labelRowsPerPage="Filas por página"
+        labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+      />
     </Box>
   );
-}
+};
 
 export default DocumentTable;

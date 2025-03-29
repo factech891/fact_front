@@ -1,21 +1,20 @@
+// src/pages/documents/DocumentPreview/index.js
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Paper,
   Typography,
-  Button,
-  Divider,
   Grid,
+  Divider,
+  Button,
+  IconButton,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Card,
-  CardContent,
-  IconButton,
   Chip,
   Dialog,
   DialogTitle,
@@ -23,93 +22,70 @@ import {
   DialogContentText,
   DialogActions,
   Snackbar,
-  Alert,
-  CircularProgress
+  Alert
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
   Edit as EditIcon,
-  Send as SendIcon,
   Delete as DeleteIcon,
-  Download as DownloadIcon,
   Print as PrintIcon,
+  Send as SendIcon,
+  Download as DownloadIcon,
   Transform as ConvertIcon
 } from '@mui/icons-material';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import useDocuments from '../../../hooks/useDocuments';
-import useCompany from '../../../hooks/useCompany';
-import { DOCUMENT_TYPE_NAMES, DOCUMENT_STATUS_NAMES } from '../constants/documentTypes';
-import DocumentStatusChip from '../components/DocumentStatusChip';
+
+// Importar servicios y constantes
+import { getDocument, deleteDocument, convertToInvoice } from '../../../services/DocumentsApi';
+import { DOCUMENT_TYPE_NAMES, DOCUMENT_STATUS, DOCUMENT_STATUS_NAMES, DOCUMENT_STATUS_COLORS } from '../constants/documentTypes';
 import ConvertToInvoiceModal from '../components/ConvertToInvoiceModal';
 
-// Reusing invoice preview components
-import InvoiceHeader from '../../invoices/InvoicePreview/InvoiceHeader';
-import ClientInfo from '../../invoices/InvoicePreview/ClientInfo';
-import InvoiceFooter from '../../invoices/InvoicePreview/InvoiceFooter';
-
 const DocumentPreview = () => {
-  const { id } = useParams();
   const navigate = useNavigate();
-  const { getDocument, deleteDocument, convertToInvoice } = useDocuments();
-  const { company } = useCompany();
+  const { id } = useParams();
   
+  // Estados
   const [document, setDocument] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [convertModalOpen, setConvertModalOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-
-  // Fetch document data
+  
+  // Cargar documento
   useEffect(() => {
     const fetchDocument = async () => {
       try {
         setLoading(true);
         const data = await getDocument(id);
         setDocument(data);
-        setError(null);
       } catch (err) {
-        setError(err.message || 'Error loading document');
+        console.error('Error al cargar documento:', err);
+        setError('Error al cargar el documento');
       } finally {
         setLoading(false);
       }
     };
-
+    
     if (id) {
       fetchDocument();
     }
-  }, [id, getDocument]);
-
-  // Format date
-  const formatDate = (dateString) => {
-    if (!dateString) return '-';
-    return format(new Date(dateString), 'dd MMMM yyyy', { locale: es });
-  };
-
-  // Format currency
-  const formatCurrency = (amount, currency = 'EUR') => {
-    return new Intl.NumberFormat('es-ES', {
-      style: 'currency',
-      currency: currency
-    }).format(amount || 0);
-  };
-
-  // Handle edit document
-  const handleEdit = () => {
-    navigate(`/documents/edit/${id}`);
-  };
-
-  // Handle go back
+  }, [id]);
+  
+  // Volver a la lista
   const handleGoBack = () => {
     navigate('/documents');
   };
-
-  // Handle delete document
+  
+  // Ir a editar
+  const handleEdit = () => {
+    navigate(`/documents/edit/${id}`);
+  };
+  
+  // Eliminar documento
   const handleDeleteClick = () => {
     setDeleteDialogOpen(true);
   };
-
+  
   const handleDeleteConfirm = async () => {
     try {
       await deleteDocument(id);
@@ -118,89 +94,108 @@ const DocumentPreview = () => {
         message: 'Documento eliminado correctamente',
         severity: 'success'
       });
-      // Navigate back after short delay
+      // Redirigir a la lista después de un breve delay
       setTimeout(() => {
         navigate('/documents');
       }, 1500);
     } catch (err) {
+      console.error('Error al eliminar documento:', err);
       setSnackbar({
         open: true,
-        message: `Error al eliminar el documento: ${err.message}`,
+        message: 'Error al eliminar el documento',
         severity: 'error'
       });
     } finally {
       setDeleteDialogOpen(false);
     }
   };
-
-  // Handle convert to invoice
+  
+  // Abrir modal para convertir a factura
   const handleConvertClick = () => {
     setConvertModalOpen(true);
   };
-
+  
+  // Manejar confirmación de conversión a factura
   const handleConvertConfirm = async (invoiceData) => {
     try {
       await convertToInvoice(id, invoiceData);
+      // Recargar el documento para ver el estado actualizado
+      const updatedDoc = await getDocument(id);
+      setDocument(updatedDoc);
+      
       setSnackbar({
         open: true,
         message: 'Documento convertido a factura correctamente',
         severity: 'success'
       });
-      // Reload document to update status
-      const updatedDoc = await getDocument(id);
-      setDocument(updatedDoc);
     } catch (err) {
+      console.error('Error al convertir a factura:', err);
       setSnackbar({
         open: true,
-        message: `Error al convertir a factura: ${err.message}`,
+        message: 'Error al convertir el documento a factura',
         severity: 'error'
       });
     } finally {
       setConvertModalOpen(false);
     }
   };
-
-  // Handle print
+  
+  // Imprimir documento
   const handlePrint = () => {
     window.print();
   };
-
+  
+  // Formatear fechas
+  const formatDate = (dateString) => {
+    if (!dateString) return '—';
+    return new Date(dateString).toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+  
+  // Formatear moneda
+  const formatCurrency = (amount, currency = 'EUR') => {
+    if (amount === undefined || amount === null) return '—';
+    return new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: currency
+    }).format(amount);
+  };
+  
   if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-        <CircularProgress />
-      </Box>
-    );
+    return <Typography>Cargando documento...</Typography>;
   }
-
+  
   if (error) {
     return (
-      <Box sx={{ my: 4 }}>
+      <Box>
         <Alert severity="error">{error}</Alert>
         <Button startIcon={<ArrowBackIcon />} onClick={handleGoBack} sx={{ mt: 2 }}>
-          Volver a Documentos
+          Volver a la lista
         </Button>
       </Box>
     );
   }
-
+  
   if (!document) {
     return (
-      <Box sx={{ my: 4 }}>
-        <Alert severity="warning">No se encontró el documento</Alert>
+      <Box>
+        <Alert severity="warning">Documento no encontrado</Alert>
         <Button startIcon={<ArrowBackIcon />} onClick={handleGoBack} sx={{ mt: 2 }}>
-          Volver a Documentos
+          Volver a la lista
         </Button>
       </Box>
     );
   }
-
-  // Check if document is converted (to disable some actions)
-  const isConverted = document.status === 'CONVERTED';
-
+  
+  // Verificar si el documento ya está convertido a factura
+  const isConverted = document.status === DOCUMENT_STATUS.CONVERTED;
+  
   return (
-    <>
-      {/* Actions bar */}
+    <Box>
+      {/* Cabecera con acciones */}
       <Box sx={{ mb: 3 }}>
         <Grid container justifyContent="space-between" alignItems="center">
           <Grid item>
@@ -209,13 +204,27 @@ const DocumentPreview = () => {
                 <ArrowBackIcon />
               </IconButton>
               <Typography variant="h4">
-                {DOCUMENT_TYPE_NAMES[document.type] || 'Documento'} #{document.documentNumber || 'Sin número'}
+                {DOCUMENT_TYPE_NAMES[document.type]} #{document.documentNumber || '—'}
               </Typography>
-              <DocumentStatusChip status={document.status} sx={{ ml: 2 }} />
+              <Chip 
+                label={DOCUMENT_STATUS_NAMES[document.status]} 
+                color={DOCUMENT_STATUS_COLORS[document.status]}
+                size="small"
+                sx={{ ml: 2 }}
+              />
             </Box>
           </Grid>
           <Grid item>
             <Box sx={{ display: 'flex', gap: 1 }}>
+              {!isConverted && (
+                <Button
+                  variant="outlined"
+                  startIcon={<ConvertIcon />}
+                  onClick={handleConvertClick}
+                >
+                  Convertir a Factura
+                </Button>
+              )}
               <Button
                 variant="outlined"
                 startIcon={<PrintIcon />}
@@ -229,138 +238,143 @@ const DocumentPreview = () => {
               >
                 Descargar PDF
               </Button>
-              <Button
-                variant="outlined"
-                startIcon={<ConvertIcon />}
-                onClick={handleConvertClick}
-                disabled={isConverted}
-              >
-                Convertir a Factura
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<EditIcon />}
-                onClick={handleEdit}
-                disabled={isConverted}
-              >
-                Editar
-              </Button>
+              {!isConverted && (
+                <Button
+                  variant="contained"
+                  startIcon={<EditIcon />}
+                  onClick={handleEdit}
+                >
+                  Editar
+                </Button>
+              )}
             </Box>
           </Grid>
         </Grid>
       </Box>
-
-      {/* Document Preview */}
-      <Paper 
-        sx={{ 
-          p: 4, 
-          mb: 4,
-          "@media print": {
-            boxShadow: "none",
-            padding: 0
-          }
-        }}
-        className="document-preview"
-      >
-        {/* Header with company and document info */}
-        <Box sx={{ mb: 4 }}>
-          <Grid container spacing={2}>
-            <Grid item xs={6}>
-              {company && (
-                <>
-                  {company.logo && (
-                    <Box sx={{ mb: 2, maxWidth: 200 }}>
-                      <img src={company.logo} alt={company.name} style={{ width: '100%' }} />
-                    </Box>
-                  )}
-                  <Typography variant="h6">{company.name}</Typography>
-                  <Typography variant="body2">{company.address}</Typography>
-                  <Typography variant="body2">{company.postalCode}, {company.city}</Typography>
-                  <Typography variant="body2">CIF/NIF: {company.taxId}</Typography>
-                </>
-              )}
-            </Grid>
-            <Grid item xs={6} sx={{ textAlign: 'right' }}>
-              <Typography variant="h5" sx={{ color: 'primary.main', mb: 1 }}>
-                {DOCUMENT_TYPE_NAMES[document.type]}
-              </Typography>
-              <Typography variant="h6">#{document.documentNumber || 'Sin número'}</Typography>
-              <Typography variant="body2">Fecha: {formatDate(document.date)}</Typography>
-              {document.expiryDate && (
-                <Typography variant="body2">Válido hasta: {formatDate(document.expiryDate)}</Typography>
-              )}
-            </Grid>
+      
+      {/* Documento */}
+      <Paper sx={{ p: 4, mb: 4 }}>
+        {/* Encabezado */}
+        <Grid container spacing={3}>
+          <Grid item xs={6}>
+            <Typography variant="subtitle2" color="text.secondary">
+              De:
+            </Typography>
+            {document.company ? (
+              <>
+                <Typography variant="h6">{document.company.name}</Typography>
+                <Typography>{document.company.address}</Typography>
+                <Typography>{document.company.city}, {document.company.postalCode}</Typography>
+                <Typography>CIF/NIF: {document.company.taxId}</Typography>
+              </>
+            ) : (
+              <Typography>Información de empresa no disponible</Typography>
+            )}
           </Grid>
-        </Box>
-
+          <Grid item xs={6} sx={{ textAlign: 'right' }}>
+            <Typography variant="h5" color="primary">
+              {DOCUMENT_TYPE_NAMES[document.type]}
+            </Typography>
+            <Typography variant="h6">#{document.documentNumber || '—'}</Typography>
+            <Typography>Fecha: {formatDate(document.date)}</Typography>
+            {document.expiryDate && (
+              <Typography>Válido hasta: {formatDate(document.expiryDate)}</Typography>
+            )}
+          </Grid>
+        </Grid>
+        
         <Divider sx={{ my: 3 }} />
-
-        {/* Client Information */}
-        {document.client && (
-          <Box sx={{ mb: 4 }}>
-            <Typography variant="subtitle1" sx={{ mb: 1 }}>Cliente:</Typography>
-            <Typography variant="body1">{document.client.name}</Typography>
-            <Typography variant="body2">{document.client.address}</Typography>
-            <Typography variant="body2">{document.client.postalCode}, {document.client.city}</Typography>
-            <Typography variant="body2">CIF/NIF: {document.client.taxId}</Typography>
-          </Box>
-        )}
-
-        {/* Items Table */}
-        <TableContainer component={Paper} variant="outlined" sx={{ mb: 4 }}>
+        
+        {/* Cliente */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" color="text.secondary">
+            Para:
+          </Typography>
+          {document.client ? (
+            <>
+              <Typography variant="h6">{document.client.name}</Typography>
+              <Typography>{document.client.address}</Typography>
+              <Typography>{document.client.city}, {document.client.postalCode}</Typography>
+              <Typography>CIF/NIF: {document.client.taxId}</Typography>
+            </>
+          ) : (
+            <Typography>Cliente no especificado</Typography>
+          )}
+        </Box>
+        
+        {/* Tabla de ítems */}
+        <TableContainer component={Paper} variant="outlined" sx={{ mb: 3 }}>
           <Table>
             <TableHead>
-              <TableRow sx={{ backgroundColor: 'grey.100' }}>
-                <TableCell>Producto</TableCell>
+              <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                <TableCell>Producto/Servicio</TableCell>
                 <TableCell align="right">Cantidad</TableCell>
                 <TableCell align="right">Precio</TableCell>
-                <TableCell align="right">Impuesto</TableCell>
+                <TableCell align="right">IVA</TableCell>
                 <TableCell align="right">Total</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {document.items && document.items.map((item, index) => (
-                <TableRow key={index}>
-                  <TableCell>
-                    <Typography variant="body2">{item.name}</Typography>
-                    <Typography variant="caption" color="textSecondary">{item.description}</Typography>
+              {document.items && document.items.length > 0 ? (
+                document.items.map((item, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Typography variant="body2">{item.name}</Typography>
+                      {item.description && (
+                        <Typography variant="caption" color="text.secondary">
+                          {item.description}
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell align="right">{item.quantity}</TableCell>
+                    <TableCell align="right">
+                      {formatCurrency(item.price, document.currency)}
+                    </TableCell>
+                    <TableCell align="right">{item.taxRate}%</TableCell>
+                    <TableCell align="right">
+                      {formatCurrency(item.total, document.currency)}
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} align="center">
+                    No hay items en este documento
                   </TableCell>
-                  <TableCell align="right">{item.quantity}</TableCell>
-                  <TableCell align="right">{formatCurrency(item.price, document.currency)}</TableCell>
-                  <TableCell align="right">{item.taxRate}%</TableCell>
-                  <TableCell align="right">{formatCurrency(item.total, document.currency)}</TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </TableContainer>
-
-        {/* Totals */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 4 }}>
-          <Card variant="outlined" sx={{ width: 300 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="body2">Subtotal:</Typography>
-                <Typography variant="body2">{formatCurrency(document.subtotal, document.currency)}</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="body2">Impuestos:</Typography>
-                <Typography variant="body2">{formatCurrency(document.taxAmount, document.currency)}</Typography>
-              </Box>
-              <Divider sx={{ my: 1 }} />
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="subtitle1">Total:</Typography>
-                <Typography variant="subtitle1" fontWeight="bold">
-                  {formatCurrency(document.total, document.currency)}
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
+        
+        {/* Totales */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
+          <Paper variant="outlined" sx={{ width: 300, p: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+              <Typography variant="body2">Subtotal:</Typography>
+              <Typography variant="body2">
+                {formatCurrency(document.subtotal, document.currency)}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+              <Typography variant="body2">IVA:</Typography>
+              <Typography variant="body2">
+                {formatCurrency(document.taxAmount, document.currency)}
+              </Typography>
+            </Box>
+            <Divider sx={{ my: 1 }} />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="subtitle2">Total:</Typography>
+              <Typography variant="subtitle2" fontWeight="bold">
+                {formatCurrency(document.total, document.currency)}
+              </Typography>
+            </Box>
+          </Paper>
         </Box>
-
-        {/* Notes and Terms */}
+        
+        {/* Notas y términos */}
         {(document.notes || document.terms) && (
-          <Box sx={{ mb: 3 }}>
+          <Box>
             {document.notes && (
               <Box sx={{ mb: 2 }}>
                 <Typography variant="subtitle2">Notas:</Typography>
@@ -376,50 +390,63 @@ const DocumentPreview = () => {
           </Box>
         )}
       </Paper>
-
-      {/* Convert to Invoice Modal */}
+      
+      {/* Botón eliminar (fuera del documento) */}
+      {!isConverted && (
+        <Box sx={{ textAlign: 'right' }}>
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<DeleteIcon />}
+            onClick={handleDeleteClick}
+          >
+            Eliminar Documento
+          </Button>
+        </Box>
+      )}
+      
+      {/* Modal de conversión a factura */}
       <ConvertToInvoiceModal
         open={convertModalOpen}
         onClose={() => setConvertModalOpen(false)}
         onConfirm={handleConvertConfirm}
         document={document}
       />
-
-      {/* Delete Confirmation Dialog */}
+      
+      {/* Diálogo de confirmación para eliminar */}
       <Dialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
       >
-        <DialogTitle>Confirmar Eliminación</DialogTitle>
+        <DialogTitle>Confirmar eliminación</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            ¿Está seguro de que desea eliminar este documento? Esta acción no se puede deshacer.
+            ¿Está seguro de que desea eliminar este {DOCUMENT_TYPE_NAMES[document.type]}?
+            Esta acción no se puede deshacer.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancelar</Button>
-          <Button onClick={handleDeleteConfirm} color="error" autoFocus>
+          <Button onClick={handleDeleteConfirm} color="error">
             Eliminar
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Snackbar for feedback */}
+      
+      {/* Snackbar para notificaciones */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
       >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
           severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
         >
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </>
+    </Box>
   );
 };
 

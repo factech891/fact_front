@@ -1,7 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
-import { DocumentsApi } from '../services/DocumentsApi';
+import { 
+  getDocuments, 
+  getDocument, 
+  createDocument, 
+  updateDocument,
+  deleteDocument,
+  convertToInvoice,
+  getPendingDocuments,
+  generatePDF,
+  sendByEmail
+} from '../services/DocumentsApi';
 
-const useDocuments = () => {
+export const useDocuments = () => {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -11,7 +21,7 @@ const useDocuments = () => {
   const fetchDocuments = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await DocumentsApi.getDocuments();
+      const data = await getDocuments();
       setDocuments(data);
       setError(null);
     } catch (err) {
@@ -22,10 +32,10 @@ const useDocuments = () => {
   }, []);
 
   // Get single document
-  const getDocument = useCallback(async (id) => {
+  const fetchDocument = useCallback(async (id) => {
     try {
       setLoading(true);
-      const data = await DocumentsApi.getDocument(id);
+      const data = await getDocument(id);
       setCurrentDocument(data);
       setError(null);
       return data;
@@ -38,10 +48,10 @@ const useDocuments = () => {
   }, []);
 
   // Create document
-  const createDocument = useCallback(async (document) => {
+  const handleCreateDocument = useCallback(async (document) => {
     try {
       setLoading(true);
-      const result = await DocumentsApi.createDocument(document);
+      const result = await createDocument(document);
       await fetchDocuments();
       setError(null);
       return result;
@@ -54,10 +64,10 @@ const useDocuments = () => {
   }, [fetchDocuments]);
 
   // Update document
-  const updateDocument = useCallback(async (id, document) => {
+  const handleUpdateDocument = useCallback(async (id, document) => {
     try {
       setLoading(true);
-      const result = await DocumentsApi.updateDocument(id, document);
+      const result = await updateDocument(id, document);
       await fetchDocuments();
       setError(null);
       return result;
@@ -70,10 +80,10 @@ const useDocuments = () => {
   }, [fetchDocuments]);
 
   // Delete document
-  const deleteDocument = useCallback(async (id) => {
+  const handleDeleteDocument = useCallback(async (id) => {
     try {
       setLoading(true);
-      await DocumentsApi.deleteDocument(id);
+      await deleteDocument(id);
       await fetchDocuments();
       setError(null);
       return true;
@@ -86,10 +96,10 @@ const useDocuments = () => {
   }, [fetchDocuments]);
 
   // Convert document to invoice
-  const convertToInvoice = useCallback(async (id, invoice) => {
+  const handleConvertToInvoice = useCallback(async (id, invoice) => {
     try {
       setLoading(true);
-      const result = await DocumentsApi.convertToInvoice(id, invoice);
+      const result = await convertToInvoice(id, invoice);
       await fetchDocuments();
       setError(null);
       return result;
@@ -102,15 +112,41 @@ const useDocuments = () => {
   }, [fetchDocuments]);
 
   // Get pending documents (for dashboard)
-  const getPendingDocuments = useCallback(async () => {
+  const handleGetPendingDocuments = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await DocumentsApi.getPendingDocuments();
+      const data = await getPendingDocuments();
       setError(null);
       return data;
     } catch (err) {
       setError(err.message || 'Error fetching pending documents');
       return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Generate PDF
+  const handleGeneratePDF = useCallback(async (id) => {
+    try {
+      await generatePDF(id);
+      return true;
+    } catch (err) {
+      setError(err.message || 'Error generating PDF');
+      return false;
+    }
+  }, []);
+
+  // Send document by email
+  const handleSendByEmail = useCallback(async (id, emailData) => {
+    try {
+      setLoading(true);
+      const result = await sendByEmail(id, emailData);
+      setError(null);
+      return result;
+    } catch (err) {
+      setError(err.message || 'Error sending document by email');
+      return null;
     } finally {
       setLoading(false);
     }
@@ -126,12 +162,14 @@ const useDocuments = () => {
     error,
     currentDocument,
     fetchDocuments,
-    getDocument,
-    createDocument,
-    updateDocument,
-    deleteDocument,
-    convertToInvoice,
-    getPendingDocuments
+    getDocument: fetchDocument,
+    createDocument: handleCreateDocument,
+    updateDocument: handleUpdateDocument,
+    deleteDocument: handleDeleteDocument,
+    convertToInvoice: handleConvertToInvoice,
+    getPendingDocuments: handleGetPendingDocuments,
+    generatePDF: handleGeneratePDF,
+    sendByEmail: handleSendByEmail
   };
 };
 

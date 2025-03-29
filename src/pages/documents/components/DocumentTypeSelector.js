@@ -1,99 +1,62 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormHelperText,
+  Box,
   Typography,
-  Box
+  Tooltip,
+  IconButton
 } from '@mui/material';
-import { DOCUMENT_TYPES, DOCUMENT_TYPE_NAMES } from '../constants/documentTypes';
+import { Info as InfoIcon } from '@mui/icons-material';
+import { DOCUMENT_TYPES, DOCUMENT_TYPE_NAMES, DOCUMENT_VALIDITY_DAYS } from '../constants/documentTypes';
 
-// Selector de tipo de documento al crear nuevo
-const NewDocumentTypeSelector = ({ open, onClose }) => {
-  const navigate = useNavigate();
-  
-  // Definición de tipos de documentos con iconos
-  const documentTypeOptions = [
-    {
-      type: DOCUMENT_TYPES.QUOTE,
-      name: 'Presupuesto',
-      description: 'Cotización para un cliente con precios y condiciones',
-      icon: (
-        <Box sx={{ fontSize: 24 }}>
-          <span role="img" aria-label="budget">💰</span>
-        </Box>
-      )
-    },
-    {
-      type: DOCUMENT_TYPES.PROFORMA,
-      name: 'Proforma',
-      description: 'Factura preliminar sin valor fiscal',
-      icon: (
-        <Box sx={{ fontSize: 24 }}>
-          <span role="img" aria-label="proforma">🧾</span>
-        </Box>
-      )
-    },
-    {
-      type: DOCUMENT_TYPES.DELIVERY_NOTE,
-      name: 'Nota de Entrega',
-      description: 'Documento que acompaña la entrega de productos',
-      icon: (
-        <Box sx={{ fontSize: 24 }}>
-          <span role="img" aria-label="delivery">📦</span>
-        </Box>
-      )
+const DocumentTypeSelector = ({ value, onChange, error, helperText }) => {
+  // Generate tooltip text with validity information
+  const getValidityText = (type) => {
+    const days = DOCUMENT_VALIDITY_DAYS[type];
+    if (days === null) {
+      return 'Sin vencimiento';
     }
-  ];
-
-  // Manejar selección de tipo
-  const handleSelectType = (type) => {
-    navigate(`/documents/new?type=${type}`);
-    onClose();
+    return `Validez: ${days} días`;
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>
-        <Typography variant="h6">Seleccionar tipo de documento</Typography>
-      </DialogTitle>
-      <DialogContent>
-        <List sx={{ pt: 0 }}>
-          {documentTypeOptions.map((option) => (
-            <ListItem
-              button
-              onClick={() => handleSelectType(option.type)}
-              key={option.type}
-              sx={{
-                borderRadius: 1,
-                mb: 1,
-                '&:hover': {
-                  backgroundColor: 'rgba(33, 150, 243, 0.08)'
-                }
-              }}
-            >
-              <ListItemIcon>{option.icon}</ListItemIcon>
-              <ListItemText 
-                primary={option.name} 
-                secondary={option.description}
-                primaryTypographyProps={{ fontWeight: 'medium' }}
-              />
-            </ListItem>
-          ))}
-        </List>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Cancelar</Button>
-      </DialogActions>
-    </Dialog>
+    <Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <FormControl fullWidth error={Boolean(error)} size="small">
+          <InputLabel id="document-type-label">Tipo de Documento</InputLabel>
+          <Select
+            labelId="document-type-label"
+            value={value || DOCUMENT_TYPES.QUOTE}
+            label="Tipo de Documento"
+            onChange={onChange}
+          >
+            <MenuItem value={DOCUMENT_TYPES.QUOTE}>{DOCUMENT_TYPE_NAMES[DOCUMENT_TYPES.QUOTE]}</MenuItem>
+            <MenuItem value={DOCUMENT_TYPES.PROFORMA}>{DOCUMENT_TYPE_NAMES[DOCUMENT_TYPES.PROFORMA]}</MenuItem>
+            <MenuItem value={DOCUMENT_TYPES.DELIVERY_NOTE}>{DOCUMENT_TYPE_NAMES[DOCUMENT_TYPES.DELIVERY_NOTE]}</MenuItem>
+          </Select>
+          {helperText && <FormHelperText>{helperText}</FormHelperText>}
+        </FormControl>
+        
+        {value && (
+          <Tooltip title={getValidityText(value)}>
+            <IconButton size="small">
+              <InfoIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
+      </Box>
+      
+      {value && DOCUMENT_VALIDITY_DAYS[value] !== null && (
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+          Este documento tiene una validez de {DOCUMENT_VALIDITY_DAYS[value]} días
+        </Typography>
+      )}
+    </Box>
   );
 };
 
-export default NewDocumentTypeSelector;
+export default DocumentTypeSelector;

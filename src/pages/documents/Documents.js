@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+// src/pages/documents/Documents.js
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -9,71 +10,99 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogContentText,
   DialogActions,
   Snackbar,
   Alert,
-  IconButton
+  IconButton,
+  Menu,
+  MenuItem
 } from '@mui/material';
 import {
   Add as AddIcon,
   FilterList as FilterIcon,
-  CloudDownload as ExportIcon
+  CloudDownload as ExportIcon,
+  MoreVert as MoreVertIcon
 } from '@mui/icons-material';
 import DocumentTable from './DocumentTable';
-import useDocuments from '../../hooks/useDocuments';
-import NewDocumentTypeSelector from './components/NewDocumentTypeSelector';
+import { getDocuments, deleteDocument } from '../../services/DocumentsApi';
+import { DOCUMENT_TYPES, DOCUMENT_TYPE_NAMES } from './constants/documentTypes';
 
 const Documents = () => {
   const navigate = useNavigate();
-  const { documents, loading, error, deleteDocument } = useDocuments();
-
-  // Estados para UI interactions
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [typeSelectorOpen, setTypeSelectorOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
 
-  // Handle create new document click - ahora abre el selector
-  const handleCreateNew = () => {
-    setTypeSelectorOpen(true);
+  // Cargar documentos
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      try {
+        setLoading(true);
+        const data = await getDocuments();
+        setDocuments(data);
+      } catch (err) {
+        console.error('Error al cargar documentos:', err);
+        setError('Error al cargar los documentos. Por favor, intente de nuevo.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDocuments();
+  }, []);
+
+  // Menú de tipos de documento
+  const handleMenuClick = (event) => {
+    setAnchorEl(event.currentTarget);
   };
 
-  // Handle document delete
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  // Crear nuevo documento
+  const handleCreateNew = () => {
+    navigate('/documents/new');
+  };
+
+  // Crear documento con tipo específico
+  const handleCreateType = (type) => {
+    navigate(`/documents/new?type=${type}`);
+    handleMenuClose();
+  };
+
+  // Solicitar eliminar documento
   const handleDeleteRequest = (id) => {
-    const document = documents.find(doc => doc._id === id);
-    setDocumentToDelete(document);
+    const doc = documents.find(d => d._id === id);
+    setDocumentToDelete(doc);
     setDeleteDialogOpen(true);
   };
 
+  // Confirmar eliminación
   const handleDeleteConfirm = async () => {
     try {
       await deleteDocument(documentToDelete._id);
+      setDocuments(documents.filter(doc => doc._id !== documentToDelete._id));
       setSnackbar({
         open: true,
         message: 'Documento eliminado correctamente',
         severity: 'success'
       });
-    } catch (error) {
+    } catch (err) {
+      console.error('Error al eliminar documento:', err);
       setSnackbar({
         open: true,
-        message: `Error al eliminar el documento: ${error.message}`,
+        message: 'Error al eliminar el documento',
         severity: 'error'
       });
     } finally {
       setDeleteDialogOpen(false);
       setDocumentToDelete(null);
     }
-  };
-
-  // Handle document send
-  const handleSendDocument = (id) => {
-    // Implementation for sending document
-    setSnackbar({
-      open: true,
-      message: 'Funcionalidad de envío no implementada',
-      severity: 'info'
-    });
   };
 
   return (
@@ -108,10 +137,27 @@ const Documents = () => {
                 variant="contained"
                 startIcon={<AddIcon />}
                 onClick={handleCreateNew}
-                sx={{ ml: 1 }}
               >
                 Nueva Cotización
               </Button>
+              <IconButton size="small" onClick={handleMenuClick}>
+                <MoreVertIcon />
+              </IconButton>
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleMenuClose}
+              >
+                <MenuItem onClick={() => handleCreateType(DOCUMENT_TYPES.QUOTE)}>
+                  Nuevo Presupuesto
+                </MenuItem>
+                <MenuItem onClick={() => handleCreateType(DOCUMENT_TYPES.PROFORMA)}>
+                  Nueva Factura Proforma
+                </MenuItem>
+                <MenuItem onClick={() => handleCreateType(DOCUMENT_TYPES.DELIVERY_NOTE)}>
+                  Nueva Nota de Entrega
+                </MenuItem>
+              </Menu>
             </Box>
           </Grid>
         </Grid>
@@ -121,53 +167,47 @@ const Documents = () => {
         {loading ? (
           <Typography>Cargando documentos...</Typography>
         ) : error ? (
-          <Alert severity="error">Error al cargar los documentos: {error}</Alert>
+          <Alert severity="error">{error}</Alert>
         ) : (
           <DocumentTable
             documents={documents}
             onDelete={handleDeleteRequest}
-            onSend={handleSendDocument}
           />
         )}
       </Paper>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Diálogo de confirmación para eliminar */}
       <Dialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
       >
         <DialogTitle>Confirmar eliminación</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            ¿Está seguro de que desea eliminar este documento?
-            Esta acción no se puede deshacer.
-          </DialogContentText>
+          {documentToDelete && (
+            <Typography>
+              ¿Está seguro de que desea eliminar el {DOCUMENT_TYPE_NAMES[documentToDelete.type]} 
+              #{documentToDelete.documentNumber}?
+              Esta acción no se puede deshacer.
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancelar</Button>
-          <Button onClick={handleDeleteConfirm} color="error" autoFocus>
+          <Button onClick={handleDeleteConfirm} color="error">
             Eliminar
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Documento Type Selector */}
-      <NewDocumentTypeSelector 
-        open={typeSelectorOpen}
-        onClose={() => setTypeSelectorOpen(false)}
-      />
-
-      {/* Feedback Snackbar */}
+      {/* Snackbar para notificaciones */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
       >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
           severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
         >
           {snackbar.message}
         </Alert>
