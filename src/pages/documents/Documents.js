@@ -20,6 +20,7 @@ import {
   Add as AddIcon
 } from '@mui/icons-material';
 import DocumentTable from './DocumentTable';
+import DocumentFormModal from './components/DocumentFormModal';
 import { getDocuments, deleteDocument } from '../../services/DocumentsApi';
 
 const Documents = () => {
@@ -30,28 +31,37 @@ const Documents = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [modalOpen, setModalOpen] = useState(false);
 
   // Cargar documentos
-  useEffect(() => {
-    const fetchDocuments = async () => {
-      try {
-        setLoading(true);
-        const data = await getDocuments();
-        setDocuments(data);
-      } catch (err) {
-        console.error('Error al cargar documentos:', err);
-        setError('Error al cargar los documentos. Por favor, intente de nuevo.');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchDocuments = async () => {
+    try {
+      setLoading(true);
+      const data = await getDocuments();
+      setDocuments(data);
+    } catch (err) {
+      console.error('Error al cargar documentos:', err);
+      setError('Error al cargar los documentos. Por favor, intente de nuevo.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchDocuments();
   }, []);
 
-  // Crear nuevo documento - simplificado
+  // Crear nuevo documento - modificado
   const handleCreateNew = () => {
-    navigate('/documents/new');
+    setModalOpen(true);
+  };
+
+  const handleModalClose = (success) => {
+    setModalOpen(false);
+    if (success) {
+      // Recargar los documentos si se guardó correctamente
+      fetchDocuments();
+    }
   };
 
   // Solicitar eliminar documento
@@ -157,6 +167,12 @@ const Documents = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Modal de formulario de documento */}
+      <DocumentFormModal 
+        open={modalOpen} 
+        onClose={handleModalClose}
+      />
     </>
   );
 };

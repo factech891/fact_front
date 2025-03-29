@@ -4,188 +4,102 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogContentText,
   DialogActions,
   Button,
+  Grid,
   TextField,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  FormHelperText,
-  Box,
-  Typography,
-  Divider,
-  Checkbox,
-  FormControlLabel
+  Typography
 } from '@mui/material';
-import { DOCUMENT_TYPE_NAMES } from '../constants/documentTypes';
 
 const ConvertToInvoiceModal = ({ open, onClose, onConfirm, document }) => {
-  // Estados para la configuración de la factura
-  const [invoiceDate, setInvoiceDate] = useState(new Date());
-  const [keepDocumentReference, setKeepDocumentReference] = useState(true);
-  const [series, setSeries] = useState('');
-  const [useCurrentExchangeRate, setUseCurrentExchangeRate] = useState(true);
-  
-  // Formatear fecha para el campo de fecha
-  const formatDateForInput = (date) => {
-    if (!date) return '';
-    return date instanceof Date
-      ? date.toISOString().split('T')[0]
-      : new Date(date).toISOString().split('T')[0];
+  const [invoiceData, setInvoiceData] = useState({
+    status: 'draft',
+    date: new Date().toISOString().split('T')[0],
+    paymentTerms: document?.paymentTerms || 'Contado',
+    creditDays: document?.creditDays || 0
+  });
+
+  const handleChange = (field, value) => {
+    setInvoiceData(prev => ({ ...prev, [field]: value }));
   };
-  
-  // Formatear moneda
-  const formatCurrency = (amount, currency = 'EUR') => {
-    if (amount === undefined || amount === null) return '—';
-    return new Intl.NumberFormat('es-ES', {
-      style: 'currency',
-      currency: currency
-    }).format(amount);
-  };
-  
-  // Manejar cambio de fecha
-  const handleDateChange = (e) => {
-    const newDate = e.target.value ? new Date(e.target.value) : new Date();
-    setInvoiceDate(newDate);
-  };
-  
-  // Manejar confirmación
+
   const handleConfirm = () => {
-    onConfirm({
-      invoiceDate,
-      keepDocumentReference,
-      series,
-      useCurrentExchangeRate,
-      documentId: document?._id
-    });
+    onConfirm(invoiceData);
   };
-  
+
+  if (!document) return null;
+
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      fullWidth
-      maxWidth="sm"
-    >
-      <DialogTitle>
-        Convertir a Factura
-      </DialogTitle>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>Convertir a Factura</DialogTitle>
       <DialogContent>
-        <DialogContentText sx={{ mb: 2 }}>
-          Está a punto de convertir {document ? `un ${DOCUMENT_TYPE_NAMES[document.type]}` : 'este documento'} en una factura.
-          Este proceso creará una nueva factura y marcará el documento original como convertido.
-        </DialogContentText>
-        
-        {/* Información del documento a convertir */}
-        {document && (
-          <Box sx={{ mb: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Detalles del documento:
-            </Typography>
-            <Grid container spacing={1}>
-              <Grid item xs={6}>
-                <Typography variant="body2">
-                  <strong>Número:</strong> {document.documentNumber || '—'}
-                </Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="body2">
-                  <strong>Tipo:</strong> {DOCUMENT_TYPE_NAMES[document.type]}
-                </Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="body2">
-                  <strong>Cliente:</strong> {document.client?.name || '—'}
-                </Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="body2">
-                  <strong>Fecha:</strong> {document.date ? new Date(document.date).toLocaleDateString() : '—'}
-                </Typography>
-              </Grid>
-              <Grid item xs={12}>
-                <Typography variant="body2">
-                  <strong>Total:</strong> {document.total
-                    ? formatCurrency(document.total, document.currency)
-                    : '—'
-                  }
-                </Typography>
-              </Grid>
-            </Grid>
-          </Box>
-        )}
-        
-        <Divider sx={{ my: 2 }} />
-        
-        <Typography variant="subtitle2" gutterBottom>
-          Configuración de la factura:
+        <Typography variant="body2" sx={{ mb: 3 }}>
+          Este documento ({document.documentNumber}) será convertido a factura con los siguientes datos:
         </Typography>
-        
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-          {/* Fecha de la factura */}
-          <TextField
-            label="Fecha de factura"
-            type="date"
-            value={formatDateForInput(invoiceDate)}
-            onChange={handleDateChange}
-            fullWidth
-            size="small"
-            InputLabelProps={{ shrink: true }}
-            helperText="Fecha de emisión de la factura"
-          />
-          
-          {/* Serie de factura */}
-          <FormControl fullWidth size="small">
-            <InputLabel id="invoice-series-label">Serie</InputLabel>
-            <Select
-              labelId="invoice-series-label"
-              value={series}
-              label="Serie"
-              onChange={(e) => setSeries(e.target.value)}
-            >
-              <MenuItem value="">Ninguna</MenuItem>
-              <MenuItem value="A">Serie A</MenuItem>
-              <MenuItem value="B">Serie B</MenuItem>
-              <MenuItem value="C">Serie C</MenuItem>
-            </Select>
-            <FormHelperText>Serie para la numeración de facturas</FormHelperText>
-          </FormControl>
-          
-          {/* Incluir referencia */}
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={keepDocumentReference}
-                onChange={(e) => setKeepDocumentReference(e.target.checked)}
-              />
-            }
-            label="Incluir referencia al documento original en la factura"
-          />
-          
-          {/* Tasa de cambio (solo para monedas diferentes a EUR) */}
-          {document && document.currency && document.currency !== 'EUR' && (
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={useCurrentExchangeRate}
-                  onChange={(e) => setUseCurrentExchangeRate(e.target.checked)}
-                />
-              }
-              label="Usar tasa de cambio actual (en lugar de la original)"
+
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={6}>
+            <TextField
+              label="Fecha"
+              type="date"
+              fullWidth
+              value={invoiceData.date}
+              onChange={(e) => handleChange('date', e.target.value)}
+              InputLabelProps={{ shrink: true }}
             />
+          </Grid>
+          
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth>
+              <InputLabel>Estado de la Factura</InputLabel>
+              <Select
+                value={invoiceData.status}
+                label="Estado de la Factura"
+                onChange={(e) => handleChange('status', e.target.value)}
+              >
+                <MenuItem value="draft">Borrador</MenuItem>
+                <MenuItem value="pending">Pendiente</MenuItem>
+                <MenuItem value="paid">Pagada</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth>
+              <InputLabel>Condiciones de Pago</InputLabel>
+              <Select
+                value={invoiceData.paymentTerms}
+                label="Condiciones de Pago"
+                onChange={(e) => handleChange('paymentTerms', e.target.value)}
+              >
+                <MenuItem value="Contado">Contado</MenuItem>
+                <MenuItem value="Crédito">Crédito</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          
+          {invoiceData.paymentTerms === 'Crédito' && (
+            <Grid item xs={12} md={6}>
+              <TextField
+                label="Días de Crédito"
+                type="number"
+                fullWidth
+                value={invoiceData.creditDays}
+                onChange={(e) => handleChange('creditDays', parseInt(e.target.value) || 0)}
+                InputProps={{ inputProps: { min: 0 } }}
+              />
+            </Grid>
           )}
-        </Box>
+        </Grid>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancelar</Button>
-        <Button 
-          onClick={handleConfirm} 
-          variant="contained" 
-          color="primary"
-        >
-          Convertir a Factura
+        <Button onClick={handleConfirm} variant="contained">
+          Convertir
         </Button>
       </DialogActions>
     </Dialog>
