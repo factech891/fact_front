@@ -8,7 +8,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  TextField
+  TextField,
+  Divider
 } from '@mui/material';
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_NAMES, DOCUMENT_VALIDITY_DAYS, DOCUMENT_STATUS } from '../constants/documentTypes';
 import { CURRENCY_LIST } from '../../invoices/constants/taxRates';
@@ -19,6 +20,8 @@ const DocumentSection = ({ formData, onFieldChange }) => {
       <Typography variant="h6" gutterBottom>
         Información del Documento
       </Typography>
+      
+      <Divider sx={{ my: 2 }} />
       
       <Grid container spacing={3}>
         {/* Tipo de documento */}
@@ -36,18 +39,6 @@ const DocumentSection = ({ formData, onFieldChange }) => {
               <MenuItem value={DOCUMENT_TYPES.DELIVERY_NOTE}>{DOCUMENT_TYPE_NAMES[DOCUMENT_TYPES.DELIVERY_NOTE]}</MenuItem>
             </Select>
           </FormControl>
-        </Grid>
-        
-        {/* Número de documento */}
-        <Grid item xs={12} md={6}>
-          <TextField
-            label="Número de Documento"
-            value={formData.documentNumber || ''}
-            onChange={(e) => onFieldChange('documentNumber', e.target.value)}
-            fullWidth
-            size="small"
-            helperText="Se generará automáticamente si se deja en blanco"
-          />
         </Grid>
         
         {/* Fecha */}
@@ -86,7 +77,7 @@ const DocumentSection = ({ formData, onFieldChange }) => {
             <InputLabel id="currency-label">Moneda</InputLabel>
             <Select
               labelId="currency-label"
-              value={formData.currency || 'USD'}
+              value={formData.currency || 'VES'}
               label="Moneda"
               onChange={(e) => onFieldChange('currency', e.target.value)}
             >

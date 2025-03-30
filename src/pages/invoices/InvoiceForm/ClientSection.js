@@ -1,132 +1,135 @@
-// src/pages/invoices/InvoiceForm/ClientSection.js
-import { 
-    Card, Typography, Divider, Grid, Autocomplete, TextField,
-    FormControl, InputLabel, Select, MenuItem, InputAdornment,
-    Collapse, Box
-  } from '@mui/material';
-  import { 
-    CreditCard as CreditCardIcon,
-    Money as MoneyIcon,
-    CalendarToday as CalendarIcon,
-    Payment as PaymentIcon
-  } from '@mui/icons-material';
-  import { CURRENCY_LIST } from '../constants/taxRates';
-  
-  const ClientSection = ({ 
-    client, 
-    moneda, 
-    condicionesPago, 
-    diasCredito, 
-    clients, 
-    errors,
-    onClientChange,
-    onMonedaChange, 
-    onCondicionesChange, 
-    onDiasCreditoChange 
-  }) => {
-    return (
-      <Card sx={{ p: 2 }}>
-        <Typography variant="subtitle1" gutterBottom fontWeight="bold">
-          Datos del Cliente
-        </Typography>
-        <Divider sx={{ my: 1 }} />
-        <Grid container spacing={2}>
-          <Grid item xs={12}>
-            <Autocomplete
-              options={clients}
-              getOptionLabel={(option) => `${option.nombre} - ${option.rif}`}
-              value={client}
-              onChange={(_, client) => onClientChange(client)}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Cliente"
-                  error={!!errors.client}
-                  helperText={errors.client}
-                />
-              )}
-            />
-          </Grid>
-          
-          <Grid item xs={12} md={6} lg={4}>
-            <FormControl fullWidth>
-              <InputLabel>Moneda</InputLabel>
-              <Select
-                value={moneda}
-                onChange={(e) => onMonedaChange(e.target.value)}
-                startAdornment={
-                  <InputAdornment position="start">
-                    <CreditCardIcon color="primary" sx={{ mr: 1 }} />
-                  </InputAdornment>
-                }
-              >
-                {CURRENCY_LIST.map((currency) => (
-                  <MenuItem key={currency.value} value={currency.value}>
-                    {currency.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          
-          <Grid item xs={12} md={6} lg={4}>
-            <FormControl fullWidth>
-              <InputLabel>Condiciones de Pago</InputLabel>
-              <Select
-                value={condicionesPago}
-                onChange={(e) => onCondicionesChange(e.target.value)}
-                startAdornment={
-                  <InputAdornment position="start">
-                    <PaymentIcon color="primary" sx={{ mr: 1 }} />
-                  </InputAdornment>
-                }
-              >
-                <MenuItem value="Contado">
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <MoneyIcon fontSize="small" sx={{ mr: 1 }} />
-                    Contado
-                  </Box>
-                </MenuItem>
-                <MenuItem value="Crédito">
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <CalendarIcon fontSize="small" sx={{ mr: 1 }} />
-                    Crédito
-                  </Box>
-                </MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          
-          {/* Campo de días de crédito condicional */}
-          <Grid item xs={12} md={6} lg={4}>
-            <Collapse in={condicionesPago === 'Crédito'} unmountOnExit>
-              <FormControl fullWidth error={!!errors.diasCredito}>
-                <TextField
-                  label="Días de Crédito"
-                  type="number"
-                  value={diasCredito}
-                  onChange={(e) => onDiasCreditoChange(parseInt(e.target.value) || '')}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <CalendarIcon color="primary" />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        días
-                      </InputAdornment>
-                    )
-                  }}
-                  error={!!errors.diasCredito}
-                  helperText={errors.diasCredito}
-                />
-              </FormControl>
-            </Collapse>
-          </Grid>
-        </Grid>
-      </Card>
-    );
+// src/pages/documents/DocumentForm/ClientSection.js
+import React from 'react';
+import {
+  Box, Typography, Grid, Divider, // Aseguramos que Divider esté importado
+  FormControl, Select, MenuItem, InputLabel
+} from '@mui/material';
+import { CURRENCY_LIST } from '../../invoices/constants/taxRates';
+
+const ClientSection = ({ formData, clients, errors, onFieldChange }) => {
+  // Función para manejar el cambio de cliente
+  const handleClientChange = (e) => {
+    const selectedClient = clients.find(c => c._id === e.target.value);
+    onFieldChange('client', selectedClient);
   };
-  
-  export default ClientSection;
+
+  return (
+    <>
+      {/* Cliente */}
+      <Box sx={{ mb: 2 }}>
+        <FormControl fullWidth>
+          <Select
+            value={formData.client?._id || ''}
+            onChange={handleClientChange}
+            displayEmpty
+            variant="outlined"
+            sx={{ 
+              bgcolor: '#222',
+              color: 'white',
+              height: '40px',
+              mb: 2,
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' },
+              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.5)' },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main' }
+            }}
+            error={!!errors?.client}
+          >
+            <MenuItem value="" disabled>Seleccione un cliente</MenuItem>
+            {clients.map((client) => (
+              <MenuItem key={client._id} value={client._id}>
+                {client.nombre}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
+
+      {/* Moneda y Condiciones de Pago */}
+      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+        <FormControl fullWidth>
+          <Typography variant="body2" color="white" sx={{ mb: 1 }}>
+            Moneda
+          </Typography>
+          <Select
+            value={formData.currency || 'VES'}
+            onChange={(e) => onFieldChange('currency', e.target.value)}
+            sx={{ 
+              bgcolor: '#222',
+              color: 'white',
+              height: '40px',
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' },
+              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.5)' },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main' }
+            }}
+          >
+            {CURRENCY_LIST.map((currency) => (
+              <MenuItem key={currency.value} value={currency.value}>
+                {currency.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <FormControl fullWidth>
+          <Typography variant="body2" color="white" sx={{ mb: 1 }}>
+            Condiciones de Pago
+          </Typography>
+          <Select
+            value={formData.paymentTerms || 'Contado'}
+            onChange={(e) => {
+              onFieldChange('paymentTerms', e.target.value);
+              if (e.target.value !== 'Crédito') {
+                onFieldChange('creditDays', 0);
+              }
+            }}
+            sx={{ 
+              bgcolor: '#222',
+              color: 'white',
+              height: '40px',
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' },
+              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.5)' },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main' }
+            }}
+          >
+            <MenuItem value="Contado">Contado</MenuItem>
+            <MenuItem value="Crédito">Crédito</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
+      
+      {/* Información del cliente seleccionado */}
+      {formData.client && (
+        <Box sx={{ 
+          p: 2, 
+          bgcolor: '#222', 
+          borderRadius: 1,
+          mt: 2 
+        }}>
+          <Typography variant="body1" color="white" gutterBottom>
+            Información del Cliente:
+          </Typography>
+          
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+            <Box sx={{ minWidth: '200px', flex: 1 }}>
+              <Typography variant="body2" color="rgba(255,255,255,0.7)">
+                <strong style={{ color: 'white' }}>Nombre:</strong> {formData.client.nombre}
+              </Typography>
+            </Box>
+            <Box sx={{ minWidth: '200px', flex: 1 }}>
+              <Typography variant="body2" color="rgba(255,255,255,0.7)">
+                <strong style={{ color: 'white' }}>Dirección:</strong> {formData.client.direccion || 'No disponible'}
+              </Typography>
+            </Box>
+            <Box sx={{ minWidth: '200px', flex: 1 }}>
+              <Typography variant="body2" color="rgba(255,255,255,0.7)">
+                <strong style={{ color: 'white' }}>Teléfono:</strong> {formData.client.telefono || 'No disponible'}
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+      )}
+    </>
+  );
+};
+
+export default ClientSection;

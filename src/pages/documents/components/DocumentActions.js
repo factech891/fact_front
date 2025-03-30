@@ -1,3 +1,4 @@
+// src/pages/documents/components/DocumentActions.js
 import React, { useState } from 'react';
 import {
   Box,
@@ -6,7 +7,8 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  Divider
 } from '@mui/material';
 import {
   MoreVert as MoreVertIcon,
@@ -20,19 +22,21 @@ import {
 } from '@mui/icons-material';
 import { DOCUMENT_STATUS } from '../constants/documentTypes';
 import ConvertToInvoiceModal from './ConvertToInvoiceModal';
+import DocumentFormModal from './DocumentFormModal';
 
 const DocumentActions = ({ 
   document, 
-  onEdit, 
   onPreview, 
   onDelete, 
   onSend, 
   onDuplicate, 
   onDownloadPdf, 
-  onConvertToInvoice 
+  onConvertToInvoice,
+  onRefresh
 }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [showConvertModal, setShowConvertModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   
   const open = Boolean(anchorEl);
   
@@ -49,7 +53,12 @@ const DocumentActions = ({
 
   const handleAction = (action) => {
     handleClose();
-    action();
+    action && action();
+  };
+
+  const handleEditClick = () => {
+    handleClose();
+    setShowEditModal(true);
   };
 
   const handleConvertClick = () => {
@@ -59,21 +68,28 @@ const DocumentActions = ({
 
   const handleConvertConfirm = () => {
     setShowConvertModal(false);
-    onConvertToInvoice && onConvertToInvoice(document._id);
+    onConvertToInvoice && onConvertToInvoice(document);
+  };
+  
+  const handleEditClose = (success) => {
+    setShowEditModal(false);
+    if (success && onRefresh) {
+      onRefresh();
+    }
   };
 
   return (
     <>
       <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
         <Tooltip title="Ver">
-          <IconButton onClick={onPreview} size="small">
+          <IconButton onClick={() => handleAction(onPreview)} size="small">
             <VisibilityIcon fontSize="small" />
           </IconButton>
         </Tooltip>
         
         <Tooltip title="Editar">
           <IconButton 
-            onClick={onEdit} 
+            onClick={handleEditClick} 
             size="small"
             disabled={isConverted}
           >
@@ -134,6 +150,8 @@ const DocumentActions = ({
           <ListItemText>Convertir a Factura</ListItemText>
         </MenuItem>
         
+        <Divider />
+        
         <MenuItem 
           onClick={() => handleAction(onDelete)} 
           sx={{ color: 'error.main' }}
@@ -146,11 +164,19 @@ const DocumentActions = ({
         </MenuItem>
       </Menu>
       
+      {/* Modal para convertir a factura */}
       <ConvertToInvoiceModal 
         open={showConvertModal}
         onClose={() => setShowConvertModal(false)}
         onConfirm={handleConvertConfirm}
         document={document}
+      />
+      
+      {/* Modal para editar documento */}
+      <DocumentFormModal 
+        open={showEditModal}
+        onClose={handleEditClose}
+        documentId={document._id}
       />
     </>
   );

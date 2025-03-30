@@ -8,7 +8,7 @@ import {
   Grid,
   Button,
   IconButton,
-  Divider,
+  Divider, // ¡IMPORTANTE! - Esta importación es la que faltaba
   Dialog,
   DialogTitle,
   DialogContent,
@@ -25,24 +25,26 @@ import DocumentSection from './DocumentSection';
 import ClientSection from './ClientSection';
 import ItemsSection from './ItemsSection';
 import TotalsSection from './TotalsSection';
+import StatusSection from './StatusSection';
 
 // Servicios y constantes
 import { getDocument, createDocument, updateDocument } from '../../../services/DocumentsApi';
 import { DOCUMENT_TYPES, DOCUMENT_STATUS } from '../constants/documentTypes';
 import { useClients } from '../../../hooks/useClients';
 import { useProducts } from '../../../hooks/useProducts';
+import { calculateTotals } from './utils/calculations';
 
-const DocumentForm = () => {
+const DocumentForm = ({ open, onClose, initialData = null, onSave, clientsList = [], productsList = [] }) => {
   const navigate = useNavigate();
-  const { id } = useParams();
-  const [searchParams] = useSearchParams();
   const { clients } = useClients();
   const { products } = useProducts();
   
-  // Estado del formulario - mantenemos lo mismo
+  const allClients = clientsList.length > 0 ? clientsList : clients;
+  const allProducts = productsList.length > 0 ? productsList : products;
+  
+  // Estado del formulario
   const [formData, setFormData] = useState({
-    type: searchParams.get('type') || DOCUMENT_TYPES.QUOTE,
-    documentNumber: '',
+    type: DOCUMENT_TYPES.QUOTE,
     date: new Date().toISOString().split('T')[0],
     expiryDate: null,
     client: null,
@@ -52,7 +54,7 @@ const DocumentForm = () => {
     subtotal: 0,
     taxAmount: 0,
     total: 0,
-    currency: 'USD',
+    currency: 'VES',
     status: DOCUMENT_STATUS.DRAFT,
     paymentTerms: 'Contado',
     creditDays: 0
@@ -61,160 +63,294 @@ const DocumentForm = () => {
   // Estados para UI
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   
-  // Abrir modal directamente
-  const [isOpen, setIsOpen] = useState(true);
-  
-  // Resto de efectos y handlers...
+  // Cargar datos iniciales si se está editando
+  useEffect(() => {
+    if (initialData) {
+      console.log('Cargando documento para editar:', initialData);
+      
+      // Encontrar los productos completos basados en los IDs
+      const documentProducts = initialData.items?.map(item => {
+        const fullProduct = allProducts.find(p => p._id === item.product?._id || item.product);
+        return {
+          _id: fullProduct?._id,
+          codigo: fullProduct?.codigo,
+          nombre: fullProduct?.nombre,
+          precio: item.price
+        };
+      }) || [];
+      
+      setSelectedProducts(documentProducts);
+      
+      setFormData({
+        ...initialData,
+        client: initialData.client,
+        items: initialData.items || [],
+        type: initialData.type || DOCUMENT_TYPES.QUOTE,
+        status: initialData.status || DOCUMENT_STATUS.DRAFT,
+        currency: initialData.currency || 'VES',
+      });
+    }
+  }, [initialData, allProducts]);
   
   // Manejar cambios en los campos
   const handleFieldChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
   
-  // Calcular totales
-  const calculateTotals = (items) => {
-    const subtotal = items.reduce((sum, item) => 
-      sum + ((item.quantity || 1) * (item.price || 0)), 0
-    );
+  // Manejar selección de productos
+  const handleProductSelect = (event, values) => {
+    console.log('Productos seleccionados:', values);
     
-    const taxAmount = items.reduce((sum, item) => {
-      if (item.taxExempt) return sum;
-      const itemSubtotal = (item.quantity || 1) * (item.price || 0);
-      return sum + (itemSubtotal * (item.taxRate || 16) / 100);
-    }, 0);
+    // Verificación defensiva
+    const safeValues = values || [];
     
-    const total = subtotal + taxAmount;
+    const newItems = safeValues.map(product => ({
+      product: product._id,
+      codigo: product.codigo || '',
+      descripcion: product.nombre || '',
+      quantity: 1,
+      price: product.precio || 0,
+      taxExempt: product.isExempt || false,
+      subtotal: product.precio || 0
+    }));
+    setSelectedProducts(safeValues);
     
+    // Actualizamos los items y calculamos los totales
+    const updatedItems = [...newItems];
     setFormData(prev => ({ 
       ...prev, 
-      subtotal,
-      taxAmount,
-      total
+      items: updatedItems,
+      ...calculateTotals(updatedItems)
     }));
   };
   
-  // Guardar documento
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // Manejar cambios en los items
+  const handleItemChange = (index, field, value) => {
+    const updatedItems = [...formData.items];
     
-    // Validación, guardado y navegación...
+    if (field === 'taxExempt') {
+      updatedItems[index] = {
+        ...updatedItems[index],
+        taxExempt: value
+      };
+    } else {
+      updatedItems[index] = {
+        ...updatedItems[index],
+        [field]: value,
+        subtotal: field === 'quantity' || field === 'price' ? 
+          value * (field === 'quantity' ? updatedItems[index].price : updatedItems[index].quantity) :
+          updatedItems[index].subtotal
+      };
+    }
+    
+    // Actualizamos los items y calculamos los totales
+    setFormData(prev => ({ 
+      ...prev, 
+      items: updatedItems,
+      ...calculateTotals(updatedItems)
+    }));
   };
   
-  // Cancelar
-  const handleCancel = () => {
-    setIsOpen(false);
-    navigate('/documents');
+  // Validar formulario
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.client?._id) newErrors.client = 'Seleccione un cliente';
+    if (!formData.items.length) newErrors.items = 'Agregue al menos un producto/servicio';
+    if (formData.paymentTerms === 'Crédito' && (!formData.creditDays || formData.creditDays <= 0)) {
+      newErrors.creditDays = 'Ingrese días de crédito válidos';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+  
+  // Guardar documento
+  const handleSubmit = () => {
+    if (validateForm()) {
+      setSaving(true);
+      
+      const documentToSave = {
+        _id: initialData?._id,
+        type: formData.type,
+        documentNumber: formData.documentNumber,
+        date: formData.date,
+        expiryDate: formData.expiryDate,
+        client: formData.client._id,
+        items: formData.items.map(item => ({
+          product: item.product,
+          quantity: item.quantity,
+          price: item.price,
+          taxExempt: item.taxExempt,
+          subtotal: item.quantity * item.price
+        })),
+        notes: formData.notes,
+        terms: formData.terms,
+        subtotal: formData.subtotal,
+        taxAmount: formData.taxAmount,
+        total: formData.total,
+        currency: formData.currency,
+        status: formData.status,
+        paymentTerms: formData.paymentTerms,
+        creditDays: parseInt(formData.creditDays) || 0
+      };
+      
+      console.log('Guardando documento:', documentToSave);
+      
+      if (onSave) {
+        onSave(documentToSave);
+        onClose();
+      } else {
+        // Lógica de guardado si no se proporciona onSave
+        const savePromise = initialData?._id 
+          ? updateDocument(initialData._id, documentToSave)
+          : createDocument(documentToSave);
+          
+        savePromise
+          .then(response => {
+            console.log('Documento guardado:', response);
+            onClose();
+          })
+          .catch(error => {
+            console.error('Error al guardar documento:', error);
+          })
+          .finally(() => {
+            setSaving(false);
+          });
+      }
+    }
+  };
+  
+  // Función para obtener el título según el tipo de documento
+  const getDocumentTitle = () => {
+    switch (formData.type) {
+      case DOCUMENT_TYPES.QUOTE:
+        return initialData ? 'Editar Cotización' : 'Nueva Cotización';
+      case DOCUMENT_TYPES.PROFORMA:
+        return initialData ? 'Editar Factura Proforma' : 'Nueva Factura Proforma';
+      case DOCUMENT_TYPES.DELIVERY_NOTE:
+        return initialData ? 'Editar Nota de Entrega' : 'Nueva Nota de Entrega';
+      default:
+        return initialData ? 'Editar Documento' : 'Nuevo Documento';
+    }
   };
 
   return (
-    <Dialog
-      open={isOpen}
-      onClose={handleCancel}
-      maxWidth="lg"
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth="lg" 
       fullWidth
       PaperProps={{
-        sx: { minHeight: '80vh' }
+        sx: { bgcolor: '#1e1e1e' }
       }}
     >
-      <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white', py: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h5">
-            {id ? 'Editar' : 'Nueva'} Cotización
-          </Typography>
-          <IconButton onClick={handleCancel} sx={{ color: 'white' }}>
-            <CloseIcon />
-          </IconButton>
-        </Box>
+      <DialogTitle sx={{ 
+        bgcolor: 'primary.main', 
+        color: 'white', 
+        display: 'flex', 
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        {getDocumentTitle()}
+        <IconButton onClick={onClose} sx={{ color: 'white' }}>
+          <CloseIcon />
+        </IconButton>
       </DialogTitle>
       
-      <DialogContent sx={{ p: 0, bgcolor: '#2a2a2a' }}>
-        <Box component="form" onSubmit={handleSubmit} sx={{ p: 3 }}>
-          {/* Documento */}
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <DocumentSection 
-              formData={formData} 
-              onFieldChange={handleFieldChange}
-            />
-          </Paper>
+      <DialogContent sx={{ p: 2, bgcolor: '#1e1e1e' }}>
+        {/* Datos del Cliente */}
+        <Box sx={{ p: 2, bgcolor: '#333', borderRadius: 1, mb: 2 }}>
+          <Typography variant="subtitle1" fontWeight="bold" color="white">
+            Datos del Cliente
+          </Typography>
+          <Divider sx={{ my: 1, bgcolor: 'rgba(255,255,255,0.1)' }} />
           
-          {/* Cliente */}
-          <Paper sx={{ p: 3, mb: 3 }}>
+          {/* Vista simplificada del selector de cliente */}
+          <Box sx={{ mb: 2 }}>
             <ClientSection 
               formData={formData}
-              clients={clients}
+              clients={allClients}
               errors={errors}
               onFieldChange={handleFieldChange}
             />
-          </Paper>
-          
-          {/* Items */}
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <ItemsSection 
-              formData={formData}
-              selectedProducts={selectedProducts}
-              products={products}
-              errors={errors}
-              onProductSelect={(products) => {
-                // Tu lógica de manejo de productos aquí
-              }}
-              onItemChange={(updatedItems) => {
-                setFormData(prev => ({ ...prev, items: updatedItems }));
-                calculateTotals(updatedItems);
-              }}
-            />
-          </Paper>
-          
-          {/* Totales */}
-          <Paper sx={{ p: 3 }}>
-            <TotalsSection 
-              formData={formData} 
-              onFieldChange={handleFieldChange}
-            />
-          </Paper>
+          </Box>
         </Box>
+
+        {/* Servicios/Productos */}
+        <Box sx={{ 
+          p: 2, 
+          bgcolor: '#333', 
+          borderRadius: 1, 
+          mb: 2,
+          color: 'white'
+        }}>
+          <Typography variant="subtitle1" fontWeight="bold">
+            Servicios
+          </Typography>
+          <Divider sx={{ my: 1, bgcolor: 'rgba(255,255,255,0.1)' }} />
+          
+          <ItemsSection 
+            formData={formData}
+            selectedProducts={selectedProducts}
+            products={allProducts}
+            errors={errors}
+            onProductSelect={handleProductSelect}
+            onItemChange={handleItemChange}
+          />
+        </Box>
+
+        {/* Totales */}
+        {formData.items.length > 0 && (
+          <Box sx={{ 
+            p: 2, 
+            bgcolor: '#333', 
+            borderRadius: 1,
+            color: 'white'
+          }}>
+            <Typography variant="subtitle1" fontWeight="bold">
+              Totales
+            </Typography>
+            <Divider sx={{ my: 1, bgcolor: 'rgba(255,255,255,0.1)' }} />
+            
+            <TotalsSection 
+              formData={formData}
+              onFieldChange={handleFieldChange}
+            />
+          </Box>
+        )}
       </DialogContent>
       
+      {/* Botones de acción */}
       <Box sx={{ 
         display: 'flex', 
-        justifyContent: 'space-between', 
-        bgcolor: '#333', 
-        p: 2 
+        justifyContent: 'space-between',
+        p: 2,
+        bgcolor: '#1e1e1e'
       }}>
         <Button 
-          onClick={handleCancel}
+          onClick={onClose} 
           variant="outlined"
-          color="inherit"
+          sx={{
+            color: 'white',
+            borderColor: 'rgba(255,255,255,0.3)',
+            '&:hover': {
+              borderColor: 'rgba(255,255,255,0.8)',
+            }
+          }}
         >
-          Cancelar
+          CANCELAR
         </Button>
         <Button 
-          onClick={handleSubmit}
+          onClick={handleSubmit} 
           variant="contained"
           color="primary"
-          startIcon={<SaveIcon />}
           disabled={saving}
         >
-          {saving ? 'Guardando...' : 'Guardar'}
+          {saving ? 'GUARDANDO...' : 'GUARDAR'}
         </Button>
       </Box>
-      
-      {/* Snackbar para notificaciones */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
-        <Alert 
-          onClose={() => setSnackbar({ ...snackbar, open: false })} 
-          severity={snackbar.severity}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Dialog>
   );
 };

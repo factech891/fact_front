@@ -1,6 +1,5 @@
 // src/pages/documents/DocumentTable.js
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Table,
@@ -11,26 +10,20 @@ import {
   TableRow,
   TablePagination,
   Paper,
-  IconButton,
-  Tooltip,
   TextField,
   InputAdornment,
-  Chip
+  Chip,
+  Divider
 } from '@mui/material';
 import {
-  Visibility as VisibilityIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Send as SendIcon,
-  Search as SearchIcon,
-  Transform as ConvertIcon
+  Search as SearchIcon
 } from '@mui/icons-material';
 import { DOCUMENT_TYPE_NAMES, DOCUMENT_STATUS, DOCUMENT_STATUS_NAMES, DOCUMENT_STATUS_COLORS } from './constants/documentTypes';
+import DocumentActions from './components/DocumentActions';
 import DocumentPreviewModal from './components/DocumentPreviewModal';
 import { convertToInvoice } from '../../services/DocumentsApi';
 
 const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
-  const navigate = useNavigate();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
@@ -59,11 +52,6 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
     setPage(0);
   };
 
-  // Manejar clic en editar
-  const handleEdit = (id) => {
-    navigate(`/documents/edit/${id}`);
-  };
-
   // Manejar clic en ver
   const handleView = (id) => {
     setPreviewDocument(id);
@@ -79,21 +67,19 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
   };
 
   // Función para convertir directamente a factura
-  const handleConvertToInvoice = async (id) => {
+  const handleConvertToInvoice = async (document) => {
     try {
       // Mostrar algún indicador de carga si es necesario
-      console.log("Convirtiendo documento a factura:", id);
+      console.log("Convirtiendo documento a factura:", document._id);
       
       // Llamar al API
-      await convertToInvoice(id);
+      await convertToInvoice(document._id);
       
       // Mostrar mensaje de éxito (usa el sistema de notificaciones que prefieras)
       alert("Documento convertido a factura correctamente");
       
       // Recargar la tabla
-      if (typeof onRefresh === 'function') {
-        onRefresh();
-      }
+      handleRefresh();
     } catch (error) {
       console.error("Error al convertir documento:", error);
       alert("Error al convertir documento a factura");
@@ -136,7 +122,6 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
   useEffect(() => {
     // Este efecto se ejecutará cuando refreshKey cambie
     // Como los documentos vienen de props, no hacemos nada aquí directamente
-    // La lógica de recarga real estará en el componente padre que pasa onRefresh
   }, [refreshKey]);
 
   return (
@@ -206,48 +191,13 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
                         />
                       </TableCell>
                       <TableCell align="right">
-                        <Tooltip title="Ver">
-                          <IconButton 
-                            size="small" 
-                            onClick={() => handleView(document._id)}
-                          >
-                            <VisibilityIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        
-                        <Tooltip title="Editar">
-                          <IconButton 
-                            size="small" 
-                            onClick={() => handleEdit(document._id)}
-                            disabled={document.status === DOCUMENT_STATUS.CONVERTED}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        
-                        {document.status !== DOCUMENT_STATUS.CONVERTED && (
-                          <Tooltip title="Convertir a Factura">
-                            <IconButton 
-                              size="small" 
-                              onClick={() => handleConvertToInvoice(document._id)}
-                              disabled={document.status === DOCUMENT_STATUS.CONVERTED}
-                              color="primary"
-                            >
-                              <ConvertIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                        
-                        <Tooltip title="Eliminar">
-                          <IconButton 
-                            size="small" 
-                            onClick={() => onDelete && onDelete(document._id)}
-                            disabled={document.status === DOCUMENT_STATUS.CONVERTED}
-                            color="error"
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        <DocumentActions 
+                          document={document}
+                          onPreview={() => handleView(document._id)}
+                          onDelete={() => onDelete && onDelete(document._id)}
+                          onConvertToInvoice={handleConvertToInvoice}
+                          onRefresh={handleRefresh}
+                        />
                       </TableCell>
                     </TableRow>
                   ))

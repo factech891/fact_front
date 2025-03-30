@@ -10,7 +10,8 @@ import {
   Typography,
   Paper,
   Snackbar,
-  Alert
+  Alert,
+  Divider  // Añadimos la importación de Divider que faltaba
 } from '@mui/material';
 import {
   Close as CloseIcon,
