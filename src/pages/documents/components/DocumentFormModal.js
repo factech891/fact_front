@@ -11,7 +11,7 @@ import {
   Paper,
   Snackbar,
   Alert,
-  Divider  // Añadimos la importación de Divider que faltaba
+  Divider
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -46,7 +46,7 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
     subtotal: 0,
     taxAmount: 0,
     total: 0,
-    currency: ' VES',
+    currency: 'VES',
     status: DOCUMENT_STATUS.DRAFT,
     paymentTerms: 'Contado',
     creditDays: 0
@@ -70,6 +70,8 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
         try {
           setLoading(true);
           const data = await getDocument(documentId);
+          console.log("Documento cargado:", data);
+          
           if (data) {
             // Formatear fechas
             const dateFormatted = data.date 
@@ -91,16 +93,27 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
             setFormData(formattedData);
             
             // Configurar productos seleccionados
-            if (data.items && data.items.length > 0 && products.length > 0) {
-              const itemProducts = data.items.map(item => {
-                const product = products.find(p => p._id === item.product);
-                return product || {
-                  _id: item.product,
-                  codigo: item.code || '',
-                  nombre: item.name || ''
-                };
-              }).filter(Boolean);
+            if (data.items && data.items.length > 0) {
+              console.log("Items del documento:", data.items);
               
+              // Buscar los productos completos para cada item
+              const itemProducts = data.items.map(item => {
+                // Buscar el producto completo en la lista de productos
+                const product = products.find(p => 
+                  p._id === (item.product?._id || item.product)
+                );
+                
+                // Si el producto existe en la lista, retornarlo
+                // Si no, crear un objeto producto a partir de los datos del item
+                return product || {
+                  _id: item.product?._id || item.product,
+                  codigo: item.codigo || '',
+                  nombre: item.descripcion || '',
+                  precio: item.price || 0
+                };
+              }).filter(Boolean); // Eliminar nulls o undefined
+              
+              console.log("Productos seleccionados:", itemProducts);
               setSelectedProducts(itemProducts);
             }
           }
@@ -108,7 +121,7 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
           console.error('Error al cargar documento:', err);
           setSnackbar({
             open: true,
-            message: 'Error al cargar el documento',
+            message: 'Error al cargar el documento: ' + (err.message || ''),
             severity: 'error'
           });
         } finally {
@@ -171,14 +184,18 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
     }));
   };
   
-  // Handler para selección de productos - adaptado para trabajar con tu ItemsSection
+  // Handler para selección de productos
   const handleProductSelect = (selectedProds) => {
+    console.log("Productos seleccionados (nuevo):", selectedProds);
     setSelectedProducts(selectedProds);
     
     // Transformar productos seleccionados a items
     const items = selectedProds.map(product => {
       // Buscar si ya existe un item para este producto
-      const existingItem = formData.items.find(i => i.product === product._id);
+      const existingItem = formData.items.find(i => 
+        i.product === product._id || 
+        i.product?._id === product._id
+      );
       
       if (existingItem) {
         return existingItem;
@@ -186,8 +203,8 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
         // Crear nuevo item
         return {
           product: product._id,
-          codigo: product.codigo,
-          descripcion: product.nombre,
+          codigo: product.codigo || '',
+          descripcion: product.nombre || '',
           quantity: 1,
           price: product.precio || 0,
           taxExempt: false,
@@ -202,7 +219,7 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
     calculateTotals(items);
   };
   
-  // Handler para cambios en items - adaptado para trabajar con tu ItemsSection
+  // Handler para cambios en items
   const handleItemChange = (updatedItems) => {
     setFormData(prev => ({ ...prev, items: updatedItems }));
     calculateTotals(updatedItems);
@@ -224,6 +241,8 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
       // Asegurarnos que cada item tenga el formato correcto
       items: formData.items.map(item => ({
         product: item.product?._id || item.product,
+        codigo: item.codigo || '',
+        descripcion: item.descripcion || '',
         quantity: item.quantity || 1,
         price: item.price || 0,
         taxExempt: item.taxExempt || false,
@@ -262,11 +281,14 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
       const dataToSubmit = prepareDataForSubmit();
       console.log("Datos a enviar al servidor:", JSON.stringify(dataToSubmit, null, 2));
       
+      let result;
       if (documentId) {
-        await updateDocument(documentId, dataToSubmit);
+        result = await updateDocument(documentId, dataToSubmit);
       } else {
-        await createDocument(dataToSubmit);
+        result = await createDocument(dataToSubmit);
       }
+      
+      console.log("Documento guardado:", result);
       
       setSnackbar({
         open: true,
@@ -365,7 +387,7 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
             variant="outlined"
             color="inherit"
           >
-            Cancelar
+            CANCELAR
           </Button>
           <Button 
             onClick={handleSubmit}
@@ -374,7 +396,7 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
             startIcon={<SaveIcon />}
             disabled={saving}
           >
-            {saving ? 'Guardando...' : 'Guardar'}
+            {saving ? 'GUARDANDO...' : 'GUARDAR'}
           </Button>
         </Box>
       </Dialog>

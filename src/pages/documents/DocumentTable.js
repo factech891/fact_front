@@ -13,10 +13,13 @@ import {
   TextField,
   InputAdornment,
   Chip,
-  Divider
+  Divider,
+  Button,
+  CircularProgress
 } from '@mui/material';
 import {
-  Search as SearchIcon
+  Search as SearchIcon,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { DOCUMENT_TYPE_NAMES, DOCUMENT_STATUS, DOCUMENT_STATUS_NAMES, DOCUMENT_STATUS_COLORS } from './constants/documentTypes';
 import DocumentActions from './components/DocumentActions';
@@ -29,15 +32,28 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [previewDocument, setPreviewDocument] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0); // Para forzar recargas
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Filtrar documentos según el término de búsqueda
   const filteredDocuments = documents.filter(doc => {
+    if (!searchTerm) return true;
+    
     const term = searchTerm.toLowerCase();
+    
+    // Buscar en diferentes campos
     return (
-      doc.documentNumber?.toLowerCase().includes(term) ||
-      doc.client?.name?.toLowerCase().includes(term) ||
-      DOCUMENT_TYPE_NAMES[doc.type]?.toLowerCase().includes(term) ||
-      DOCUMENT_STATUS_NAMES[doc.status]?.toLowerCase().includes(term)
+      // Número de documento
+      (doc.documentNumber?.toLowerCase().includes(term)) ||
+      
+      // Cliente (nombre o código)
+      (doc.client?.nombre?.toLowerCase().includes(term) || 
+       doc.client?.name?.toLowerCase().includes(term)) ||
+      
+      // Tipo de documento
+      (DOCUMENT_TYPE_NAMES[doc.type]?.toLowerCase().includes(term)) ||
+      
+      // Estado
+      (DOCUMENT_STATUS_NAMES[doc.status]?.toLowerCase().includes(term))
     );
   });
 
@@ -59,30 +75,41 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
   
   // Función para recargar los datos
   const handleRefresh = () => {
+    setIsRefreshing(true);
     setRefreshKey(prev => prev + 1);
+    
     // Si hay una función onRefresh pasada como prop, llamarla también
     if (typeof onRefresh === 'function') {
-      onRefresh();
+      Promise.resolve(onRefresh()).finally(() => {
+        setIsRefreshing(false);
+      });
+    } else {
+      // Si no hay función de refresco externa, simular una pequeña demora
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 500);
     }
   };
 
   // Función para convertir directamente a factura
   const handleConvertToInvoice = async (document) => {
     try {
-      // Mostrar algún indicador de carga si es necesario
+      setIsRefreshing(true);
       console.log("Convirtiendo documento a factura:", document._id);
       
       // Llamar al API
       await convertToInvoice(document._id);
       
-      // Mostrar mensaje de éxito (usa el sistema de notificaciones que prefieras)
+      // Mostrar mensaje de éxito
       alert("Documento convertido a factura correctamente");
       
       // Recargar la tabla
       handleRefresh();
     } catch (error) {
       console.error("Error al convertir documento:", error);
-      alert("Error al convertir documento a factura");
+      alert("Error al convertir documento a factura: " + (error.message || ""));
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -110,7 +137,7 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
   };
 
   // Formatear moneda
-  const formatCurrency = (amount, currency = 'EUR') => {
+  const formatCurrency = (amount, currency = 'VES') => {
     if (amount === undefined || amount === null) return '—';
     return new Intl.NumberFormat('es-ES', {
       style: 'currency',
@@ -118,23 +145,22 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
     }).format(amount);
   };
 
-  // Efecto para manejar recarga de datos cuando cambia refreshKey
+  // Efecto para manejar recarga de datos
   useEffect(() => {
-    // Este efecto se ejecutará cuando refreshKey cambie
-    // Como los documentos vienen de props, no hacemos nada aquí directamente
-  }, [refreshKey]);
+    // Cuando cambia refreshKey o se abre/cierra el modal de previsualización
+  }, [refreshKey, previewDocument]);
 
   return (
     <>
       <Box>
-        {/* Buscador */}
-        <Box sx={{ mb: 2 }}>
+        {/* Encabezado con búsqueda y botón refrescar */}
+        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between' }}>
           <TextField
-            fullWidth
             size="small"
             placeholder="Buscar documentos..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            sx={{ flexGrow: 1, mr: 2 }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -143,6 +169,15 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
               ),
             }}
           />
+          
+          <Button
+            variant="outlined"
+            startIcon={isRefreshing ? <CircularProgress size={20} /> : <RefreshIcon />}
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? 'Actualizando...' : 'Actualizar'}
+          </Button>
         </Box>
 
         {/* Tabla */}
@@ -163,7 +198,10 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
               {filteredDocuments.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} align="center">
-                    No se encontraron documentos
+                    {searchTerm 
+                      ? 'No se encontraron documentos que coincidan con la búsqueda'
+                      : 'No hay documentos disponibles'
+                    }
                   </TableCell>
                 </TableRow>
               ) : (
@@ -195,7 +233,7 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
                           document={document}
                           onPreview={() => handleView(document._id)}
                           onDelete={() => onDelete && onDelete(document._id)}
-                          onConvertToInvoice={handleConvertToInvoice}
+                          onConvertToInvoice={() => handleConvertToInvoice(document)}
                           onRefresh={handleRefresh}
                         />
                       </TableCell>
@@ -223,7 +261,11 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
       {/* Modal de vista previa */}
       <DocumentPreviewModal
         open={previewDocument !== null}
-        onClose={() => setPreviewDocument(null)}
+        onClose={() => {
+          setPreviewDocument(null);
+          // Refrescar la tabla cuando se cierre el modal
+          handleRefresh();
+        }}
         documentId={previewDocument}
         onRefresh={handleRefresh}
       />
