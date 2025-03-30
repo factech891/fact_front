@@ -36,7 +36,7 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
   const [formData, setFormData] = useState({
     type: DOCUMENT_TYPES.QUOTE,
     documentNumber: '',
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toLocaleDateString('en-CA'), // formato YYYY-MM-DD sin conversión UTC
     expiryDate: null,
     client: null,
     items: [],
@@ -72,11 +72,11 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
           if (data) {
             // Formatear fechas
             const dateFormatted = data.date 
-              ? new Date(data.date).toISOString().split('T')[0] 
-              : new Date().toISOString().split('T')[0];
+              ? new Date(data.date).toLocaleDateString('en-CA')
+              : new Date().toLocaleDateString('en-CA');
               
             const expiryDateFormatted = data.expiryDate 
-              ? new Date(data.expiryDate).toISOString().split('T')[0] 
+              ? new Date(data.expiryDate).toLocaleDateString('en-CA')
               : null;
               
             const formattedData = {
@@ -133,9 +133,9 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
       const validityDays = DOCUMENT_VALIDITY_DAYS[formData.type];
       if (validityDays !== null) {
         // Convertir la fecha de string a Date, sumar días, y volver a string
-        const dateObj = new Date(formData.date);
+        const dateObj = new Date(formData.date + 'T12:00:00');
         dateObj.setDate(dateObj.getDate() + validityDays);
-        const expiryDateStr = dateObj.toISOString().split('T')[0];
+        const expiryDateStr = dateObj.toLocaleDateString('en-CA');
         setFormData(prev => ({ ...prev, expiryDate: expiryDateStr }));
       } else {
         setFormData(prev => ({ ...prev, expiryDate: null }));
@@ -209,11 +209,15 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
   
   // Preparar datos para enviar al API
   const prepareDataForSubmit = () => {
+    // Crear fecha que represente exactamente el día local seleccionado
+    const dateObj = formData.date ? new Date(formData.date + 'T12:00:00') : new Date();
+    const expiryDateObj = formData.expiryDate ? new Date(formData.expiryDate + 'T12:00:00') : null;
+    
     return {
       ...formData,
-      // Asegurarnos que las fechas estén en formato ISO
-      date: formData.date ? new Date(formData.date).toISOString() : new Date().toISOString(),
-      expiryDate: formData.expiryDate ? new Date(formData.expiryDate).toISOString() : null,
+      // Usamos toISOString pero garantizamos que el día sea correcto con el offset de 12 horas
+      date: dateObj.toISOString(),
+      expiryDate: expiryDateObj ? expiryDateObj.toISOString() : null,
       // Asegurarnos que el cliente sea solo el ID si es un objeto
       client: formData.client?._id || formData.client,
       // Asegurarnos que cada item tenga el formato correcto

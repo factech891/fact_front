@@ -27,6 +27,7 @@ import {
 } from '@mui/icons-material';
 import { DOCUMENT_TYPE_NAMES, DOCUMENT_STATUS, DOCUMENT_STATUS_NAMES, DOCUMENT_STATUS_COLORS } from './constants/documentTypes';
 import DocumentPreviewModal from './components/DocumentPreviewModal';
+import { convertToInvoice } from '../../services/DocumentsApi';
 
 const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
   const navigate = useNavigate();
@@ -74,6 +75,28 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
     // Si hay una función onRefresh pasada como prop, llamarla también
     if (typeof onRefresh === 'function') {
       onRefresh();
+    }
+  };
+
+  // Función para convertir directamente a factura
+  const handleConvertToInvoice = async (id) => {
+    try {
+      // Mostrar algún indicador de carga si es necesario
+      console.log("Convirtiendo documento a factura:", id);
+      
+      // Llamar al API
+      await convertToInvoice(id);
+      
+      // Mostrar mensaje de éxito (usa el sistema de notificaciones que prefieras)
+      alert("Documento convertido a factura correctamente");
+      
+      // Recargar la tabla
+      if (typeof onRefresh === 'function') {
+        onRefresh();
+      }
+    } catch (error) {
+      console.error("Error al convertir documento:", error);
+      alert("Error al convertir documento a factura");
     }
   };
 
@@ -206,7 +229,8 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
                           <Tooltip title="Convertir a Factura">
                             <IconButton 
                               size="small" 
-                              onClick={() => onConvert && onConvert(document._id)}
+                              onClick={() => handleConvertToInvoice(document._id)}
+                              disabled={document.status === DOCUMENT_STATUS.CONVERTED}
                               color="primary"
                             >
                               <ConvertIcon fontSize="small" />
