@@ -15,8 +15,6 @@ import {
   Visibility as VisibilityIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Send as SendIcon,
-  ContentCopy as DuplicateIcon,
   PictureAsPdf as PdfIcon,
   Transform as ConvertIcon
 } from '@mui/icons-material';
@@ -28,8 +26,6 @@ const DocumentActions = ({
   document, 
   onPreview, 
   onDelete, 
-  onSend, 
-  onDuplicate, 
   onDownloadPdf, 
   onConvertToInvoice,
   onRefresh
@@ -119,25 +115,11 @@ const DocumentActions = ({
           'aria-labelledby': 'document-actions-button',
         }}
       >
-        <MenuItem onClick={() => handleAction(onSend)} disabled={isConverted}>
-          <ListItemIcon>
-            <SendIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Enviar</ListItemText>
-        </MenuItem>
-        
         <MenuItem onClick={() => handleAction(onDownloadPdf)}>
           <ListItemIcon>
             <PdfIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>Descargar PDF</ListItemText>
-        </MenuItem>
-        
-        <MenuItem onClick={() => handleAction(onDuplicate)}>
-          <ListItemIcon>
-            <DuplicateIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Duplicar</ListItemText>
         </MenuItem>
         
         <MenuItem 

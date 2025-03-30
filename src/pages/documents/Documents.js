@@ -1,8 +1,5 @@
 // src/pages/documents/Documents.js
-
-// Mantén los imports necesarios
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -24,7 +21,6 @@ import DocumentFormModal from './components/DocumentFormModal';
 import { getDocuments, deleteDocument } from '../../services/DocumentsApi';
 
 const Documents = () => {
-  const navigate = useNavigate();
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -32,6 +28,7 @@ const Documents = () => {
   const [documentToDelete, setDocumentToDelete] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [modalOpen, setModalOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Cargar documentos
   const fetchDocuments = async () => {
@@ -39,6 +36,7 @@ const Documents = () => {
       setLoading(true);
       const data = await getDocuments();
       setDocuments(data);
+      return data;
     } catch (err) {
       console.error('Error al cargar documentos:', err);
       setError('Error al cargar los documentos. Por favor, intente de nuevo.');
@@ -47,20 +45,27 @@ const Documents = () => {
     }
   };
 
+  // Efecto para cargar documentos al inicio y cuando cambia refreshTrigger
   useEffect(() => {
     fetchDocuments();
-  }, []);
+  }, [refreshTrigger]);
 
-  // Crear nuevo documento - modificado
+  // Crear nuevo documento
   const handleCreateNew = () => {
     setModalOpen(true);
   };
 
+  // Manejar cierre del modal
   const handleModalClose = (success) => {
     setModalOpen(false);
     if (success) {
       // Recargar los documentos si se guardó correctamente
-      fetchDocuments();
+      setRefreshTrigger(prev => prev + 1);
+      setSnackbar({
+        open: true,
+        message: 'Documento creado correctamente',
+        severity: 'success'
+      });
     }
   };
 
@@ -94,6 +99,11 @@ const Documents = () => {
     }
   };
 
+  // Función para actualizar la lista de documentos
+  const handleRefresh = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
   return (
     <>
       <Box sx={{ mb: 4 }}>
@@ -120,7 +130,7 @@ const Documents = () => {
       </Box>
 
       <Paper sx={{ p: 2, mb: 3 }}>
-        {loading ? (
+        {loading && documents.length === 0 ? (
           <Typography>Cargando documentos...</Typography>
         ) : error ? (
           <Alert severity="error">{error}</Alert>
@@ -128,6 +138,7 @@ const Documents = () => {
           <DocumentTable
             documents={documents}
             onDelete={handleDeleteRequest}
+            onRefresh={handleRefresh}
           />
         )}
       </Paper>

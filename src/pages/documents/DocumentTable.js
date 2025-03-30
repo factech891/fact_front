@@ -13,13 +13,10 @@ import {
   TextField,
   InputAdornment,
   Chip,
-  Divider,
-  Button,
-  CircularProgress
+  Divider
 } from '@mui/material';
 import {
-  Search as SearchIcon,
-  Refresh as RefreshIcon
+  Search as SearchIcon
 } from '@mui/icons-material';
 import { DOCUMENT_TYPE_NAMES, DOCUMENT_STATUS, DOCUMENT_STATUS_NAMES, DOCUMENT_STATUS_COLORS } from './constants/documentTypes';
 import DocumentActions from './components/DocumentActions';
@@ -31,8 +28,7 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [previewDocument, setPreviewDocument] = useState(null);
-  const [refreshKey, setRefreshKey] = useState(0); // Para forzar recargas
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Filtrar documentos según el término de búsqueda
   const filteredDocuments = documents.filter(doc => {
@@ -75,26 +71,17 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
   
   // Función para recargar los datos
   const handleRefresh = () => {
-    setIsRefreshing(true);
     setRefreshKey(prev => prev + 1);
     
     // Si hay una función onRefresh pasada como prop, llamarla también
     if (typeof onRefresh === 'function') {
-      Promise.resolve(onRefresh()).finally(() => {
-        setIsRefreshing(false);
-      });
-    } else {
-      // Si no hay función de refresco externa, simular una pequeña demora
-      setTimeout(() => {
-        setIsRefreshing(false);
-      }, 500);
+      onRefresh();
     }
   };
 
   // Función para convertir directamente a factura
   const handleConvertToInvoice = async (document) => {
     try {
-      setIsRefreshing(true);
       console.log("Convirtiendo documento a factura:", document._id);
       
       // Llamar al API
@@ -108,8 +95,6 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
     } catch (error) {
       console.error("Error al convertir documento:", error);
       alert("Error al convertir documento a factura: " + (error.message || ""));
-    } finally {
-      setIsRefreshing(false);
     }
   };
 
@@ -145,22 +130,31 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
     }).format(amount);
   };
 
-  // Efecto para manejar recarga de datos
+  // Efecto para recargar datos cuando cambia refreshKey
   useEffect(() => {
-    // Cuando cambia refreshKey o se abre/cierra el modal de previsualización
-  }, [refreshKey, previewDocument]);
+    // Este efecto se ejecutará cuando refreshKey cambie
+  }, [refreshKey]);
+
+  // Efecto para manejar actualización después de cerrar modales
+  useEffect(() => {
+    // Refrescar datos cuando se abre/cierra el modal de previsualización
+    if (previewDocument === null) {
+      // Solo refrescar cuando se cierra el modal
+      handleRefresh();
+    }
+  }, [previewDocument]);
 
   return (
     <>
       <Box>
-        {/* Encabezado con búsqueda y botón refrescar */}
-        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between' }}>
+        {/* Buscador sin botón actualizar */}
+        <Box sx={{ mb: 2 }}>
           <TextField
+            fullWidth
             size="small"
             placeholder="Buscar documentos..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            sx={{ flexGrow: 1, mr: 2 }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -169,15 +163,6 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
               ),
             }}
           />
-          
-          <Button
-            variant="outlined"
-            startIcon={isRefreshing ? <CircularProgress size={20} /> : <RefreshIcon />}
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-          >
-            {isRefreshing ? 'Actualizando...' : 'Actualizar'}
-          </Button>
         </Box>
 
         {/* Tabla */}
@@ -233,6 +218,7 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
                           document={document}
                           onPreview={() => handleView(document._id)}
                           onDelete={() => onDelete && onDelete(document._id)}
+                          onDownloadPdf={() => {/* Implementar funcionalidad de descarga */}}
                           onConvertToInvoice={() => handleConvertToInvoice(document)}
                           onRefresh={handleRefresh}
                         />
@@ -261,11 +247,7 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
       {/* Modal de vista previa */}
       <DocumentPreviewModal
         open={previewDocument !== null}
-        onClose={() => {
-          setPreviewDocument(null);
-          // Refrescar la tabla cuando se cierre el modal
-          handleRefresh();
-        }}
+        onClose={() => setPreviewDocument(null)}
         documentId={previewDocument}
         onRefresh={handleRefresh}
       />
