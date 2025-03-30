@@ -123,27 +123,10 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
     }
   };
 
-  // Formatear moneda
+  // Formato simplificado de moneda (similar a InvoiceTotals.js)
   const formatCurrency = (amount, currency = 'USD') => {
     if (amount === undefined || amount === null) return '—';
-    
-    if (currency === 'VES') {
-      return `Bs.S ${new Intl.NumberFormat('es-VE', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(amount)}`;
-    } else if (currency === 'USD') {
-      return `USD ${new Intl.NumberFormat('es-VE', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(amount)}`;
-    } else {
-      // Para otras monedas
-      return `${currency} ${new Intl.NumberFormat('es-VE', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(amount)}`;
-    }
+    return `${currency} ${amount.toFixed(2)}`;
   };
 
   // Formatear fecha
@@ -294,11 +277,11 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
                             <TableCell>{productName}</TableCell>
                             <TableCell align="center">{quantity}</TableCell>
                             <TableCell align="right">
-                              {formatCurrency(price, document.currency || 'VES')}
+                              {document.currency} {price.toFixed(2)}
                             </TableCell>
                             <TableCell align="center">{taxStatus}</TableCell>
                             <TableCell align="right">
-                              {formatCurrency(itemTotal, document.currency || 'VES')}
+                              {document.currency} {itemTotal.toFixed(2)}
                             </TableCell>
                           </TableRow>
                         );
@@ -326,17 +309,17 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
                 >
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography>Subtotal:</Typography>
-                    <Typography>{formatCurrency(document.subtotal, document.currency)}</Typography>
+                    <Typography>{document.currency} {document.subtotal.toFixed(2)}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography>IVA:</Typography>
-                    <Typography>{formatCurrency(document.taxAmount, document.currency)}</Typography>
+                    <Typography>{document.currency} {document.taxAmount.toFixed(2)}</Typography>
                   </Box>
                   <Divider sx={{ my: 1, borderColor: 'rgba(255,255,255,0.12)' }} />
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="subtitle1" fontWeight="bold">Total:</Typography>
                     <Typography variant="subtitle1" fontWeight="bold">
-                      {formatCurrency(document.total, document.currency)}
+                      {document.currency} {document.total.toFixed(2)}
                     </Typography>
                   </Box>
                 </Paper>
