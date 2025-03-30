@@ -29,28 +29,31 @@ import { DOCUMENT_TYPES, DOCUMENT_STATUS } from '../constants/documentTypes';
 import { useClients } from '../../../hooks/useClients';
 import { useProducts } from '../../../hooks/useProducts';
 
+// Definir el estado inicial como constante para poder reutilizarlo
+const initialFormState = {
+  type: DOCUMENT_TYPES.QUOTE,
+  documentNumber: '',
+  date: new Date().toLocaleDateString('en-CA'), // formato YYYY-MM-DD sin conversión UTC
+  expiryDate: null,
+  client: null,
+  items: [],
+  notes: '',
+  terms: '',
+  subtotal: 0,
+  taxAmount: 0,
+  total: 0,
+  currency: 'VES',
+  status: DOCUMENT_STATUS.DRAFT,
+  paymentTerms: 'Contado',
+  creditDays: 0
+};
+
 const DocumentFormModal = ({ open, onClose, documentId = null }) => {
   const { clients } = useClients();
   const { products } = useProducts();
   
   // Estado del formulario
-  const [formData, setFormData] = useState({
-    type: DOCUMENT_TYPES.QUOTE,
-    documentNumber: '',
-    date: new Date().toLocaleDateString('en-CA'), // formato YYYY-MM-DD sin conversión UTC
-    expiryDate: null,
-    client: null,
-    items: [],
-    notes: '',
-    terms: '',
-    subtotal: 0,
-    taxAmount: 0,
-    total: 0,
-    currency: 'VES',
-    status: DOCUMENT_STATUS.DRAFT,
-    paymentTerms: 'Contado',
-    creditDays: 0
-  });
+  const [formData, setFormData] = useState({...initialFormState});
 
   // Estados para la selección de productos
   const [selectedProducts, setSelectedProducts] = useState([]);
@@ -62,6 +65,24 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  
+  // Función para resetear el formulario
+  const resetForm = () => {
+    console.log('Reseteando formulario a valores iniciales');
+    // Actualizar la fecha al día actual
+    const currentDate = new Date().toLocaleDateString('en-CA');
+    setFormData({...initialFormState, date: currentDate});
+    setSelectedProducts([]);
+    setErrors({});
+  };
+  
+  // NUEVO: Efecto para resetear el formulario cuando se abre el modal sin documentId
+  useEffect(() => {
+    if (open && !documentId) {
+      console.log('Modal abierto sin documento ID - reseteando formulario');
+      resetForm();
+    }
+  }, [open, documentId]);
   
   // Cargar documento para edición
   useEffect(() => {
@@ -382,13 +403,22 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
           bgcolor: '#333', 
           p: 2 
         }}>
-          <Button 
-            onClick={() => onClose(false)}
-            variant="outlined"
-            color="inherit"
-          >
-            CANCELAR
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button 
+              onClick={() => onClose(false)}
+              variant="outlined"
+              color="inherit"
+            >
+              CANCELAR
+            </Button>
+            <Button 
+              onClick={resetForm}
+              variant="outlined"
+              color="inherit"
+            >
+              LIMPIAR
+            </Button>
+          </Box>
           <Button 
             onClick={handleSubmit}
             variant="contained"

@@ -42,8 +42,8 @@ const DocumentForm = ({ open, onClose, initialData = null, onSave, clientsList =
   const allClients = clientsList.length > 0 ? clientsList : clients;
   const allProducts = productsList.length > 0 ? productsList : products;
   
-  // Estado del formulario
-  const [formData, setFormData] = useState({
+  // Estado inicial del formulario - lo definimos como constante para poder reutilizarlo
+  const initialFormState = {
     type: DOCUMENT_TYPES.QUOTE,
     date: new Date().toISOString().split('T')[0],
     expiryDate: null,
@@ -58,41 +58,58 @@ const DocumentForm = ({ open, onClose, initialData = null, onSave, clientsList =
     status: DOCUMENT_STATUS.DRAFT,
     paymentTerms: 'Contado',
     creditDays: 0
-  });
-
+  };
+  
+  // Estado del formulario
+  const [formData, setFormData] = useState({...initialFormState});
+  
   // Estados para UI
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   
-  // Cargar datos iniciales si se está editando
+  // Función para resetear el formulario
+  const resetForm = () => {
+    console.log('Reseteando formulario a valores iniciales');
+    setFormData({...initialFormState});
+    setSelectedProducts([]);
+    setErrors({});
+  };
+  
+  // Este useEffect se ejecuta cuando cambia el estado "open" o initialData
   useEffect(() => {
-    if (initialData) {
-      console.log('Cargando documento para editar:', initialData);
-      
-      // Encontrar los productos completos basados en los IDs
-      const documentProducts = initialData.items?.map(item => {
-        const fullProduct = allProducts.find(p => p._id === item.product?._id || item.product);
-        return {
-          _id: fullProduct?._id,
-          codigo: fullProduct?.codigo,
-          nombre: fullProduct?.nombre,
-          precio: item.price
-        };
-      }) || [];
-      
-      setSelectedProducts(documentProducts);
-      
-      setFormData({
-        ...initialData,
-        client: initialData.client,
-        items: initialData.items || [],
-        type: initialData.type || DOCUMENT_TYPES.QUOTE,
-        status: initialData.status || DOCUMENT_STATUS.DRAFT,
-        currency: initialData.currency || 'VES',
-      });
+    // Si el modal se acaba de abrir
+    if (open) {
+      if (initialData) {
+        console.log('Cargando documento para editar:', initialData);
+        
+        // Encontrar los productos completos basados en los IDs
+        const documentProducts = initialData.items?.map(item => {
+          const fullProduct = allProducts.find(p => p._id === item.product?._id || item.product);
+          return {
+            _id: fullProduct?._id,
+            codigo: fullProduct?.codigo,
+            nombre: fullProduct?.nombre,
+            precio: item.price
+          };
+        }) || [];
+        
+        setSelectedProducts(documentProducts);
+        
+        setFormData({
+          ...initialData,
+          client: initialData.client,
+          items: initialData.items || [],
+          type: initialData.type || DOCUMENT_TYPES.QUOTE,
+          status: initialData.status || DOCUMENT_STATUS.DRAFT,
+          currency: initialData.currency || 'VES',
+        });
+      } else {
+        // Si es un nuevo documento, resetear el formulario
+        resetForm();
+      }
     }
-  }, [initialData, allProducts]);
+  }, [open, initialData, allProducts]);
   
   // Manejar cambios en los campos
   const handleFieldChange = (field, value) => {
@@ -329,19 +346,35 @@ const DocumentForm = ({ open, onClose, initialData = null, onSave, clientsList =
         p: 2,
         bgcolor: '#1e1e1e'
       }}>
-        <Button 
-          onClick={onClose} 
-          variant="outlined"
-          sx={{
-            color: 'white',
-            borderColor: 'rgba(255,255,255,0.3)',
-            '&:hover': {
-              borderColor: 'rgba(255,255,255,0.8)',
-            }
-          }}
-        >
-          CANCELAR
-        </Button>
+        <Box>
+          <Button 
+            onClick={onClose} 
+            variant="outlined"
+            sx={{
+              color: 'white',
+              borderColor: 'rgba(255,255,255,0.3)',
+              '&:hover': {
+                borderColor: 'rgba(255,255,255,0.8)',
+              },
+              mr: 2
+            }}
+          >
+            CANCELAR
+          </Button>
+          <Button 
+            onClick={resetForm} 
+            variant="outlined"
+            sx={{
+              color: 'white',
+              borderColor: 'rgba(255,255,255,0.3)',
+              '&:hover': {
+                borderColor: 'rgba(255,255,255,0.8)',
+              }
+            }}
+          >
+            LIMPIAR
+          </Button>
+        </Box>
         <Button 
           onClick={handleSubmit} 
           variant="contained"
