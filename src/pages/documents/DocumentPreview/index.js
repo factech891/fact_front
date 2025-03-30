@@ -39,6 +39,8 @@ import {
 import { getDocument, deleteDocument, convertToInvoice } from '../../../services/DocumentsApi';
 import { DOCUMENT_TYPE_NAMES, DOCUMENT_STATUS, DOCUMENT_STATUS_NAMES, DOCUMENT_STATUS_COLORS } from '../constants/documentTypes';
 import ConvertToInvoiceModal from '../components/ConvertToInvoiceModal';
+// Importar el componente de previsualización para impresión
+import DocumentPrintPreview from './DocumentPrintPreview';
 
 const DocumentPreview = () => {
   const navigate = useNavigate();
@@ -50,6 +52,7 @@ const DocumentPreview = () => {
   const [error, setError] = useState(null);
   const [convertModalOpen, setConvertModalOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [printPreviewOpen, setPrintPreviewOpen] = useState(false); // Nuevo estado para controlar la vista previa
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   
   // Obtener la información de la empresa usando el hook
@@ -144,9 +147,9 @@ const DocumentPreview = () => {
     }
   };
   
-  // Imprimir documento
+  // Modificado: Ahora abre la vista previa de impresión con formato
   const handlePrint = () => {
-    window.print();
+    setPrintPreviewOpen(true);
   };
   
   // Formatear fechas
@@ -239,6 +242,7 @@ const DocumentPreview = () => {
               <Button
                 variant="outlined"
                 startIcon={<DownloadIcon />}
+                onClick={handlePrint}  // Modificado: Usa la misma función que el botón Imprimir
               >
                 Descargar PDF
               </Button>
@@ -434,6 +438,13 @@ const DocumentPreview = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      
+      {/* Nueva integración: Componente de previsualización para impresión/PDF con formato */}
+      <DocumentPrintPreview
+        open={printPreviewOpen}
+        onClose={() => setPrintPreviewOpen(false)}
+        document={document}
+      />
       
       {/* Snackbar para notificaciones */}
       <Snackbar

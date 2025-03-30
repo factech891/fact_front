@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import { Download } from '@mui/icons-material';
 
-// Reutilizamos los componentes de diseño de facturas
+// Importamos los componentes exactos de InvoicePreview
 import { InvoiceHeader } from '../../invoices/InvoicePreview/InvoiceHeader';
 import { ClientInfo } from '../../invoices/InvoicePreview/ClientInfo';
 import { InvoiceItemsTable } from '../../invoices/InvoicePreview/InvoiceItemsTable';
@@ -24,8 +24,9 @@ import { generatePDF } from '../../../utils/pdfGenerator';
 import { useCompany } from '../../../hooks/useCompany';
 import { DOCUMENT_TYPE_NAMES } from '../constants/documentTypes';
 
+// Mismos estilos que InvoicePreview
 const getStyles = (theme) => ({
-  documentContainer: {
+  invoiceContainer: {
     padding: '0',
     backgroundColor: theme.background.primary,
     width: '210mm',     // Ancho A4
@@ -54,14 +55,6 @@ const getStyles = (theme) => ({
     alignItems: 'center',
     height: '100%',
     width: '100%'
-  },
-  documentType: {
-    position: 'absolute',
-    top: '10px',
-    right: '25px',
-    fontSize: '18px',
-    fontWeight: 'bold',
-    color: theme.text.primary
   }
 });
 
@@ -72,6 +65,15 @@ const DocumentPrintPreview = ({ open, onClose, document }) => {
   const theme = invoiceThemes[currentStyle];
   const styles = getStyles(theme);
   const { company, loading } = useCompany();
+  
+  console.log("Company data in preview:", company); // Para depuración
+  console.log("Document in preview:", document); // Para depuración
+
+  // Función para obtener el título del documento según su tipo
+  const getDocumentTitle = (doc) => {
+    if (!doc) return 'Documento';
+    return DOCUMENT_TYPE_NAMES[doc.type] || 'Documento';
+  };
 
   const handleDownload = async () => {
     if (!document) {
@@ -92,18 +94,19 @@ const DocumentPrintPreview = ({ open, onClose, document }) => {
       // Adaptar el documento al formato esperado por generatePDF
       const documentForPDF = {
         ...document,
-        // Aseguramos compatibilidad con el generador de PDF para facturas
+        // Mapeo de campos para compatibilidad
         number: document.documentNumber,
         tax: document.taxAmount,
         moneda: document.currency
       };
       
+      // Si tu función generatePDF acepta un segundo parámetro para el título
       const result = await generatePDF(documentForPDF, getDocumentTitle(document));
       
       if (result.success) {
         setNotification({
           open: true,
-          message: 'PDF generado correctamente',
+          message: `${getDocumentTitle(document)} generado correctamente`,
           severity: 'success'
         });
       } else {
@@ -128,12 +131,6 @@ const DocumentPrintPreview = ({ open, onClose, document }) => {
   const handleCloseNotification = () => {
     setNotification({ ...notification, open: false });
   };
-  
-  // Función para obtener el título del documento según su tipo
-  const getDocumentTitle = (doc) => {
-    if (!doc) return 'Documento';
-    return DOCUMENT_TYPE_NAMES[doc.type] || 'Documento';
-  };
 
   if (!document) return null;
 
@@ -156,16 +153,24 @@ const DocumentPrintPreview = ({ open, onClose, document }) => {
   // Adaptar documento al formato esperado por los componentes de factura
   const documentForDisplay = {
     ...document,
+    numero: document.documentNumber,
     number: document.documentNumber,
+    fecha: document.date,
     date: document.date,
     status: document.status,
     client: document.client,
-    items: document.items,
+    items: document.items && document.items.map(item => ({
+      codigo: item.code || item.codigo,
+      descripcion: item.description || item.descripcion,
+      cantidad: item.quantity || item.cantidad || 1,
+      precioUnitario: item.price || item.precioUnitario || 0,
+      exentoIva: item.taxExempt || item.exentoIva || false
+    })),
     subtotal: document.subtotal,
     tax: document.taxAmount,
     total: document.total,
     moneda: document.currency,
-    condicionesPago: document.paymentTerms
+    condicionesPago: document.paymentTerms || 'Contado'
   };
 
   return (
@@ -193,26 +198,22 @@ const DocumentPrintPreview = ({ open, onClose, document }) => {
               <CircularProgress />
             </div>
           ) : (
-            <Paper sx={styles.documentContainer}>
-              <div style={styles.documentType}>
-                {getDocumentTitle(document)}
-              </div>
+            <Paper sx={styles.invoiceContainer}>
               <InvoiceHeader
                 invoice={documentForDisplay}
                 empresa={empresaData}
                 theme={theme}
-                // Si necesitamos personalizar el título, podríamos añadir esta prop
                 documentType={getDocumentTitle(document)}
               />
               <div style={styles.content}>
                 <ClientInfo
-                  client={document.client}
+                  client={documentForDisplay.client}
                   theme={theme}
                 />
-                {document.items && document.items.length > 0 && (
+                {documentForDisplay.items && documentForDisplay.items.length > 0 && (
                   <InvoiceItemsTable
-                    items={document.items}
-                    moneda={document.currency}
+                    items={documentForDisplay.items}
+                    moneda={documentForDisplay.moneda}
                     theme={theme}
                   />
                 )}

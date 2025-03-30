@@ -102,7 +102,7 @@ const getStyles = (theme) => ({
   }
 });
 
-export const InvoiceHeader = ({ invoice, empresa, theme }) => {
+export const InvoiceHeader = ({ invoice, empresa, theme, documentType = 'FACTURA' }) => {
   if (!invoice) return null;
 
   const styles = getStyles(theme);
@@ -155,11 +155,11 @@ export const InvoiceHeader = ({ invoice, empresa, theme }) => {
               />
             </Box>
           )}
-          {/* Contenido de la factura */}
+          {/* Contenido del documento - Aquí usamos documentType en lugar de "FACTURA" */}
           <Box sx={styles.invoiceContent}>
             <Box sx={styles.invoiceHeader}>
               <Typography sx={styles.invoiceTitle}>
-                FACTURA
+                {documentType}
               </Typography>
               <Typography sx={styles.invoiceNumber}>
                 N°: {invoice.numero || invoice.number}

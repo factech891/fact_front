@@ -9,17 +9,10 @@ import {
   IconButton,
   Typography,
   Box,
-  Grid,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-  Divider,
-  Paper,
   CircularProgress,
   Snackbar,
-  Alert
+  Alert,
+  Paper
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -31,16 +24,66 @@ import { getDocument, convertToInvoice } from '../../../services/DocumentsApi';
 import { useCompany } from '../../../hooks/useCompany';
 import { DOCUMENT_TYPE_NAMES, DOCUMENT_STATUS } from '../constants/documentTypes';
 
+// Importamos los componentes de factura
+import { InvoiceHeader } from '../../invoices/InvoicePreview/InvoiceHeader';
+import { ClientInfo } from '../../invoices/InvoicePreview/ClientInfo';
+import { InvoiceItemsTable } from '../../invoices/InvoicePreview/InvoiceItemsTable';
+import { InvoiceTotals } from '../../invoices/InvoicePreview/InvoiceTotals';
+import { InvoiceFooter } from '../../invoices/InvoicePreview/InvoiceFooter';
+import { InvoiceStyleSelector } from '../../invoices/InvoicePreview/InvoiceStyleSelector';
+import { invoiceThemes } from '../../invoices/InvoicePreview/invoiceThemes';
+import { generatePDF } from '../../../utils/pdfGenerator';
+
+// Estilos para el contenedor de la factura
+const getStyles = (theme) => ({
+  invoiceContainer: {
+    padding: '0',
+    backgroundColor: theme.background.primary,
+    width: '210mm',     // Ancho A4
+    minHeight: '297mm', // Alto A4
+    margin: '0 auto',
+    position: 'relative',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: '4px',
+      background: theme.gradient
+    }
+  },
+  content: {
+    padding: '20px 25px',
+    paddingBottom: '200px',
+    position: 'relative'
+  },
+  loadingContainer: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
+    width: '100%'
+  }
+});
+
 const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
   const [document, setDocument] = useState(null);
   const [loading, setLoading] = useState(true);
   const [converting, setConverting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [currentStyle, setCurrentStyle] = useState('modern');
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
     severity: 'info'
   });
   const { company } = useCompany();
+  
+  // Obtenemos el theme actual basado en el estilo seleccionado
+  const theme = invoiceThemes[currentStyle];
+  const styles = getStyles(theme);
 
   useEffect(() => {
     const fetchDocument = async () => {
@@ -69,7 +112,7 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
   // Depurar items cuando cambia el documento
   useEffect(() => {
     if (document && document.items) {
-      console.log("Items del documento:", document.items);
+      console.log("Items del documento:", JSON.stringify(document.items, null, 2));
     }
   }, [document]);
 
@@ -77,6 +120,77 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownload = async () => {
+    if (!document) {
+      setSnackbar({
+        open: true,
+        message: 'Error: No hay datos del documento para generar PDF',
+        severity: 'error'
+      });
+      return;
+    }
+
+    try {
+      setIsGenerating(true);
+      console.log("Iniciando generación de PDF...");
+      
+      // Asegurar que las imágenes están completamente cargadas antes de generar el PDF
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Adaptar el documento al formato esperado por generatePDF
+      const documentForPDF = {
+        ...document,
+        numero: document.documentNumber,
+        number: document.documentNumber,
+        fecha: document.date,
+        date: document.date,
+        tax: document.taxAmount,
+        moneda: document.currency,
+        items: document.items && document.items.map(item => ({
+          codigo: item.code || item.codigo || '',
+          descripcion: item.description || item.descripcion || '',
+          cantidad: item.quantity || item.cantidad || 1,
+          precioUnitario: item.price || item.precioUnitario || 0,
+          exentoIva: item.taxExempt || item.exentoIva || false
+        }))
+      };
+      
+      console.log("Documento preparado para PDF:", documentForPDF);
+
+      // Mostrar qué función generatePDF está siendo llamada
+      console.log("Función generatePDF:", generatePDF);
+      
+      // Generación del PDF con manejo de errores detallado
+      let result;
+      try {
+        result = await generatePDF(documentForPDF, DOCUMENT_TYPE_NAMES[document.type]);
+        console.log("Resultado de generatePDF:", result);
+      } catch (pdfError) {
+        console.error("Error específico en generatePDF:", pdfError);
+        throw pdfError;
+      }
+      
+      if (result && result.success) {
+        setSnackbar({
+          open: true,
+          message: 'PDF generado correctamente',
+          severity: 'success'
+        });
+      } else {
+        throw new Error(`Error en la generación: ${result?.error || 'Desconocido'}`);
+      }
+    } catch (error) {
+      console.error('Error al generar el PDF:', error);
+      setSnackbar({
+        open: true,
+        message: `Error al generar el PDF: ${error.message || 'Desconocido'}`,
+        severity: 'error'
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleConvert = async () => {
@@ -123,236 +237,183 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
     }
   };
 
-  // Formato simplificado de moneda (similar a InvoiceTotals.js)
-  const formatCurrency = (amount, currency = 'USD') => {
-    if (amount === undefined || amount === null) return '—';
-    return `${currency} ${amount.toFixed(2)}`;
-  };
-
-  // Formatear fecha
-  const formatDate = (dateString) => {
-    if (!dateString) return '—';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-VE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
-
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
   };
+
+  // Preparar datos de la empresa
+  const empresaData = company ? {
+    nombre: company.nombre,
+    direccion: company.direccion,
+    rif: company.rif,
+    telefono: company.telefono,
+    email: company.email,
+    logoUrl: company.logoUrl
+  } : {
+    nombre: 'Transporte Express',
+    direccion: 'Puerto Cabello',
+    rif: 'J-87789299383',
+    telefono: '0663566772',
+    email: 'bit@gmail.com'
+  };
+
+  // Adaptar documento al formato esperado por los componentes de factura
+  const documentForDisplay = document ? {
+    ...document,
+    numero: document.documentNumber,
+    number: document.documentNumber,
+    fecha: document.date,
+    date: document.date,
+    status: document.status,
+    client: document.client,
+    items: document.items && document.items.map(item => {
+      // Para depuración
+      console.log("Item original:", item);
+      
+      // Extraer toda la información posible del item
+      let codigo = '';
+      if (typeof item.code === 'string' && item.code.trim() !== '') {
+        codigo = item.code;
+      } else if (typeof item.codigo === 'string' && item.codigo.trim() !== '') {
+        codigo = item.codigo;
+      } else if (item.product && typeof item.product === 'object' && item.product.code) {
+        codigo = item.product.code;
+      } else if (item.product && typeof item.product === 'object' && item.product.codigo) {
+        codigo = item.product.codigo;
+      }
+      
+      let descripcion = '';
+      if (typeof item.description === 'string' && item.description.trim() !== '') {
+        descripcion = item.description;
+      } else if (typeof item.descripcion === 'string' && item.descripcion.trim() !== '') {
+        descripcion = item.descripcion;
+      } else if (item.product && typeof item.product === 'object') {
+        if (item.product.name) descripcion = item.product.name;
+        else if (item.product.nombre) descripcion = item.product.nombre;
+        else if (item.product.descripcion) descripcion = item.product.descripcion;
+      }
+      
+      if (descripcion === '') descripcion = 'Producto';
+      
+      const cantidad = item.quantity || item.cantidad || 1;
+      const precioUnitario = item.price || item.precioUnitario || 0;
+      const exentoIva = item.taxExempt || item.exentoIva || false;
+      
+      console.log("Código extraído:", codigo);
+      console.log("Descripción extraída:", descripcion);
+      
+      // Creamos un objeto completo con todos los campos posibles
+      return {
+        codigo: codigo,
+        descripcion: descripcion,
+        cantidad: cantidad,
+        precioUnitario: precioUnitario,
+        exentoIva: exentoIva
+      };
+    }),
+    subtotal: document.subtotal,
+    tax: document.taxAmount,
+    total: document.total,
+    moneda: document.currency,
+    condicionesPago: document.paymentTerms || 'Contado'
+  } : null;
+
+  // Imprimir los items finales para depuración
+  if (documentForDisplay && documentForDisplay.items) {
+    console.log("Items finales para mostrar:", JSON.stringify(documentForDisplay.items, null, 2));
+  }
 
   return (
     <>
       <Dialog
         open={open}
         onClose={onClose}
-        maxWidth="lg"
-        fullWidth
+        maxWidth={false}
         PaperProps={{
           sx: {
-            minHeight: '80vh',
-            maxHeight: '90vh',
-            overflow: 'auto',
-            backgroundColor: '#2a2a2a',
-            color: 'white'
+            minWidth: '595px',
+            height: '842px',
+            margin: '20px'
           }
         }}
       >
-        <DialogTitle sx={{ bgcolor: '#1e1e1e', color: 'white', py: 2 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h5">
-              {document ? DOCUMENT_TYPE_NAMES[document.type] || 'Documento' : 'Cargando...'}
-              {document && ` #${document.documentNumber || ''}`}
-            </Typography>
-            <Box>
-              <IconButton onClick={onClose} sx={{ color: 'white' }}>
-                <CloseIcon />
-              </IconButton>
-            </Box>
-          </Box>
+        <DialogTitle sx={{ px: 0, pt: 0, pb: 0, position: 'relative', minHeight: '48px' }}>
+          <IconButton
+            onClick={onClose}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: 8,
+              zIndex: 9999
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
         </DialogTitle>
-
-        <DialogContent sx={{ p: 3, bgcolor: '#2a2a2a' }}>
+        
+        <DialogContent sx={{ padding: 0 }} id="document-preview">
+          <InvoiceStyleSelector
+            currentStyle={currentStyle}
+            onStyleChange={setCurrentStyle}
+            className="style-selector"
+          />
+          
           {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+            <Box sx={styles.loadingContainer}>
               <CircularProgress />
             </Box>
           ) : !document ? (
-            <Typography variant="h6">No se pudo cargar el documento</Typography>
+            <Box sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="h6">No se pudo cargar el documento</Typography>
+            </Box>
           ) : (
-            <Paper sx={{ p: 4, bgcolor: '#333', color: 'white' }}>
-              {/* Encabezado con datos de empresa y documento */}
-              <Grid container spacing={3} sx={{ mb: 4 }}>
-                <Grid item xs={6}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    De:
-                  </Typography>
-                  <Typography variant="h6">{company?.nombre || 'Transporte Express'}</Typography>
-                  <Typography>{company?.direccion || 'Puerto Cabello'}</Typography>
-                  {company?.ciudad && <Typography>{company.ciudad}</Typography>}
-                  <Typography>RIF: {company?.rif || 'J-87789299383'}</Typography>
-                  <Typography>Tel: {company?.telefono || '0663566772'}</Typography>
-                  <Typography>Email: {company?.email || 'bit@gmail.com'}</Typography>
-                </Grid>
-                <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                  <Typography variant="h5" color="primary">
-                    {DOCUMENT_TYPE_NAMES[document.type]}
-                  </Typography>
-                  <Typography variant="h6">#{document.documentNumber || '—'}</Typography>
-                  <Typography>Fecha: {formatDate(document.date)}</Typography>
-                  {document.expiryDate && (
-                    <Typography>Válido hasta: {formatDate(document.expiryDate)}</Typography>
-                  )}
-                </Grid>
-              </Grid>
-
-              <Divider sx={{ my: 3, borderColor: 'rgba(255,255,255,0.12)' }} />
-
-              {/* Información del cliente */}
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Para:
-                </Typography>
-                {document.client ? (
-                  <>
-                    <Typography variant="h6">{document.client.nombre || document.client.name}</Typography>
-                    <Typography>{document.client.direccion || document.client.address || ''}</Typography>
-                    <Typography>
-                      {document.client.tipoDocumento === 'J' ? 'RIF: ' : 'C.I.: '}
-                      {document.client.rif || document.client.documento || ''}
-                    </Typography>
-                    <Typography>Tel: {document.client.telefono || document.client.phone || ''}</Typography>
-                    <Typography>Email: {document.client.email || ''}</Typography>
-                  </>
-                ) : (
-                  <Typography>Cliente no especificado</Typography>
+            <Paper sx={styles.invoiceContainer}>
+              <InvoiceHeader
+                invoice={documentForDisplay}
+                empresa={empresaData}
+                theme={theme}
+                documentType={DOCUMENT_TYPE_NAMES[document.type] || 'Documento'}
+              />
+              <Box sx={styles.content}>
+                <ClientInfo
+                  client={documentForDisplay.client}
+                  theme={theme}
+                />
+                {documentForDisplay.items && documentForDisplay.items.length > 0 && (
+                  <InvoiceItemsTable
+                    items={documentForDisplay.items}
+                    moneda={documentForDisplay.moneda || documentForDisplay.currency || 'VES'}
+                    theme={theme}
+                  />
                 )}
+                <InvoiceTotals
+                  invoice={documentForDisplay}
+                  theme={theme}
+                />
               </Box>
-
-              {/* Tabla de productos */}
-              <Box sx={{ mb: 4 }}>
-                <Table sx={{ 
-                  minWidth: 700, 
-                  '& .MuiTableCell-root': { 
-                    borderColor: 'rgba(255,255,255,0.12)',
-                    color: 'white'
-                  },
-                  '& .MuiTableHead-root .MuiTableCell-root': {
-                    backgroundColor: '#1e1e1e'
-                  }
-                }}>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Producto/Servicio</TableCell>
-                      <TableCell align="center">Cantidad</TableCell>
-                      <TableCell align="right">Precio</TableCell>
-                      <TableCell align="center">IVA</TableCell>
-                      <TableCell align="right">Total</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {document.items && document.items.length > 0 ? (
-                      document.items.map((item, index) => {
-                        // Obtener datos del producto de la manera más completa posible
-                        const productName = 
-                          item.descripcion || 
-                          item.description || 
-                          (typeof item.product === 'object' ? 
-                            (item.product.nombre || item.product.name || item.product.descripcion) : 
-                            '') ||
-                          item.codigo || 
-                          item.code ||
-                          'Producto sin nombre';
-                        
-                        const quantity = item.quantity || 1;
-                        const price = item.price || 0;
-                        const itemTotal = quantity * price;
-                        const taxStatus = item.taxExempt ? 'Exento' : '16%';
-                        
-                        return (
-                          <TableRow key={index}>
-                            <TableCell>{productName}</TableCell>
-                            <TableCell align="center">{quantity}</TableCell>
-                            <TableCell align="right">
-                              {document.currency} {price.toFixed(2)}
-                            </TableCell>
-                            <TableCell align="center">{taxStatus}</TableCell>
-                            <TableCell align="right">
-                              {document.currency} {itemTotal.toFixed(2)}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={5} align="center">
-                          No hay productos en este documento
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </Box>
-
-              {/* Totales */}
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
-                <Paper 
-                  sx={{ 
-                    width: 300, 
-                    p: 2, 
-                    bgcolor: '#1e1e1e',
-                    borderRadius: 1
-                  }}
-                >
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography>Subtotal:</Typography>
-                    <Typography>{document.currency} {document.subtotal.toFixed(2)}</Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography>IVA:</Typography>
-                    <Typography>{document.currency} {document.taxAmount.toFixed(2)}</Typography>
-                  </Box>
-                  <Divider sx={{ my: 1, borderColor: 'rgba(255,255,255,0.12)' }} />
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="subtitle1" fontWeight="bold">Total:</Typography>
-                    <Typography variant="subtitle1" fontWeight="bold">
-                      {document.currency} {document.total.toFixed(2)}
-                    </Typography>
-                  </Box>
-                </Paper>
-              </Box>
-
-              {/* Notas */}
-              {document.notes && (
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="subtitle2">Notas:</Typography>
-                  <Typography>{document.notes}</Typography>
-                </Box>
-              )}
-
-              {/* Términos */}
-              {document.terms && (
-                <Box>
-                  <Typography variant="subtitle2">Términos y condiciones:</Typography>
-                  <Typography>{document.terms}</Typography>
-                </Box>
-              )}
+              <InvoiceFooter
+                invoice={documentForDisplay}
+                theme={theme}
+              />
             </Paper>
           )}
         </DialogContent>
-
-        <DialogActions sx={{ bgcolor: '#1e1e1e', p: 2, justifyContent: 'space-between' }}>
+        
+        <DialogActions sx={{
+          padding: '16px',
+          borderTop: '1px solid #e0e0e7',
+          gap: '10px',
+          justifyContent: 'space-between'
+        }}>
           <Button
             variant="outlined"
             startIcon={<TransformIcon />}
             onClick={handleConvert}
-            disabled={!document || document.status === 'CONVERTED' || converting}
+            disabled={!document || document.status === DOCUMENT_STATUS.CONVERTED || converting}
           >
             {converting ? 'Convirtiendo...' : 'Convertir a Factura'}
           </Button>
+          
           <Box>
             <Button
               variant="outlined"
@@ -365,8 +426,10 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
             <Button
               variant="contained"
               startIcon={<DownloadIcon />}
+              onClick={handleDownload}
+              disabled={loading || isGenerating}
             >
-              Descargar PDF
+              {isGenerating ? 'Generando...' : 'Descargar PDF'}
             </Button>
           </Box>
         </DialogActions>
