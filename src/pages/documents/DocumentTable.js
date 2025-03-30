@@ -1,5 +1,5 @@
 // src/pages/documents/DocumentTable.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -26,12 +26,15 @@ import {
   Transform as ConvertIcon
 } from '@mui/icons-material';
 import { DOCUMENT_TYPE_NAMES, DOCUMENT_STATUS, DOCUMENT_STATUS_NAMES, DOCUMENT_STATUS_COLORS } from './constants/documentTypes';
+import DocumentPreviewModal from './components/DocumentPreviewModal';
 
-const DocumentTable = ({ documents = [], onDelete, onConvert }) => {
+const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
   const navigate = useNavigate();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
+  const [previewDocument, setPreviewDocument] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0); // Para forzar recargas
 
   // Filtrar documentos según el término de búsqueda
   const filteredDocuments = documents.filter(doc => {
@@ -62,7 +65,16 @@ const DocumentTable = ({ documents = [], onDelete, onConvert }) => {
 
   // Manejar clic en ver
   const handleView = (id) => {
-    navigate(`/documents/view/${id}`);
+    setPreviewDocument(id);
+  };
+  
+  // Función para recargar los datos
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+    // Si hay una función onRefresh pasada como prop, llamarla también
+    if (typeof onRefresh === 'function') {
+      onRefresh();
+    }
   };
 
   // Formatear fecha para mostrar en tabla
@@ -97,134 +109,151 @@ const DocumentTable = ({ documents = [], onDelete, onConvert }) => {
     }).format(amount);
   };
 
-  return (
-    <Box>
-      {/* Buscador */}
-      <Box sx={{ mb: 2 }}>
-        <TextField
-          fullWidth
-          size="small"
-          placeholder="Buscar documentos..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-        />
-      </Box>
+  // Efecto para manejar recarga de datos cuando cambia refreshKey
+  useEffect(() => {
+    // Este efecto se ejecutará cuando refreshKey cambie
+    // Como los documentos vienen de props, no hacemos nada aquí directamente
+    // La lógica de recarga real estará en el componente padre que pasa onRefresh
+  }, [refreshKey]);
 
-      {/* Tabla */}
-      <TableContainer component={Paper} variant="outlined">
-        <Table size="small">
-          <TableHead>
-            <TableRow sx={{ backgroundColor: 'action.hover' }}>
-              <TableCell>Número</TableCell>
-              <TableCell>Tipo</TableCell>
-              <TableCell>Cliente</TableCell>
-              <TableCell>Fecha</TableCell>
-              <TableCell>Total</TableCell>
-              <TableCell>Estado</TableCell>
-              <TableCell align="right">Acciones</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredDocuments.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} align="center">
-                  No se encontraron documentos
-                </TableCell>
+  return (
+    <>
+      <Box>
+        {/* Buscador */}
+        <Box sx={{ mb: 2 }}>
+          <TextField
+            fullWidth
+            size="small"
+            placeholder="Buscar documentos..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Box>
+
+        {/* Tabla */}
+        <TableContainer component={Paper} variant="outlined">
+          <Table size="small">
+            <TableHead>
+              <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                <TableCell>Número</TableCell>
+                <TableCell>Tipo</TableCell>
+                <TableCell>Cliente</TableCell>
+                <TableCell>Fecha</TableCell>
+                <TableCell>Total</TableCell>
+                <TableCell>Estado</TableCell>
+                <TableCell align="right">Acciones</TableCell>
               </TableRow>
-            ) : (
-              filteredDocuments
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((document) => (
-                  <TableRow key={document._id} hover>
-                    <TableCell>{document.documentNumber || '—'}</TableCell>
-                    <TableCell>{DOCUMENT_TYPE_NAMES[document.type]}</TableCell>
-                    <TableCell>
-                      {document.client ? (
-                        document.client.nombre || document.client.name || '—'
-                      ) : '—'}
-                    </TableCell>
-                    <TableCell>{formatDisplayDate(document.date)}</TableCell>
-                    <TableCell>
-                      {formatCurrency(document.total, document.currency)}
-                    </TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={DOCUMENT_STATUS_NAMES[document.status]} 
-                        color={DOCUMENT_STATUS_COLORS[document.status]}
-                        size="small"
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <Tooltip title="Ver">
-                        <IconButton 
-                          size="small" 
-                          onClick={() => handleView(document._id)}
-                        >
-                          <VisibilityIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      
-                      <Tooltip title="Editar">
-                        <IconButton 
-                          size="small" 
-                          onClick={() => handleEdit(document._id)}
-                          disabled={document.status === DOCUMENT_STATUS.CONVERTED}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      
-                      {document.status !== DOCUMENT_STATUS.CONVERTED && (
-                        <Tooltip title="Convertir a Factura">
+            </TableHead>
+            <TableBody>
+              {filteredDocuments.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">
+                    No se encontraron documentos
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredDocuments
+                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  .map((document) => (
+                    <TableRow key={document._id} hover>
+                      <TableCell>{document.documentNumber || '—'}</TableCell>
+                      <TableCell>{DOCUMENT_TYPE_NAMES[document.type]}</TableCell>
+                      <TableCell>
+                        {document.client ? (
+                          document.client.nombre || document.client.name || '—'
+                        ) : '—'}
+                      </TableCell>
+                      <TableCell>{formatDisplayDate(document.date)}</TableCell>
+                      <TableCell>
+                        {formatCurrency(document.total, document.currency)}
+                      </TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={DOCUMENT_STATUS_NAMES[document.status]} 
+                          color={DOCUMENT_STATUS_COLORS[document.status]}
+                          size="small"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <Tooltip title="Ver">
                           <IconButton 
                             size="small" 
-                            onClick={() => onConvert && onConvert(document._id)}
-                            color="primary"
+                            onClick={() => handleView(document._id)}
                           >
-                            <ConvertIcon fontSize="small" />
+                            <VisibilityIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                      )}
-                      
-                      <Tooltip title="Eliminar">
-                        <IconButton 
-                          size="small" 
-                          onClick={() => onDelete && onDelete(document._id)}
-                          disabled={document.status === DOCUMENT_STATUS.CONVERTED}
-                          color="error"
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+                        
+                        <Tooltip title="Editar">
+                          <IconButton 
+                            size="small" 
+                            onClick={() => handleEdit(document._id)}
+                            disabled={document.status === DOCUMENT_STATUS.CONVERTED}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        
+                        {document.status !== DOCUMENT_STATUS.CONVERTED && (
+                          <Tooltip title="Convertir a Factura">
+                            <IconButton 
+                              size="small" 
+                              onClick={() => onConvert && onConvert(document._id)}
+                              color="primary"
+                            >
+                              <ConvertIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        
+                        <Tooltip title="Eliminar">
+                          <IconButton 
+                            size="small" 
+                            onClick={() => onDelete && onDelete(document._id)}
+                            disabled={document.status === DOCUMENT_STATUS.CONVERTED}
+                            color="error"
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
 
-      {/* Paginación */}
-      <TablePagination
-        rowsPerPageOptions={[5, 10, 25]}
-        component="div"
-        count={filteredDocuments.length}
-        rowsPerPage={rowsPerPage}
-        page={page}
-        onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-        labelRowsPerPage="Filas por página"
-        labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+        {/* Paginación */}
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25]}
+          component="div"
+          count={filteredDocuments.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          labelRowsPerPage="Filas por página"
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+        />
+      </Box>
+      
+      {/* Modal de vista previa */}
+      <DocumentPreviewModal
+        open={previewDocument !== null}
+        onClose={() => setPreviewDocument(null)}
+        documentId={previewDocument}
+        onRefresh={handleRefresh}
       />
-    </Box>
+    </>
   );
 };
 

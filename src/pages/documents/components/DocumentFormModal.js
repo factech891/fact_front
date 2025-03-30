@@ -45,7 +45,7 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
     subtotal: 0,
     taxAmount: 0,
     total: 0,
-    currency: 'USD',
+    currency: ' VES',
     status: DOCUMENT_STATUS.DRAFT,
     paymentTerms: 'Contado',
     creditDays: 0

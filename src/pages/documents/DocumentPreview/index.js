@@ -1,6 +1,7 @@
 // src/pages/documents/DocumentPreview/index.js
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useCompany } from '../../../hooks/useCompany';
 import {
   Box,
   Paper,
@@ -50,6 +51,9 @@ const DocumentPreview = () => {
   const [convertModalOpen, setConvertModalOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  
+  // Obtener la información de la empresa usando el hook
+  const { company } = useCompany();
   
   // Cargar documento
   useEffect(() => {
@@ -260,16 +264,13 @@ const DocumentPreview = () => {
             <Typography variant="subtitle2" color="text.secondary">
               De:
             </Typography>
-            {document.company ? (
-              <>
-                <Typography variant="h6">{document.company.name}</Typography>
-                <Typography>{document.company.address}</Typography>
-                <Typography>{document.company.city}, {document.company.postalCode}</Typography>
-                <Typography>CIF/NIF: {document.company.taxId}</Typography>
-              </>
-            ) : (
-              <Typography>Información de empresa no disponible</Typography>
-            )}
+            {/* La información de empresa viene del estado global, no del documento */}
+            <Typography variant="h6">{company?.nombre || 'Tu Empresa'}</Typography>
+            <Typography>{company?.direccion || 'Dirección de la empresa'}</Typography>
+            <Typography>{company?.ciudad} {company?.codigoPostal}</Typography>
+            <Typography>CIF/NIF: {company?.rif || 'J-12345678'}</Typography>
+            <Typography>Tel: {company?.telefono}</Typography>
+            <Typography>Email: {company?.email}</Typography>
           </Grid>
           <Grid item xs={6} sx={{ textAlign: 'right' }}>
             <Typography variant="h5" color="primary">
@@ -292,10 +293,11 @@ const DocumentPreview = () => {
           </Typography>
           {document.client ? (
             <>
-              <Typography variant="h6">{document.client.name}</Typography>
-              <Typography>{document.client.address}</Typography>
-              <Typography>{document.client.city}, {document.client.postalCode}</Typography>
-              <Typography>CIF/NIF: {document.client.taxId}</Typography>
+              <Typography variant="h6">{document.client.nombre || document.client.name}</Typography>
+              <Typography>{document.client.direccion || document.client.address || ''}</Typography>
+              <Typography>CIF/NIF: {document.client.rif || document.client.taxId || ''}</Typography>
+              <Typography>Tel: {document.client.telefono || document.client.phone || ''}</Typography>
+              <Typography>Email: {document.client.email || ''}</Typography>
             </>
           ) : (
             <Typography>Cliente no especificado</Typography>
@@ -319,20 +321,20 @@ const DocumentPreview = () => {
                 document.items.map((item, index) => (
                   <TableRow key={index}>
                     <TableCell>
-                      <Typography variant="body2">{item.name}</Typography>
-                      {item.description && (
-                        <Typography variant="caption" color="text.secondary">
-                          {item.description}
-                        </Typography>
-                      )}
+                      <Typography variant="body2">{item.codigo || item.code}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {item.descripcion || item.description}
+                      </Typography>
                     </TableCell>
                     <TableCell align="right">{item.quantity}</TableCell>
                     <TableCell align="right">
                       {formatCurrency(item.price, document.currency)}
                     </TableCell>
-                    <TableCell align="right">{item.taxRate}%</TableCell>
                     <TableCell align="right">
-                      {formatCurrency(item.total, document.currency)}
+                      {item.taxExempt ? 'Exento' : '16%'}
+                    </TableCell>
+                    <TableCell align="right">
+                      {formatCurrency((item.quantity || 1) * (item.price || 0), document.currency)}
                     </TableCell>
                   </TableRow>
                 ))
