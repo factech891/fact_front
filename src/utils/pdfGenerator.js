@@ -1,4 +1,4 @@
-// utils/pdfGenerator.js - CORREGIDO (Sin página en blanco)
+// utils/pdfGenerator.js
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -10,29 +10,47 @@ export const generatePDF = async (invoice, options = {}) => {
   try {
     console.log('Generando PDF con html2canvas...');
     
-    // Seleccionar el elemento de la vista previa que queremos capturar
-    const element = document.getElementById('invoice-preview');
+    // CAMBIO 1: Intentar diferentes formas de encontrar el elemento
+    let element = document.getElementById('invoice-preview');
     
     if (!element) {
-      throw new Error('No se pudo encontrar el elemento de vista previa de factura');
+      console.warn('No se encontró elemento con ID "invoice-preview", buscando alternativas...');
+      
+      // Intentar con el selector de la caja de diálogo
+      element = document.querySelector('.MuiDialogContent-root');
+      
+      if (!element) {
+        // Intentar con el selector del papel
+        element = document.querySelector('.MuiPaper-root');
+        
+        if (!element) {
+          throw new Error('No se pudo encontrar el elemento de vista previa de factura');
+        }
+      }
+      
+      console.log('Elemento alternativo encontrado:', element);
     }
     
+    // CAMBIO 2: Buscar el elemento Paper dentro del diálogo que contiene realmente el documento
+    const paperElement = element.querySelector('.MuiPaper-root');
+    const targetElement = paperElement || element;
+    
     // Ocultar elementos que no queremos en el PDF (como el selector de estilos)
-    const styleSelector = element.querySelector('.style-selector');
+    const styleSelector = document.querySelector('.style-selector');
     if (styleSelector) {
       styleSelector.style.display = 'none';
     }
     
     // Configurar opciones para html2canvas
-    const canvas = await html2canvas(element.querySelector('.MuiPaper-root'), {
+    const canvas = await html2canvas(targetElement, {
       scale: 2, // Mayor escala para mejor calidad
       useCORS: true, // Permite cargar imágenes de otros dominios (como logos)
       logging: false,
       allowTaint: true,
       backgroundColor: '#ffffff',
-      // Capturar solo lo que es visible en la página
-      height: element.querySelector('.MuiPaper-root').offsetHeight - 30, // Reducimos un poco la altura para evitar capturar elementos ocultos
-      windowHeight: element.querySelector('.MuiPaper-root').offsetHeight
+      // Ajustar la altura al elemento real
+      height: targetElement.offsetHeight,
+      windowHeight: targetElement.offsetHeight
     });
     
     // Restaurar elementos ocultos
@@ -80,7 +98,6 @@ export const generatePDF = async (invoice, options = {}) => {
     
   } catch (error) {
     console.error('Error generando PDF:', error);
-    alert("Error al generar PDF: " + error.message);
     return { success: false, error: error.message };
   }
 };
