@@ -17,7 +17,7 @@ import {
 import {
   Close as CloseIcon,
   Download as DownloadIcon,
-  Print as PrintIcon,
+  // Print as PrintIcon, // Icono eliminado ya que no se usa
   Transform as TransformIcon
 } from '@mui/icons-material';
 import { getDocument, convertToInvoice } from '../../../services/DocumentsApi';
@@ -80,7 +80,7 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
     severity: 'info'
   });
   const { company } = useCompany();
-  
+
   // Obtenemos el theme actual basado en el estilo seleccionado
   const theme = invoiceThemes[currentStyle];
   const styles = getStyles(theme);
@@ -118,9 +118,9 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
 
   if (!open) return null;
 
-  const handlePrint = () => {
-    window.print();
-  };
+  // const handlePrint = () => { // Función eliminada ya que no se usa
+  //   window.print();
+  // };
 
   const handleDownload = async () => {
     if (!document) {
@@ -135,10 +135,10 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
     try {
       setIsGenerating(true);
       console.log("Iniciando generación de PDF...");
-      
+
       // Asegurar que las imágenes están completamente cargadas antes de generar el PDF
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // Adaptar el documento al formato esperado por generatePDF
       const documentForPDF = {
         ...document,
@@ -148,6 +148,9 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
         date: document.date,
         tax: document.taxAmount,
         moneda: document.currency,
+        // Asegúrate de incluir estos campos para el tipo de documento
+        type: document.type,
+        documentType: DOCUMENT_TYPE_NAMES[document.type] || 'Documento',
         items: document.items && document.items.map(item => ({
           codigo: item.code || item.codigo || '',
           descripcion: item.description || item.descripcion || '',
@@ -156,22 +159,26 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
           exentoIva: item.taxExempt || item.exentoIva || false
         }))
       };
-      
+
+      console.log('Enviando documento para PDF con tipo:', documentForPDF.documentType);
       console.log("Documento preparado para PDF:", documentForPDF);
 
       // Mostrar qué función generatePDF está siendo llamada
       console.log("Función generatePDF:", generatePDF);
-      
+
       // Generación del PDF con manejo de errores detallado
       let result;
       try {
-        result = await generatePDF(documentForPDF, DOCUMENT_TYPE_NAMES[document.type]);
+        // Usar getDocumentTitle para el nombre de archivo si lo tienes disponible
+        // O usar DOCUMENT_TYPE_NAMES directamente como abajo
+        const fileName = `${(DOCUMENT_TYPE_NAMES[document.type] || 'documento').toLowerCase()}_${document.documentNumber || 'nuevo'}.pdf`;
+        result = await generatePDF(documentForPDF, { fileName });
         console.log("Resultado de generatePDF:", result);
       } catch (pdfError) {
         console.error("Error específico en generatePDF:", pdfError);
         throw pdfError;
       }
-      
+
       if (result && result.success) {
         setSnackbar({
           open: true,
@@ -202,29 +209,29 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
       });
       return;
     }
-    
+
     try {
       setConverting(true);
       console.log("Intentando convertir documento:", documentId);
-      
+
       await convertToInvoice(documentId);
-      
+
       setSnackbar({
         open: true,
         message: "Documento convertido a factura exitosamente",
         severity: "success"
       });
-      
+
       // Recargar datos si es necesario
       if (typeof onRefresh === 'function') {
         onRefresh();
       }
-      
+
       // Cerrar el modal después de un breve retraso
       setTimeout(() => {
         onClose();
       }, 1500);
-      
+
     } catch (error) {
       console.error("Error al convertir documento:", error);
       setSnackbar({
@@ -269,7 +276,7 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
     items: document.items && document.items.map(item => {
       // Para depuración
       console.log("Item original:", item);
-      
+
       // Extraer toda la información posible del item
       let codigo = '';
       if (typeof item.code === 'string' && item.code.trim() !== '') {
@@ -281,7 +288,7 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
       } else if (item.product && typeof item.product === 'object' && item.product.codigo) {
         codigo = item.product.codigo;
       }
-      
+
       let descripcion = '';
       if (typeof item.description === 'string' && item.description.trim() !== '') {
         descripcion = item.description;
@@ -292,16 +299,16 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
         else if (item.product.nombre) descripcion = item.product.nombre;
         else if (item.product.descripcion) descripcion = item.product.descripcion;
       }
-      
+
       if (descripcion === '') descripcion = 'Producto';
-      
+
       const cantidad = item.quantity || item.cantidad || 1;
       const precioUnitario = item.price || item.precioUnitario || 0;
       const exentoIva = item.taxExempt || item.exentoIva || false;
-      
+
       console.log("Código extraído:", codigo);
       console.log("Descripción extraída:", descripcion);
-      
+
       // Creamos un objeto completo con todos los campos posibles
       return {
         codigo: codigo,
@@ -350,14 +357,14 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        
+
         <DialogContent sx={{ padding: 0 }} id="document-preview">
           <InvoiceStyleSelector
             currentStyle={currentStyle}
             onStyleChange={setCurrentStyle}
             className="style-selector"
           />
-          
+
           {loading ? (
             <Box sx={styles.loadingContainer}>
               <CircularProgress />
@@ -398,7 +405,7 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
             </Paper>
           )}
         </DialogContent>
-        
+
         <DialogActions sx={{
           padding: '16px',
           borderTop: '1px solid #e0e0e7',
@@ -413,16 +420,9 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
           >
             {converting ? 'Convirtiendo...' : 'Convertir a Factura'}
           </Button>
-          
+
           <Box>
-            <Button
-              variant="outlined"
-              startIcon={<PrintIcon />}
-              onClick={handlePrint}
-              sx={{ mr: 1 }}
-            >
-              Imprimir
-            </Button>
+            {/* Botón Imprimir eliminado */}
             <Button
               variant="contained"
               startIcon={<DownloadIcon />}
@@ -442,8 +442,8 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert 
-          onClose={handleCloseSnackbar} 
+        <Alert
+          onClose={handleCloseSnackbar}
           severity={snackbar.severity}
           variant="filled"
         >

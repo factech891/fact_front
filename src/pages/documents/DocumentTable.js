@@ -21,7 +21,7 @@ import {
 import { DOCUMENT_TYPE_NAMES, DOCUMENT_STATUS, DOCUMENT_STATUS_NAMES, DOCUMENT_STATUS_COLORS } from './constants/documentTypes';
 import DocumentActions from './components/DocumentActions';
 import DocumentPreviewModal from './components/DocumentPreviewModal';
-import { convertToInvoice } from '../../services/DocumentsApi';
+import { convertToInvoice } from '../../services/DocumentsApi'; // Asegúrate que la importación es correcta
 
 const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
   const [page, setPage] = useState(0);
@@ -33,22 +33,14 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
   // Filtrar documentos según el término de búsqueda
   const filteredDocuments = documents.filter(doc => {
     if (!searchTerm) return true;
-    
+
     const term = searchTerm.toLowerCase();
-    
-    // Buscar en diferentes campos
+
     return (
-      // Número de documento
       (doc.documentNumber?.toLowerCase().includes(term)) ||
-      
-      // Cliente (nombre o código)
-      (doc.client?.nombre?.toLowerCase().includes(term) || 
+      (doc.client?.nombre?.toLowerCase().includes(term) ||
        doc.client?.name?.toLowerCase().includes(term)) ||
-      
-      // Tipo de documento
       (DOCUMENT_TYPE_NAMES[doc.type]?.toLowerCase().includes(term)) ||
-      
-      // Estado
       (DOCUMENT_STATUS_NAMES[doc.status]?.toLowerCase().includes(term))
     );
   });
@@ -68,28 +60,34 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
   const handleView = (id) => {
     setPreviewDocument(id);
   };
-  
+
   // Función para recargar los datos
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
-    
-    // Si hay una función onRefresh pasada como prop, llamarla también
     if (typeof onRefresh === 'function') {
       onRefresh();
     }
   };
 
-  // Función para convertir directamente a factura
-  const handleConvertToInvoice = async (document) => {
+  // MODIFICADO: Acepta 'invoiceDataFromModal'
+  const handleConvertToInvoice = async (invoiceDataFromModal) => {
+    // Obtenemos el ID del documento original desde los datos pasados
+    const documentId = invoiceDataFromModal.originalDocument;
+    if (!documentId) {
+        console.error("No se encontró el ID del documento original en los datos del modal.");
+        alert("Error: No se pudo identificar el documento original.");
+        return;
+    }
+
     try {
-      console.log("Convirtiendo documento a factura:", document._id);
-      
-      // Llamar al API
-      await convertToInvoice(document._id);
-      
+      console.log("Convirtiendo documento a factura:", documentId, "con datos:", invoiceDataFromModal);
+
+      // MODIFICADO: Llamar al API con el ID y los datos del modal
+      await convertToInvoice(documentId, invoiceDataFromModal);
+
       // Mostrar mensaje de éxito
       alert("Documento convertido a factura correctamente");
-      
+
       // Recargar la tabla
       handleRefresh();
     } catch (error) {
@@ -102,18 +100,14 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
   const formatDisplayDate = (dateString) => {
     if (!dateString) return '—';
     try {
-      // Si es una fecha en formato ISO
       if (dateString.includes('T')) {
         const d = new Date(dateString);
         return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
       }
-      
-      // Si ya está en formato YYYY-MM-DD
       const parts = dateString.split('-');
       if (parts.length === 3) {
         return `${parts[2]}/${parts[1]}/${parts[0]}`;
       }
-      
       return dateString;
     } catch (e) {
       console.error('Error formateando fecha:', e);
@@ -130,24 +124,19 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
     }).format(amount);
   };
 
-  // Efecto para recargar datos cuando cambia refreshKey
   useEffect(() => {
     // Este efecto se ejecutará cuando refreshKey cambie
   }, [refreshKey]);
 
-  // Efecto para manejar actualización después de cerrar modales
   useEffect(() => {
-    // Refrescar datos cuando se abre/cierra el modal de previsualización
     if (previewDocument === null) {
-      // Solo refrescar cuando se cierra el modal
-      handleRefresh();
+       // handleRefresh(); // Comentado temporalmente si causa bucles
     }
   }, [previewDocument]);
 
   return (
     <>
       <Box>
-        {/* Buscador sin botón actualizar */}
         <Box sx={{ mb: 2 }}>
           <TextField
             fullWidth
@@ -165,7 +154,6 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
           />
         </Box>
 
-        {/* Tabla */}
         <TableContainer component={Paper} variant="outlined">
           <Table size="small">
             <TableHead>
@@ -183,7 +171,7 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
               {filteredDocuments.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} align="center">
-                    {searchTerm 
+                    {searchTerm
                       ? 'No se encontraron documentos que coincidan con la búsqueda'
                       : 'No hay documentos disponibles'
                     }
@@ -206,20 +194,21 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
                         {formatCurrency(document.total, document.currency)}
                       </TableCell>
                       <TableCell>
-                        <Chip 
-                          label={DOCUMENT_STATUS_NAMES[document.status]} 
+                        <Chip
+                          label={DOCUMENT_STATUS_NAMES[document.status]}
                           color={DOCUMENT_STATUS_COLORS[document.status]}
                           size="small"
                           variant="outlined"
                         />
                       </TableCell>
                       <TableCell align="right">
-                        <DocumentActions 
+                        <DocumentActions
                           document={document}
                           onPreview={() => handleView(document._id)}
                           onDelete={() => onDelete && onDelete(document._id)}
-                          onDownloadPdf={() => {/* Implementar funcionalidad de descarga */}}
-                          onConvertToInvoice={() => handleConvertToInvoice(document)}
+                          // onDownloadPdf eliminado
+                          // MODIFICADO: Pasar la referencia directa a la función
+                          onConvertToInvoice={handleConvertToInvoice}
                           onRefresh={handleRefresh}
                         />
                       </TableCell>
@@ -230,7 +219,6 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
           </Table>
         </TableContainer>
 
-        {/* Paginación */}
         <TablePagination
           rowsPerPageOptions={[5, 10, 25]}
           component="div"
@@ -243,8 +231,7 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
           labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
         />
       </Box>
-      
-      {/* Modal de vista previa */}
+
       <DocumentPreviewModal
         open={previewDocument !== null}
         onClose={() => setPreviewDocument(null)}

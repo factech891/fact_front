@@ -15,28 +15,24 @@ import {
   Visibility as VisibilityIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  PictureAsPdf as PdfIcon,
   Transform as ConvertIcon
 } from '@mui/icons-material';
 import { DOCUMENT_STATUS } from '../constants/documentTypes';
 import ConvertToInvoiceModal from './ConvertToInvoiceModal';
 import DocumentFormModal from './DocumentFormModal';
 
-const DocumentActions = ({ 
-  document, 
-  onPreview, 
-  onDelete, 
-  onDownloadPdf, 
+const DocumentActions = ({
+  document,
+  onPreview,
+  onDelete,
   onConvertToInvoice,
   onRefresh
 }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [showConvertModal, setShowConvertModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  
+
   const open = Boolean(anchorEl);
-  
-  // Check if document is already converted to invoice
   const isConverted = document.status === DOCUMENT_STATUS.CONVERTED;
 
   const handleClick = (event) => {
@@ -62,11 +58,13 @@ const DocumentActions = ({
     setShowConvertModal(true);
   };
 
-  const handleConvertConfirm = () => {
+  // MODIFICADO: Acepta 'invoiceDataFromModal' como parámetro
+  const handleConvertConfirm = (invoiceDataFromModal) => {
     setShowConvertModal(false);
-    onConvertToInvoice && onConvertToInvoice(document);
+    // MODIFICADO: Pasa los datos del modal a onConvertToInvoice
+    onConvertToInvoice && onConvertToInvoice(invoiceDataFromModal);
   };
-  
+
   const handleEditClose = (success) => {
     setShowEditModal(false);
     if (success && onRefresh) {
@@ -82,20 +80,20 @@ const DocumentActions = ({
             <VisibilityIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-        
+
         <Tooltip title="Editar">
-          <IconButton 
-            onClick={handleEditClick} 
+          <IconButton
+            onClick={handleEditClick}
             size="small"
             disabled={isConverted}
           >
             <EditIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-        
+
         <Tooltip title="Más opciones">
-          <IconButton 
-            onClick={handleClick} 
+          <IconButton
+            onClick={handleClick}
             size="small"
             aria-controls={open ? 'document-actions-menu' : undefined}
             aria-haspopup="true"
@@ -105,7 +103,7 @@ const DocumentActions = ({
           </IconButton>
         </Tooltip>
       </Box>
-      
+
       <Menu
         id="document-actions-menu"
         anchorEl={anchorEl}
@@ -115,15 +113,8 @@ const DocumentActions = ({
           'aria-labelledby': 'document-actions-button',
         }}
       >
-        <MenuItem onClick={() => handleAction(onDownloadPdf)}>
-          <ListItemIcon>
-            <PdfIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Descargar PDF</ListItemText>
-        </MenuItem>
-        
-        <MenuItem 
-          onClick={handleConvertClick} 
+        <MenuItem
+          onClick={handleConvertClick}
           disabled={isConverted}
         >
           <ListItemIcon>
@@ -131,11 +122,11 @@ const DocumentActions = ({
           </ListItemIcon>
           <ListItemText>Convertir a Factura</ListItemText>
         </MenuItem>
-        
+
         <Divider />
-        
-        <MenuItem 
-          onClick={() => handleAction(onDelete)} 
+
+        <MenuItem
+          onClick={() => handleAction(onDelete)}
           sx={{ color: 'error.main' }}
           disabled={isConverted}
         >
@@ -145,17 +136,15 @@ const DocumentActions = ({
           <ListItemText>Eliminar</ListItemText>
         </MenuItem>
       </Menu>
-      
-      {/* Modal para convertir a factura */}
-      <ConvertToInvoiceModal 
+
+      <ConvertToInvoiceModal
         open={showConvertModal}
         onClose={() => setShowConvertModal(false)}
-        onConfirm={handleConvertConfirm}
+        onConfirm={handleConvertConfirm} // Ahora pasará los datos a la función modificada
         document={document}
       />
-      
-      {/* Modal para editar documento */}
-      <DocumentFormModal 
+
+      <DocumentFormModal
         open={showEditModal}
         onClose={handleEditClose}
         documentId={document._id}
