@@ -102,7 +102,7 @@ const getStyles = (theme) => ({
   }
 });
 
-export const InvoiceHeader = ({ invoice, empresa, theme, documentType }) => { // Agrega documentType
+export const InvoiceHeader = ({ invoice, empresa, theme }) => {
   if (!invoice) return null;
 
   const styles = getStyles(theme);
@@ -159,7 +159,7 @@ export const InvoiceHeader = ({ invoice, empresa, theme, documentType }) => { //
           <Box sx={styles.invoiceContent}>
             <Box sx={styles.invoiceHeader}>
               <Typography sx={styles.invoiceTitle}>
-                {documentType || 'FACTURA'} {/* Usa documentType o 'FACTURA' por defecto */}
+                FACTURA
               </Typography>
               <Typography sx={styles.invoiceNumber}>
                 N°: {invoice.numero || invoice.number}
