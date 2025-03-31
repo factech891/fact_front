@@ -29,28 +29,31 @@ import { DOCUMENT_TYPES, DOCUMENT_STATUS } from '../constants/documentTypes';
 import { useClients } from '../../../hooks/useClients';
 import { useProducts } from '../../../hooks/useProducts';
 
+// Definir el estado inicial como constante para poder reutilizarlo
+const initialFormState = {
+  type: DOCUMENT_TYPES.QUOTE,
+  documentNumber: '',
+  date: new Date().toLocaleDateString('en-CA'), // formato YYYY-MM-DD sin conversión UTC
+  expiryDate: null,
+  client: null,
+  items: [],
+  notes: '',
+  terms: '',
+  subtotal: 0,
+  taxAmount: 0,
+  total: 0,
+  currency: 'VES',
+  status: DOCUMENT_STATUS.DRAFT,
+  paymentTerms: 'Contado',
+  creditDays: 0
+};
+
 const DocumentFormModal = ({ open, onClose, documentId = null }) => {
   const { clients } = useClients();
   const { products } = useProducts();
   
   // Estado del formulario
-  const [formData, setFormData] = useState({
-    type: DOCUMENT_TYPES.QUOTE,
-    documentNumber: '',
-    date: new Date().toLocaleDateString('en-CA'), // formato YYYY-MM-DD sin conversión UTC
-    expiryDate: null,
-    client: null,
-    items: [],
-    notes: '',
-    terms: '',
-    subtotal: 0,
-    taxAmount: 0,
-    total: 0,
-    currency: 'VES',
-    status: DOCUMENT_STATUS.DRAFT,
-    paymentTerms: 'Contado',
-    creditDays: 0
-  });
+  const [formData, setFormData] = useState({...initialFormState});
 
   // Estados para la selección de productos
   const [selectedProducts, setSelectedProducts] = useState([]);
@@ -63,15 +66,26 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
   const [saving, setSaving] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   
+  // Función para resetear el formulario
+  const resetForm = () => {
+    console.log('Reseteando formulario a valores iniciales');
+    // Actualizar la fecha al día actual
+    const currentDate = new Date().toLocaleDateString('en-CA');
+    setFormData({...initialFormState, date: currentDate});
+    setSelectedProducts([]);
+    setErrors({});
+  };
+  
+  // NUEVO: Efecto para resetear el formulario cuando se abre el modal sin documentId
+  useEffect(() => {
+    if (open && !documentId) {
+      console.log('Modal abierto sin documento ID - reseteando formulario');
+      resetForm();
+    }
+  }, [open, documentId]);
+  
   // Cargar documento para edición
   useEffect(() => {
-    // Si no hay ID pero el modal está abierto, significa que es un nuevo documento
-    if (!documentId && open) {
-      console.log("Creando nuevo documento - no se carga nada del servidor");
-      setLoading(false);
-      return;
-    }
-    
     const fetchDocument = async () => {
       if (documentId) {
         try {
@@ -354,9 +368,9 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
             {/* Cliente */}
             <Paper sx={{ p: 3, mb: 3 }}>
               <ClientSection 
-                formData={formData || {}}
-                clients={clients || []}
-                errors={errors || {}}
+                formData={formData}
+                clients={clients}
+                errors={errors}
                 onFieldChange={handleFieldChange}
               />
             </Paper>
@@ -364,10 +378,10 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
             {/* Items */}
             <Paper sx={{ p: 3, mb: 3 }}>
               <ItemsSection 
-                formData={formData || {}}
+                formData={formData}
                 selectedProducts={selectedProducts}
-                products={products || []}
-                errors={errors || {}}
+                products={products}
+                errors={errors}
                 onProductSelect={handleProductSelect}
                 onItemChange={handleItemChange}
               />
@@ -376,7 +390,7 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
             {/* Totales */}
             <Paper sx={{ p: 3 }}>
               <TotalsSection 
-                formData={formData || {}} 
+                formData={formData} 
                 onFieldChange={handleFieldChange}
               />
             </Paper>
@@ -389,13 +403,22 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
           bgcolor: '#333', 
           p: 2 
         }}>
-          <Button 
-            onClick={() => onClose(false)}
-            variant="outlined"
-            color="inherit"
-          >
-            CANCELAR
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button 
+              onClick={() => onClose(false)}
+              variant="outlined"
+              color="inherit"
+            >
+              CANCELAR
+            </Button>
+            <Button 
+              onClick={resetForm}
+              variant="outlined"
+              color="inherit"
+            >
+              LIMPIAR
+            </Button>
+          </Box>
           <Button 
             onClick={handleSubmit}
             variant="contained"
