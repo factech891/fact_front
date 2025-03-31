@@ -5,13 +5,9 @@ import {
 import Description from '@mui/icons-material/Description';
 import Receipt from '@mui/icons-material/Receipt';
 
-// Constantes para tipos de documento
+// Constante simplificada - solo factura
 const DOCUMENT_TYPES = [
-  { value: 'invoice', label: 'Factura' },
-  { value: 'quote', label: 'Presupuesto' },
-  { value: 'proforma', label: 'Factura Proforma' },
-  { value: 'delivery', label: 'Nota de Entrega' }, // Nuevo tipo añadido
-  { value: 'draft', label: 'Borrador' }
+  { value: 'invoice', label: 'Factura' }
 ];
 
 const DocumentSection = ({ documentType, invoiceNumber, onChange }) => {
@@ -34,8 +30,9 @@ const DocumentSection = ({ documentType, invoiceNumber, onChange }) => {
             </Typography>
             <Select
               id="document-type-select"
-              value={documentType}
-              onChange={(e) => onChange(e.target.value)}
+              value="invoice"
+              // Deshabilitamos el cambio de tipo
+              readOnly={true}
               startAdornment={
                 <InputAdornment position="start">
                   <Description color="primary" sx={{ mr: 1 }} />

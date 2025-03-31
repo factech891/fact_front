@@ -15,6 +15,7 @@ import StatusSection from './StatusSection';
 import ClientSection from './ClientSection';
 import ItemsSection from './ItemsSection';
 import TotalsSection from './TotalsSection';
+import NotesSection from './NotesSection';
 
 // Importaciones de utilidades
 import { calculateTotals } from '../utils/calculations';
@@ -32,7 +33,10 @@ export const InvoiceForm = ({ open, onClose, invoice, onSave, clients = [], prod
     condicionesPago: 'Contado',
     diasCredito: 30,
     status: 'draft',
-    documentType: 'invoice'
+    documentType: 'invoice',
+    // Nuevos campos:
+    notes: '',
+    terms: ''
   });
 
   const [selectedProducts, setSelectedProducts] = useState([]);
@@ -69,7 +73,9 @@ export const InvoiceForm = ({ open, onClose, invoice, onSave, clients = [], prod
         })) || [],
         tax: invoice.tax || 0,
         diasCredito: invoice.diasCredito || 30,
-        documentType: invoice.documentType || 'invoice'
+        documentType: invoice.documentType || 'invoice',
+        notes: invoice.notes || '',
+        terms: invoice.terms || ''
       });
     } else {
       // Reset form para nueva factura - no generamos número aquí
@@ -84,7 +90,9 @@ export const InvoiceForm = ({ open, onClose, invoice, onSave, clients = [], prod
         condicionesPago: 'Contado',
         diasCredito: 30,
         status: 'draft',
-        documentType: 'invoice'
+        documentType: 'invoice',
+        notes: '',
+        terms: ''
       });
       setSelectedProducts([]);
     }
@@ -210,7 +218,9 @@ export const InvoiceForm = ({ open, onClose, invoice, onSave, clients = [], prod
         condicionesPago: formData.condicionesPago,
         diasCredito: parseInt(formData.diasCredito) || 30,
         status: formData.status || 'draft',
-        documentType: formData.documentType
+        documentType: formData.documentType,
+        notes: formData.notes,
+        terms: formData.terms
       };
 
       console.log('Guardando factura con exenciones de IVA:', invoiceToSave);
@@ -309,6 +319,18 @@ export const InvoiceForm = ({ open, onClose, invoice, onSave, clients = [], prod
                 tax={formData.tax}
                 total={formData.total}
                 moneda={formData.moneda}
+              />
+            </Grid>
+          )}
+          
+          {/* Notas y Términos */}
+          {formData.items.length > 0 && (
+            <Grid item xs={12}>
+              <NotesSection 
+                notes={formData.notes}
+                terms={formData.terms}
+                onNotesChange={(value) => handleFormChange('notes', value)}
+                onTermsChange={(value) => handleFormChange('terms', value)}
               />
             </Grid>
           )}

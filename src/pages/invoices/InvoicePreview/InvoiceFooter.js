@@ -64,6 +64,58 @@ const getStyles = (theme) => ({
 export const InvoiceFooter = ({ invoice, theme }) => {
   const styles = getStyles(theme);
 
+  // Procesar notas del documento (si existen)
+  const renderNotes = () => {
+    if (invoice.notes) {
+      // Si el documento tiene notas personalizadas, mostrarlas
+      return (
+        <Box sx={styles.content}>
+          {invoice.notes.split('\n').map((line, index) => (
+            <Box key={index} sx={styles.bulletPoint}>
+              {line.trim()}
+            </Box>
+          ))}
+        </Box>
+      );
+    } else {
+      // Notas predeterminadas si no hay notas personalizadas
+      return (
+        <Box sx={styles.content}>
+          <Box sx={styles.bulletPoint}>
+            Esta factura es un documento legal y sirve como comprobante fiscal.
+          </Box>
+          <Box sx={styles.bulletPoint}>
+            Los precios incluyen IVA según corresponda.
+          </Box>
+          <Box sx={styles.bulletPoint}>
+            Para cualquier consulta, contacte a nuestro departamento de atención al cliente.
+          </Box>
+        </Box>
+      );
+    }
+  };
+
+  // Procesar términos y condiciones (si existen)
+  const renderTerms = () => {
+    if (invoice.terms) {
+      return (
+        <Box sx={styles.section}>
+          <Typography sx={styles.title}>
+            Términos y Condiciones
+          </Typography>
+          <Box sx={styles.content}>
+            {invoice.terms.split('\n').map((line, index) => (
+              <Box key={index} sx={styles.bulletPoint}>
+                {line.trim()}
+              </Box>
+            ))}
+          </Box>
+        </Box>
+      );
+    }
+    return null;
+  };
+
   return (
     <Box sx={styles.footer}>
       <Grid container spacing={2}>
@@ -73,29 +125,22 @@ export const InvoiceFooter = ({ invoice, theme }) => {
               Información de Pago
             </Typography>
             <Box sx={styles.paymentInfo}>
-              <span>Condición:</span> {invoice.condicionesPago}
+              <span>Condición:</span> {invoice.condicionesPago || 'Contado'}
               {invoice.condicionesPago === 'Crédito' && (
-                <> - <span>Plazo:</span> {invoice.diasCredito} días</>
+                <> - <span>Plazo:</span> {invoice.diasCredito || 30} días</>
               )}
             </Box>
           </Box>
+          
+          {/* Mostrar términos si existen */}
+          {renderTerms()}
         </Grid>
         <Grid item xs={6}>
           <Box sx={styles.section}>
             <Typography sx={styles.title}>
               Notas Importantes
             </Typography>
-            <Box sx={styles.content}>
-              <Box sx={styles.bulletPoint}>
-                Esta factura es un documento legal y sirve como comprobante fiscal.
-              </Box>
-              <Box sx={styles.bulletPoint}>
-                Los precios incluyen IVA según corresponda.
-              </Box>
-              <Box sx={styles.bulletPoint}>
-                Para cualquier consulta, contacte a nuestro departamento de atención al cliente.
-              </Box>
-            </Box>
+            {renderNotes()}
           </Box>
         </Grid>
       </Grid>
