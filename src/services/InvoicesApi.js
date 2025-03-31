@@ -1,3 +1,4 @@
+// src/services/InvoicesApi.js
 const API_BASE_URL = 'http://localhost:5002/api';
 
 export const fetchInvoices = async () => {
@@ -33,7 +34,7 @@ export const saveInvoice = async (invoice) => {
         const invoiceData = {
             number: invoice.number,
             client: invoice.client?._id || invoice.client,
-            date: invoice.date || new Date(),
+            date: invoice.date || new Date().toISOString().split('T')[0], // Asegurar formato fecha correcta
             items: formattedItems,
             subtotal: invoice.subtotal,
             tax: invoice.tax || invoice.iva,
@@ -41,7 +42,8 @@ export const saveInvoice = async (invoice) => {
             status: invoice.status || 'draft',  // Valor por defecto válido
             moneda: invoice.moneda || 'USD',    // NO ELIMINAR - Este campo sí existe en el modelo
             condicionesPago: invoice.condicionesPago || 'Contado',  // NO ELIMINAR - Este campo sí existe
-            diasCredito: invoice.diasCredito || 30       // NO ELIMINAR - Este campo sí existe
+            diasCredito: invoice.diasCredito || 30,      // NO ELIMINAR - Este campo sí existe
+            usePrefix: invoice.usePrefix || 'INV'        // Añadimos prefijo estándar INV para todas las facturas
         };
 
         // Campos eliminados que no existen en el modelo
@@ -50,6 +52,7 @@ export const saveInvoice = async (invoice) => {
 
         console.log('Enviando datos de factura:', invoiceData);
         console.log('Moneda seleccionada:', invoiceData.moneda);
+        console.log('Prefijo a usar:', invoiceData.usePrefix);
 
         const response = await fetch(url, {
             method,

@@ -41,7 +41,7 @@ const ConvertToInvoiceModal = ({ open, onClose, onConfirm, document }) => {
       setInvoiceData(prev => ({
         ...prev,
         status: 'draft', // Siempre empezar como borrador
-        date: new Date().toISOString().split('T')[0],
+        date: new Date().toISOString().split('T')[0], // Siempre usar la fecha actual
         paymentTerms: document.paymentTerms || 'Contado',
         creditDays: document.creditDays || 0,
         currency: document.currency || 'VES',
@@ -59,6 +59,8 @@ const ConvertToInvoiceModal = ({ open, onClose, onConfirm, document }) => {
     const dataToConvert = {
       ...invoiceData,
       originalDocument: document._id,
+      // Forzar prefijo INV para estandarización
+      usePrefix: 'INV', // Agregamos este campo para indicar al backend que use el prefijo INV
       // Mapear los datos necesarios desde el documento original
       client: document.client._id || document.client,
       items: document.items,
@@ -67,7 +69,9 @@ const ConvertToInvoiceModal = ({ open, onClose, onConfirm, document }) => {
       total: document.total,
       currency: document.currency,
       notes: document.notes,
-      terms: document.terms
+      terms: document.terms,
+      // Aseguramos que se use la fecha actual
+      date: new Date().toISOString().split('T')[0]
     };
     
     onConfirm(dataToConvert);
@@ -98,7 +102,7 @@ const ConvertToInvoiceModal = ({ open, onClose, onConfirm, document }) => {
       <DialogContent sx={{ bgcolor: '#1e1e1e', color: 'white' }}>
         <Box sx={{ mt: 2 }}>
           <Alert severity="info" sx={{ mb: 3 }}>
-            Este documento ({document.documentNumber || 'Sin número'}) será convertido a factura manteniendo los datos del cliente, productos y montos.
+            Este documento ({document.documentNumber || 'Sin número'}) será convertido a factura con formato INV-XXXX y fecha actual.
           </Alert>
           
           <Box sx={{ p: 2, bgcolor: '#333', borderRadius: 1, mb: 3 }}>
@@ -197,7 +201,8 @@ const ConvertToInvoiceModal = ({ open, onClose, onConfirm, document }) => {
                   type="date"
                   fullWidth
                   value={invoiceData.date}
-                  onChange={(e) => handleChange('date', e.target.value)}
+                  disabled={true} // Deshabilitamos para forzar fecha actual
+                  helperText="Se utilizará la fecha actual"
                   InputLabelProps={{ shrink: true }}
                   sx={{ 
                     '& .MuiOutlinedInput-root': {
@@ -207,7 +212,8 @@ const ConvertToInvoiceModal = ({ open, onClose, onConfirm, document }) => {
                       '&.Mui-focused fieldset': { borderColor: 'primary.main' },
                     },
                     '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-                    '& .MuiInputBase-input': { color: 'white' }
+                    '& .MuiInputBase-input': { color: 'white' },
+                    '& .MuiFormHelperText-root': { color: 'rgba(255,255,255,0.7)' }
                   }}
                 />
               </Grid>
