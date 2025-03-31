@@ -29,7 +29,7 @@ import { InvoiceHeader } from '../../invoices/InvoicePreview/InvoiceHeader';
 import { ClientInfo } from '../../invoices/InvoicePreview/ClientInfo';
 import { InvoiceItemsTable } from '../../invoices/InvoicePreview/InvoiceItemsTable';
 import { InvoiceTotals } from '../../invoices/InvoicePreview/InvoiceTotals';
-import { InvoiceFooter } from '../../invoices/InvoicePreview/InvoiceFooter';
+import { InvoiceFooter } from '../../invoices/InvoicePreview/InvoiceFooter'; // Importación corregida
 import { InvoiceStyleSelector } from '../../invoices/InvoicePreview/InvoiceStyleSelector';
 import { invoiceThemes } from '../../invoices/InvoicePreview/invoiceThemes';
 import { generatePDF } from '../../../utils/pdfGenerator';
@@ -84,6 +84,23 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
   // Obtenemos el theme actual basado en el estilo seleccionado
   const theme = invoiceThemes[currentStyle];
   const styles = getStyles(theme);
+
+  // Función para obtener el título correcto del documento
+  const getDocumentTitle = (doc) => {
+    if (!doc) return 'Documento';
+    
+    // Esta función debe retornar el nombre correcto basado en el tipo
+    switch (doc.type) {
+      case 'QUOTE':
+        return 'PRESUPUESTO';
+      case 'PROFORMA':
+        return 'FACTURA PROFORMA';
+      case 'DELIVERY_NOTE':
+        return 'NOTA DE ENTREGA';
+      default:
+        return DOCUMENT_TYPE_NAMES[doc.type] || 'DOCUMENTO';
+    }
+  };
 
   useEffect(() => {
     const fetchDocument = async () => {
@@ -148,6 +165,9 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
         date: document.date,
         tax: document.taxAmount,
         moneda: document.currency,
+        // Asegúrate de incluir estos campos para el tipo de documento
+        type: document.type,
+        documentType: getDocumentTitle(document), // Elimina las llaves
         items: document.items && document.items.map(item => ({
           codigo: item.code || item.codigo || '',
           descripcion: item.description || item.descripcion || '',
@@ -157,6 +177,7 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
         }))
       };
       
+      console.log('Enviando documento para PDF con tipo:', documentForPDF.documentType);
       console.log("Documento preparado para PDF:", documentForPDF);
 
       // Mostrar qué función generatePDF está siendo llamada
@@ -165,7 +186,8 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
       // Generación del PDF con manejo de errores detallado
       let result;
       try {
-        result = await generatePDF(documentForPDF, DOCUMENT_TYPE_NAMES[document.type]);
+        const fileName = `${getDocumentTitle(document).toLowerCase()}_${document.documentNumber || 'nuevo'}.pdf`;
+        result = await generatePDF(documentForPDF, { fileName });
         console.log("Resultado de generatePDF:", result);
       } catch (pdfError) {
         console.error("Error específico en generatePDF:", pdfError);
@@ -349,6 +371,7 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
           >
             <CloseIcon />
           </IconButton>
+          <Typography variant="h6" id="document-title">{getDocumentTitle(document)}</Typography> {/* Agregado */}
         </DialogTitle>
         
         <DialogContent sx={{ padding: 0 }} id="document-preview">
@@ -372,7 +395,7 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
                 invoice={documentForDisplay}
                 empresa={empresaData}
                 theme={theme}
-                documentType={DOCUMENT_TYPE_NAMES[document.type] || 'Documento'}
+                documentType={getDocumentTitle(document)}
               />
               <Box sx={styles.content}>
                 <ClientInfo
