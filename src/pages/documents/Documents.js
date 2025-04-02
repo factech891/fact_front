@@ -1,5 +1,4 @@
-// src/pages/documents/Documents.js
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Button,
@@ -13,95 +12,55 @@ import {
   Snackbar,
   Alert
 } from '@mui/material';
-import {
-  Add as AddIcon
-} from '@mui/icons-material';
+import { Add as AddIcon } from '@mui/icons-material';
 import DocumentTable from './DocumentTable';
 import DocumentFormModal from './components/DocumentFormModal';
-import { getDocuments, deleteDocument } from '../../services/DocumentsApi';
+import { useDocuments } from '../../hooks/useDocuments';
 
 const Documents = () => {
-  const [documents, setDocuments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { documents, loading, error } = useDocuments();
+  const [formOpen, setFormOpen] = useState(false);
+  const [selectedDocumentId, setSelectedDocumentId] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [modalOpen, setModalOpen] = useState(false);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Cargar documentos
-  const fetchDocuments = async () => {
-    try {
-      setLoading(true);
-      const data = await getDocuments();
-      setDocuments(data);
-      return data;
-    } catch (err) {
-      console.error('Error al cargar documentos:', err);
-      setError('Error al cargar los documentos. Por favor, intente de nuevo.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Efecto para cargar documentos al inicio y cuando cambia refreshTrigger
-  useEffect(() => {
-    fetchDocuments();
-  }, [refreshTrigger]);
-
-  // Crear nuevo documento
   const handleCreateNew = () => {
-    setModalOpen(true);
+    console.log('Abriendo formulario para nueva cotización');
+    setSelectedDocumentId(null);
+    setFormOpen(true);
   };
 
-  // Manejar cierre del modal
-  const handleModalClose = (success) => {
-    setModalOpen(false);
+  const handleEdit = (id) => {
+    console.log('Abriendo formulario para editar documento con ID:', id);
+    setSelectedDocumentId(id);
+    setFormOpen(true);
+  };
+
+  const handleFormClose = (success) => {
+    setFormOpen(false);
+    setSelectedDocumentId(null);
     if (success) {
-      // Recargar los documentos si se guardó correctamente
-      setRefreshTrigger(prev => prev + 1);
-      setSnackbar({
-        open: true,
-        message: 'Documento creado correctamente',
-        severity: 'success'
-      });
+      setSnackbar({ open: true, message: 'Operación completada correctamente', severity: 'success' });
     }
   };
 
-  // Solicitar eliminar documento
   const handleDeleteRequest = (id) => {
     const doc = documents.find(d => d._id === id);
     setDocumentToDelete(doc);
     setDeleteDialogOpen(true);
   };
 
-  // Confirmar eliminación
   const handleDeleteConfirm = async () => {
     try {
       await deleteDocument(documentToDelete._id);
-      setDocuments(documents.filter(doc => doc._id !== documentToDelete._id));
-      setSnackbar({
-        open: true,
-        message: 'Documento eliminado correctamente',
-        severity: 'success'
-      });
+      setSnackbar({ open: true, message: 'Documento eliminado correctamente', severity: 'success' });
     } catch (err) {
-      console.error('Error al eliminar documento:', err);
-      setSnackbar({
-        open: true,
-        message: 'Error al eliminar el documento',
-        severity: 'error'
-      });
+      setSnackbar({ open: true, message: 'Error al eliminar el documento', severity: 'error' });
     } finally {
       setDeleteDialogOpen(false);
       setDocumentToDelete(null);
     }
-  };
-
-  // Función para actualizar la lista de documentos
-  const handleRefresh = () => {
-    setRefreshTrigger(prev => prev + 1);
   };
 
   return (
@@ -138,16 +97,13 @@ const Documents = () => {
           <DocumentTable
             documents={documents}
             onDelete={handleDeleteRequest}
-            onRefresh={handleRefresh}
+            onEdit={handleEdit}
+            onRefresh={() => {}}
           />
         )}
       </Paper>
 
-      {/* Diálogo de confirmación para eliminar */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-      >
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
         <DialogTitle>Confirmar eliminación</DialogTitle>
         <DialogContent>
           {documentToDelete && (
@@ -159,13 +115,10 @@ const Documents = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancelar</Button>
-          <Button onClick={handleDeleteConfirm} color="error">
-            Eliminar
-          </Button>
+          <Button onClick={handleDeleteConfirm} color="error">Eliminar</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar para notificaciones */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
@@ -179,10 +132,10 @@ const Documents = () => {
         </Alert>
       </Snackbar>
 
-      {/* Modal de formulario de documento */}
-      <DocumentFormModal 
-        open={modalOpen} 
-        onClose={handleModalClose}
+      <DocumentFormModal
+        open={formOpen}
+        onClose={handleFormClose}
+        documentId={selectedDocumentId}
       />
     </>
   );
