@@ -4,7 +4,28 @@ const API_BASE_URL = 'http://localhost:5002/api';
 // Función para manejar respuestas de la API
 const handleResponse = async (response) => {
   if (!response.ok) {
-    throw new Error(`Error: ${response.status}`);
+    // Intentar obtener detalles del error desde el cuerpo
+    try {
+      const errorBody = await response.json();
+      const errorMessage = errorBody.error || `Error: ${response.status}`;
+      
+      // Traducir mensajes de error comunes a mensajes amigables
+      if (errorMessage.includes('duplicate key') && errorMessage.includes('email')) {
+        throw new Error('Este correo electrónico ya está registrado en el sistema');
+      }
+      
+      if (errorMessage.includes('duplicate key') && errorMessage.includes('rif')) {
+        throw new Error('Este RIF/Cédula ya está registrado en el sistema');
+      }
+      
+      throw new Error(errorMessage);
+    } catch (e) {
+      // Si no podemos extraer el JSON o es otro tipo de error
+      if (e.message && (e.message.includes('correo') || e.message.includes('RIF'))) {
+        throw e; // Usar nuestro mensaje amigable ya creado
+      }
+      throw new Error(`Error ${response.status}: No se pudo procesar la solicitud`);
+    }
   }
 
   const contentType = response.headers.get("content-type");

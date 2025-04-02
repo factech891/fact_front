@@ -1,74 +1,132 @@
+// src/services/api.js
 const API_BASE_URL = 'http://localhost:5002/api';
 
 /**
- * Obtiene la lista de clientes desde el backend.
- * @returns {Promise<Array>} Lista de clientes.
+ * Maneja la respuesta de la API y verifica si hubo errores
+ * @param {Response} response - Respuesta del fetch
+ * @returns {Promise} - Datos JSON o error
  */
-export const fetchClients = async () => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/clients`);
-        if (!response.ok) {
-            throw new Error(`Error al obtener los clientes: ${response.status}`);
-        }
-        return response.json();
-    } catch (error) {
-        console.error('Error al obtener los clientes:', error);
-        throw error;
-    }
+async function handleResponse(response) {
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => 'Error desconocido');
+    throw new Error(`Error: ${response.status} - ${errorText}`);
+  }
+  
+  try {
+    return await response.json();
+  } catch (error) {
+    // Si no hay JSON, retornamos un objeto vacío
+    return {};
+  }
+}
+
+/**
+ * Cliente API base que usa fetch
+ */
+const api = {
+  /**
+   * Realiza una petición GET
+   * @param {string} endpoint - Endpoint a llamar (sin la base URL)
+   * @returns {Promise} - Respuesta de la API
+   */
+  get: async (endpoint) => {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`);
+    return handleResponse(response);
+  },
+  
+  /**
+   * Realiza una petición POST
+   * @param {string} endpoint - Endpoint a llamar (sin la base URL)
+   * @param {Object} data - Datos a enviar
+   * @returns {Promise} - Respuesta de la API
+   */
+  post: async (endpoint, data) => {
+    console.log(`POST a ${endpoint} con datos:`, data);
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+  
+  /**
+   * Realiza una petición PUT
+   * @param {string} endpoint - Endpoint a llamar (sin la base URL)
+   * @param {Object} data - Datos a enviar
+   * @returns {Promise} - Respuesta de la API
+   */
+  put: async (endpoint, data) => {
+    console.log(`PUT a ${endpoint} con datos:`, data);
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+  
+  /**
+   * Realiza una petición DELETE
+   * @param {string} endpoint - Endpoint a llamar (sin la base URL)
+   * @returns {Promise} - Respuesta de la API
+   */
+  delete: async (endpoint) => {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'DELETE',
+    });
+    return handleResponse(response);
+  }
 };
 
 /**
- * Guarda un cliente en el backend.
- * @param {Object} client - El cliente a guardar.
- * @returns {Promise<Object>} El cliente guardado.
+ * Cliente API específico para clientes
  */
+export const clientsApi = {
+  getAll: async () => {
+    return api.get('/clients');
+  },
+  
+  getById: async (id) => {
+    return api.get(`/clients/${id}`);
+  },
+  
+  create: async (client) => {
+    // Filtramos para enviar solo los campos básicos
+    const { nombre, rif, direccion, telefono, email } = client;
+    const filteredClient = { nombre, rif, direccion, telefono, email };
+    
+    console.log('Cliente filtrado para crear:', filteredClient);
+    return api.post('/clients', filteredClient);
+  },
+  
+  update: async (id, client) => {
+    // Filtramos para enviar solo los campos básicos
+    const { nombre, rif, direccion, telefono, email } = client;
+    const filteredClient = { nombre, rif, direccion, telefono, email };
+    
+    console.log(`Cliente filtrado para actualizar (ID: ${id}):`, filteredClient);
+    return api.put(`/clients/${id}`, filteredClient);
+  },
+  
+  delete: async (id) => {
+    return api.delete(`/clients/${id}`);
+  }
+};
+
+// Exportar las funciones individuales para compatibilidad con código existente
+export const fetchClients = clientsApi.getAll;
 export const saveClient = async (client) => {
-    try {
-        const method = client.id ? 'PUT' : 'POST';
-        const url = client.id 
-            ? `${API_BASE_URL}/clients/${client.id}`
-            : `${API_BASE_URL}/clients`;
-
-        const response = await fetch(url, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(client),
-        });
-
-        if (!response.ok) {
-            throw new Error(`Error al guardar el cliente: ${response.status}`);
-        }
-
-        return response.json();
-    } catch (error) {
-        console.error('Error al guardar el cliente:', error);
-        throw error;
-    }
+  // Manejar automáticamente si es creación o actualización
+  // y resolver la diferencia entre id y _id
+  const id = client.id || client._id;
+  
+  if (id) {
+    return clientsApi.update(id, client);
+  } else {
+    return clientsApi.create(client);
+  }
 };
+export const deleteClient = clientsApi.delete;
 
-/**
- * Elimina un cliente del backend.
- * @param {string} id - El ID del cliente a eliminar.
- * @returns {Promise<Object>} Respuesta del servidor.
- */
-export const deleteClient = async (id) => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/clients/${id}`, { 
-            method: 'DELETE',
-        });
-
-        if (!response.ok) {
-            throw new Error(`Error al eliminar el cliente: ${response.status}`);
-        }
-
-        // Si el backend no devuelve un JSON, retornamos un objeto vacío
-        try {
-            return await response.json();
-        } catch {
-            return {};
-        }
-    } catch (error) {
-        console.error('Error al eliminar el cliente:', error);
-        throw error;
-    }
-};
+export default api;
