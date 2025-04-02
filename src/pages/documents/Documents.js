@@ -18,7 +18,15 @@ import DocumentFormModal from './components/DocumentFormModal';
 import { useDocuments } from '../../hooks/useDocuments';
 
 const Documents = () => {
-  const { documents, loading, error } = useDocuments();
+  // Incluimos fetchDocuments del hook
+  const { 
+    documents, 
+    loading, 
+    error, 
+    deleteDocument, 
+    fetchDocuments 
+  } = useDocuments();
+  
   const [formOpen, setFormOpen] = useState(false);
   const [selectedDocumentId, setSelectedDocumentId] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -41,6 +49,8 @@ const Documents = () => {
     setFormOpen(false);
     setSelectedDocumentId(null);
     if (success) {
+      // Forzamos una recarga de documentos después de guardar
+      fetchDocuments();
       setSnackbar({ open: true, message: 'Operación completada correctamente', severity: 'success' });
     }
   };
@@ -98,7 +108,7 @@ const Documents = () => {
             documents={documents}
             onDelete={handleDeleteRequest}
             onEdit={handleEdit}
-            onRefresh={() => {}}
+            onRefresh={fetchDocuments} // Añadimos la función de recarga
           />
         )}
       </Paper>

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useClients } from '../../../hooks/useClients';
 import { useProducts } from '../../../hooks/useProducts';
-import { getDocument, createDocument, updateDocument } from '../../../services/DocumentsApi';
+import { useDocuments } from '../../../hooks/useDocuments';
 import UnifiedDocumentForm from '../UnifiedDocumentForm';
 
 const DocumentFormModal = ({ open, onClose, documentId = null }) => {
   const { clients } = useClients();
   const { products } = useProducts();
+  // Usamos las funciones del hook incluyendo fetchDocuments para recargar después de actualizar
+  const { createDocument, updateDocument, fetchDocuments, getDocument } = useDocuments();
   const [initialData, setInitialData] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -14,10 +16,11 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
   console.log("DocumentFormModal documentId:", documentId);
 
   useEffect(() => {
-    const fetchDocument = async () => {
+    const fetchDocumentData = async () => {
       if (documentId && open) {
         try {
           setLoading(true);
+          // Usamos getDocument del hook en lugar de importarlo directamente
           const doc = await getDocument(documentId);
           console.log("Documento cargado en DocumentFormModal:", doc);
           setInitialData(doc);
@@ -30,8 +33,8 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
         setInitialData(null); // Nueva cotización
       }
     };
-    fetchDocument();
-  }, [documentId, open]);
+    fetchDocumentData();
+  }, [documentId, open, getDocument]);
 
   const handleClose = (success = false) => {
     console.log("DocumentFormModal: cerrando con success =", success);
@@ -46,12 +49,16 @@ const DocumentFormModal = ({ open, onClose, documentId = null }) => {
       let result;
       if (documentData._id) {
         result = await updateDocument(documentData._id, documentData);
+        // Forzamos recarga después de actualizar
+        await fetchDocuments();
       } else {
         result = await createDocument(documentData);
+        // Forzamos recarga después de crear
+        await fetchDocuments();
       }
       console.log("Documento guardado exitosamente:", result);
       handleClose(true); // Cerrar con éxito
-      return Promise.resolve();
+      return Promise.resolve(result);
     } catch (error) {
       console.error('Error al guardar documento:', error);
       return Promise.reject(error);

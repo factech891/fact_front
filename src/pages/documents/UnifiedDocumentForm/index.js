@@ -32,6 +32,14 @@ import {
   DOCUMENT_TYPE_NAMES
 } from '../constants/documentTypes';
 
+// Función auxiliar para formatear fechas en zona horaria local
+const formatLocalDate = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const UnifiedDocumentForm = ({
   open,
   onClose,
@@ -47,14 +55,14 @@ const UnifiedDocumentForm = ({
     if (isInvoice || docType !== DOCUMENT_TYPES.QUOTE) return null;
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + 30);
-    return expiryDate.toISOString().split('T')[0];
+    return formatLocalDate(expiryDate);
   };
 
   const getInitialFormState = () => ({
     type: isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE,
     documentType: isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE,
     documentNumber: '', // Dejamos vacío, backend lo generará si es necesario
-    date: new Date().toISOString().split('T')[0],
+    date: formatLocalDate(new Date()),
     expiryDate: calculateExpiryDate(isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE),
     status: isInvoice ? 'DRAFT' : DOCUMENT_STATUS.DRAFT,
     client: null,
@@ -98,8 +106,9 @@ const UnifiedDocumentForm = ({
           type: initialData.type || (isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE),
           documentType: initialData.documentType || initialData.type || (isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE),
           documentNumber: initialData.documentNumber || initialData.number || '', // Usamos lo que venga del backend
-          date: initialData.date ? new Date(initialData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          expiryDate: initialData.expiryDate ? new Date(initialData.expiryDate).toISOString().split('T')[0] : calculateExpiryDate(initialData.type),
+          // Corregimos el manejo de fechas
+          date: initialData.date ? formatLocalDate(new Date(initialData.date)) : formatLocalDate(new Date()),
+          expiryDate: initialData.expiryDate ? formatLocalDate(new Date(initialData.expiryDate)) : calculateExpiryDate(initialData.type),
           status: isInvoice ? (initialData.status || 'DRAFT').toUpperCase() : initialData.status || DOCUMENT_STATUS.DRAFT,
           client: initialData.client || null,
           currency: initialData.currency || initialData.moneda || 'VES',
@@ -216,7 +225,7 @@ const UnifiedDocumentForm = ({
         documentType: formData.documentType,
         number: formData.documentNumber || undefined, // Enviamos undefined si está vacío
         documentNumber: formData.documentNumber || undefined, // Backend lo generará si es necesario
-        date: formData.date,
+        date: formData.date, // Enviamos la fecha tal cual, sin manipulación adicional
         expiryDate: formData.expiryDate,
         status: statusToSend,
         client: formData.client?._id || formData.client,
