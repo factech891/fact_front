@@ -63,57 +63,48 @@ const getStyles = (theme) => ({
 
 export const InvoiceFooter = ({ invoice, theme }) => {
   const styles = getStyles(theme);
+  
+  console.log("InvoiceFooter recibió:", JSON.stringify(invoice, null, 2));
 
-  // Procesar notas del documento (si existen)
+  // SIEMPRE usar notas personalizadas, sin opción de volver a predeterminadas
   const renderNotes = () => {
-    if (invoice.notes) {
-      // Si el documento tiene notas personalizadas, mostrarlas
-      return (
+    const notesContent = invoice.notes || "";
+    const lines = notesContent.trim().length > 0 
+      ? notesContent.split('\n') 
+      : ["Edita estas notas personalizadas desde el formulario"];
+    
+    return (
+      <Box sx={styles.content}>
+        {lines.map((line, index) => (
+          <Box key={index} sx={styles.bulletPoint}>
+            {line.trim() || "•"}
+          </Box>
+        ))}
+      </Box>
+    );
+  };
+
+  // SIEMPRE mostrar términos, sin condición
+  const renderTerms = () => {
+    const termsContent = invoice.terms || "";
+    const lines = termsContent.trim().length > 0 
+      ? termsContent.split('\n') 
+      : ["Edita estos términos y condiciones desde el formulario"];
+    
+    return (
+      <Box sx={styles.section}>
+        <Typography sx={styles.title}>
+          Términos y Condiciones
+        </Typography>
         <Box sx={styles.content}>
-          {invoice.notes.split('\n').map((line, index) => (
+          {lines.map((line, index) => (
             <Box key={index} sx={styles.bulletPoint}>
-              {line.trim()}
+              {line.trim() || "•"}
             </Box>
           ))}
         </Box>
-      );
-    } else {
-      // Notas predeterminadas si no hay notas personalizadas
-      return (
-        <Box sx={styles.content}>
-          <Box sx={styles.bulletPoint}>
-            Esta factura es un documento legal y sirve como comprobante fiscal.
-          </Box>
-          <Box sx={styles.bulletPoint}>
-            Los precios incluyen IVA según corresponda.
-          </Box>
-          <Box sx={styles.bulletPoint}>
-            Para cualquier consulta, contacte a nuestro departamento de atención al cliente.
-          </Box>
-        </Box>
-      );
-    }
-  };
-
-  // Procesar términos y condiciones (si existen)
-  const renderTerms = () => {
-    if (invoice.terms) {
-      return (
-        <Box sx={styles.section}>
-          <Typography sx={styles.title}>
-            Términos y Condiciones
-          </Typography>
-          <Box sx={styles.content}>
-            {invoice.terms.split('\n').map((line, index) => (
-              <Box key={index} sx={styles.bulletPoint}>
-                {line.trim()}
-              </Box>
-            ))}
-          </Box>
-        </Box>
-      );
-    }
-    return null;
+      </Box>
+    );
   };
 
   return (
@@ -132,7 +123,7 @@ export const InvoiceFooter = ({ invoice, theme }) => {
             </Box>
           </Box>
           
-          {/* Mostrar términos si existen */}
+          {/* Siempre mostrar términos */}
           {renderTerms()}
         </Grid>
         <Grid item xs={6}>

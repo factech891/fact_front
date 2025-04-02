@@ -15,7 +15,7 @@ import StatusSection from './StatusSection';
 import ClientSection from './ClientSection';
 import ItemsSection from './ItemsSection';
 import TotalsSection from './TotalsSection';
-import NotesSection from './NotesSection';
+import NotesSection from '../../documents/UnifiedDocumentForm/NotesSection';
 
 // Importaciones de utilidades
 import { calculateTotals } from '../utils/calculations';

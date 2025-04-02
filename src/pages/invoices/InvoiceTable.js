@@ -1,12 +1,12 @@
-// src/pages/invoices/InvoiceTable.js
+// src/pages/invoices/InvoiceTable.js (VERSIÓN 1 - CORREGIDA PARA CLIENTE)
 import { useState } from 'react';
 import { DataGrid } from '@mui/x-data-grid';
 import { Box, IconButton, Tooltip, Chip, Menu, MenuItem } from '@mui/material';
-import { 
-  Edit, 
-  Delete, 
+import {
+  Edit,
+  Delete,
   Visibility,
-  FileDownload 
+  FileDownload
 } from '@mui/icons-material';
 
 export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDownload, onStatusChange }) => {
@@ -14,7 +14,7 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
   const [selectedInvoice, setSelectedInvoice] = useState(null);
 
   const handleStatusClick = (event, invoice) => {
-    event.stopPropagation(); // Prevenir que se seleccione la fila
+    event.stopPropagation();
     setStatusMenu(event.currentTarget);
     setSelectedInvoice(invoice);
   };
@@ -25,80 +25,68 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
   };
 
   const handleStatusChange = (newStatus) => {
-    if (onStatusChange && selectedInvoice) {
-      onStatusChange(selectedInvoice._id, newStatus);
+    const invoiceId = selectedInvoice?._id || selectedInvoice?.id;
+    if (onStatusChange && invoiceId) {
+      onStatusChange(invoiceId, newStatus);
     }
     handleStatusClose();
   };
 
+  // --- Funciones auxiliares para Status ---
   const getStatusLabel = (status) => {
-    switch (status) {
-      case 'draft':
-        return 'Borrador';
-      case 'pending':
-        return 'Pendiente';
-      case 'paid':
-        return 'Pagada';
-      case 'cancelled':
-        return 'Anulada';
-      case 'overdue':
-        return 'Vencida';
-      case 'partial':
-        return 'Pago Parcial';
-      default:
-        return 'Borrador';
+    switch (status?.toLowerCase()) {
+      case 'draft': return 'Borrador';
+      case 'pending': return 'Pendiente';
+      case 'paid': return 'Pagada';
+      case 'cancelled': return 'Anulada';
+      case 'overdue': return 'Vencida';
+      case 'partial': return 'Pago Parcial';
+      default: return 'Borrador';
     }
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'draft':
-        return 'default';
-      case 'pending':
-        return 'warning';
-      case 'paid':
-        return 'success';
-      case 'cancelled':
-        return 'error';
-      case 'overdue':
-        return 'error';
-      case 'partial':
-        return 'info';
-      default:
-        return 'default';
+    switch (status?.toLowerCase()) {
+      case 'draft': return 'default';
+      case 'pending': return 'warning';
+      case 'paid': return 'success';
+      case 'cancelled': return 'error';
+      case 'overdue': return 'error';
+      case 'partial': return 'info';
+      default: return 'default';
     }
   };
+  // --- Fin Funciones auxiliares para Status ---
 
+
+  // --- Definición de Columnas para DataGrid ---
   const columns = [
-    { 
-      field: 'number', 
-      headerName: 'N° Factura', 
-      flex: 1 
-    },
-    { 
-      field: 'date', 
+    { field: 'number', headerName: 'N° Factura', flex: 1 },
+    {
+      field: 'date',
       headerName: 'Fecha',
       flex: 1,
       renderCell: (params) => {
-        return params.value ? new Date(params.value).toLocaleDateString() : 'N/A';
+        try {
+          return params.value ? new Date(params.value).toLocaleDateString() : 'N/A';
+        } catch (e) { return 'Fecha Inválida'; }
       }
     },
-    { 
-      field: 'clientName',
+    {
+      // --- Columna Cliente CORREGIDA ---
+      field: 'clientName', // <-- Usa directamente el campo creado abajo
       headerName: 'Cliente',
       flex: 1.5,
-      renderCell: (params) => {
-        return params.row?.client?.nombre || 'N/A';
-      }
+      // No se necesita valueGetter ni renderCell para el nombre simple
     },
     {
       field: 'total',
       headerName: 'Total',
       flex: 1,
       renderCell: (params) => {
-        const currency = params.row?.moneda || 'USD';
-        const total = params.row?.total || 0;
-        return `${currency} ${total.toFixed(2)}`;
+        const currency = params.row?.moneda || 'VES';
+        const total = typeof params.row?.total === 'number' ? params.row.total : 0;
+        return `${currency} ${total.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       }
     },
     {
@@ -107,6 +95,7 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
       flex: 1,
       renderCell: (params) => {
         const status = params.value || 'draft';
+        const rowData = params.row;
         return (
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <Chip
@@ -114,7 +103,7 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
               color={getStatusColor(status)}
               size="small"
               sx={{ mr: 1, cursor: 'pointer' }}
-              onClick={(e) => handleStatusClick(e, params.row)}
+              onClick={(e) => handleStatusClick(e, rowData)}
             />
           </Box>
         );
@@ -125,69 +114,82 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
       headerName: 'Acciones',
       width: 180,
       sortable: false,
-      renderCell: (params) => (
-        <>
-          <Tooltip title="Previsualizar">
-            <IconButton 
-              onClick={() => {
-                console.log('Datos a enviar a preview:', params.row);
-                onPreview(params.row);
-              }} 
-              color="info" 
-              size="small"
-            >
-              <Visibility fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Descargar PDF">
-            <IconButton 
-              onClick={() => onDownload && onDownload(params.row)} 
-              color="secondary" 
-              size="small"
-            >
-              <FileDownload fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Editar">
-            <IconButton 
-              onClick={() => onEdit && onEdit(params.row)} 
-              color="primary" 
-              size="small"
-            >
-              <Edit fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Eliminar">
-            <IconButton 
-              onClick={() => onDelete && onDelete(params.row._id)} 
-              color="error" 
-              size="small"
-            >
-              <Delete fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </>
-      ),
+      renderCell: (params) => {
+        // params.row es un objeto de processedRows, que ya tiene todo (incluyendo notes/terms)
+        const currentRow = params.row;
+
+        return (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-start', width: '100%' }}>
+            <Tooltip title="Previsualizar">
+              <IconButton
+                onClick={() => {
+                  console.log('Datos (Opción 1 - Fila Procesada) a enviar a preview:', currentRow);
+                  if (onPreview) onPreview(currentRow);
+                }}
+                color="info" size="small" >
+                <Visibility fontSize="inherit" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Descargar PDF">
+              <IconButton
+                onClick={() => onDownload && onDownload(currentRow)}
+                color="secondary" size="small" >
+                <FileDownload fontSize="inherit" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Editar">
+              <IconButton
+                onClick={() => {
+                  console.log('Datos (Opción 1 - Fila Procesada) a enviar a edit:', currentRow);
+                  if (onEdit) onEdit(currentRow);
+                }}
+                color="primary" size="small" >
+                <Edit fontSize="inherit" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Eliminar">
+              <IconButton
+                onClick={() => onDelete && onDelete(currentRow.id)}
+                color="error" size="small" >
+                <Delete fontSize="inherit" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        );
+      },
     },
   ];
+  // --- Fin Definición de Columnas ---
 
-  // Procesar rows con datos seguros
+
+  // --- Procesamiento de Filas (CORREGIDO para asegurar clientName) ---
   const processedRows = invoices.map(invoice => ({
-    id: invoice._id || `temp-${Math.random()}`,
-    number: invoice.number || 'Sin número',
-    date: invoice.date || new Date(),
-    clientName: invoice.client?.nombre || 'N/A',
+    // --- Campos básicos visibles o para ID ---
+    id: invoice._id,
+    number: invoice.number || 'N/A',
+    date: invoice.date,
     total: invoice.total || 0,
     status: invoice.status || 'draft',
-    moneda: invoice.moneda || 'USD',
-    client: invoice.client || {},
-    _id: invoice._id,
-    // Agregar los items y otros campos necesarios
-    items: invoice.items || [],
-    subtotal: invoice.subtotal || 0,
-    tax: invoice.tax || 0
-  }));
+    moneda: invoice.moneda || 'VES',
 
+    // --- Campo EXPLÍCITO para la columna Cliente ---
+    clientName: invoice.client?.nombre || 'N/A', // <--- CORREGIDO/ASEGURADO
+
+    // --- Campos COMPLETOS necesarios para ACCIONES (Preview/Edit) ---
+    _id: invoice._id,
+    client: invoice.client || null, // Objeto cliente completo
+    items: invoice.items || [],     // Items completos
+    subtotal: invoice.subtotal || 0,
+    tax: invoice.tax || 0,
+    condicionesPago: invoice.condicionesPago,
+    diasCredito: invoice.diasCredito,
+    notes: invoice.notes || '',     // Notas
+    terms: invoice.terms || ''      // Términos
+  }));
+  // --- Fin Procesamiento de Filas ---
+
+
+  // --- Renderizado del Componente ---
   return (
     <>
       <DataGrid
@@ -197,7 +199,7 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
         rowsPerPageOptions={[5, 10, 25, 100]}
         autoHeight
         disableSelectionOnClick
-        loading={invoices.length === 0}
+        loading={!invoices || invoices.length === 0}
         components={{
           NoRowsOverlay: () => (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', p: 2 }}>
@@ -206,41 +208,25 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
           )
         }}
         sx={{
-          '& .MuiDataGrid-columnHeaders': {
-            backgroundColor: '#f9f9f9',
-          },
-          '& .MuiDataGrid-cell': {
-            borderBottom: '1px solid #f0f0f0'
-          }
+          border: 'none',
+          '& .MuiDataGrid-columnHeaders': { backgroundColor: (theme) => theme.palette.grey[100], fontWeight: 'bold' },
+          '& .MuiDataGrid-cell': { borderBottom: (theme) => `1px solid ${theme.palette.grey[200]}` },
+          '& .MuiDataGrid-footerContainer': { borderTop: (theme) => `1px solid ${theme.palette.grey[300]}` },
+          '& .MuiDataGrid-row:hover': { backgroundColor: (theme) => theme.palette.action.hover }
         }}
       />
 
-      <Menu
-        anchorEl={statusMenu}
-        open={Boolean(statusMenu)}
-        onClose={handleStatusClose}
-      >
-        <MenuItem onClick={() => handleStatusChange('draft')}>
-          <Chip label="Borrador" size="small" color="default" sx={{ minWidth: '80px' }} />
-        </MenuItem>
-        <MenuItem onClick={() => handleStatusChange('pending')}>
-          <Chip label="Pendiente" size="small" color="warning" sx={{ minWidth: '80px' }} />
-        </MenuItem>
-        <MenuItem onClick={() => handleStatusChange('paid')}>
-          <Chip label="Pagada" size="small" color="success" sx={{ minWidth: '80px' }} />
-        </MenuItem>
-        <MenuItem onClick={() => handleStatusChange('partial')}>
-          <Chip label="Pago Parcial" size="small" color="info" sx={{ minWidth: '80px' }} />
-        </MenuItem>
-        <MenuItem onClick={() => handleStatusChange('overdue')}>
-          <Chip label="Vencida" size="small" color="error" sx={{ minWidth: '80px' }} />
-        </MenuItem>
-        <MenuItem onClick={() => handleStatusChange('cancelled')}>
-          <Chip label="Anulada" size="small" color="error" sx={{ minWidth: '80px' }} />
-        </MenuItem>
+      {/* Menú para cambiar estado */}
+      <Menu anchorEl={statusMenu} open={Boolean(statusMenu)} onClose={handleStatusClose} >
+        {['draft', 'pending', 'paid', 'partial', 'overdue', 'cancelled'].map((status) => (
+          <MenuItem key={status} onClick={() => handleStatusChange(status)}>
+            <Chip label={getStatusLabel(status)} size="small" color={getStatusColor(status)} sx={{ minWidth: '100px' }} />
+          </MenuItem>
+        ))}
       </Menu>
     </>
   );
+  
 };
 
 export default InvoiceTable;

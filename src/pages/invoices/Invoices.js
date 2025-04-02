@@ -1,9 +1,10 @@
-// src/pages/invoices/Invoices.js - CÓDIGO COMPLETO CORREGIDO
+// src/pages/invoices/Invoices.js - CÓDIGO MODIFICADO CON FORMULARIO UNIFICADO
 import { useState } from 'react';
 import { Box, Button, Typography, Snackbar, Alert, Paper } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import InvoiceTable from './InvoiceTable';
-import { InvoiceForm } from './InvoiceForm';
+// Importar el formulario unificado en lugar del InvoiceForm original
+import UnifiedDocumentForm from '../documents/UnifiedDocumentForm';
 import { InvoicePreview } from './InvoicePreview/InvoicePreview';
 import { useInvoices } from '../../hooks/useInvoices';
 import { useClients } from '../../hooks/useClients';
@@ -196,9 +197,10 @@ const Invoices = () => {
         />
       </Paper>
 
-      <InvoiceForm
+      {/* Reemplazar InvoiceForm con el nuevo UnifiedDocumentForm */}
+      <UnifiedDocumentForm
         open={openForm}
-        invoice={selectedInvoice}
+        initialData={selectedInvoice}
         clients={clients}
         products={products}
         onClose={() => {
@@ -206,6 +208,7 @@ const Invoices = () => {
           setSelectedInvoice(null);
         }}
         onSave={saveInvoice}
+        isInvoice={true} // Indicar que es una factura
       />
 
       <InvoicePreview
