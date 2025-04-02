@@ -3,47 +3,50 @@ import { Grid, Typography, Box } from '@mui/material';
 
 const getStyles = (theme) => ({
   header: {
-    backgroundColor: theme.primary,
-    background: theme.gradient,
+    backgroundColor: theme.primary || '#003366',
+    background: theme.gradient || 'linear-gradient(135deg, #003366 0%, #004080 100%)',
     color: 'white',
-    padding: '20px',
+    padding: '15px 25px',  // Reducido de 25px 25px 30px
     position: 'relative',
-    minHeight: '120px',
-    marginBottom: '20px'
+    minHeight: '110px',    // Reducido de 140px
+    borderBottom: `1px solid ${theme.border || '#e0e0e0'}`,
+    boxShadow: '0 1px 6px rgba(0,0,0,0.1)'
   },
   leftSection: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '10px'
+    gap: '8px'  // Reducido de 12px
   },
   companyInfo: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '4px'
+    gap: '3px'  // Reducido de 5px
   },
   companyName: {
     color: 'white',
-    fontWeight: '600',
-    fontSize: theme.fontSize.title,
+    fontWeight: '700',
+    fontSize: theme.fontSize.title || '22px', // Reducido de 24px
     letterSpacing: '0.5px',
-    textTransform: 'uppercase'
+    textTransform: 'uppercase',
+    lineHeight: 1.2,
+    marginBottom: '3px' // Reducido de 5px
   },
   companyText: {
     color: 'white',
-    fontSize: theme.fontSize.small,
+    fontSize: theme.fontSize.small || '12px', // Reducido de 13px
     lineHeight: 1.4,
-    opacity: '0.9'
+    opacity: '0.95'
   },
   invoiceBox: {
-    backgroundColor: theme.background.primary,
-    padding: '12px',
-    borderRadius: '6px',
-    color: theme.primary,
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    border: `1px solid ${theme.border}`,
+    backgroundColor: 'white',
+    padding: '12px',  // Reducido de 15px
+    borderRadius: '8px',
+    color: theme.primary || '#003366',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+    border: `1px solid ${theme.border || '#e0e0e0'}`,
     position: 'relative',
-    width: '200px',
-    height: '140px', // Altura fija para mejor control del espacio
+    width: '200px',   // Reducido de 220px
+    minHeight: '110px', // Reducido de 140px
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden'
@@ -54,8 +57,8 @@ const getStyles = (theme) => ({
     left: '50%',
     transform: 'translate(-50%, -50%)',
     width: '100%',
-    height: '140%',
-    opacity: 0.2,
+    height: '130%',
+    opacity: 0.1,
     '& img': {
       width: '100%',
       height: '100%',
@@ -68,7 +71,7 @@ const getStyles = (theme) => ({
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
-    height: '100%' // Asegura que ocupe todo el espacio
+    height: '100%'
   },
   invoiceHeader: {
     display: 'flex',
@@ -77,42 +80,54 @@ const getStyles = (theme) => ({
     gap: 0
   },
   invoiceTitle: {
-    color: theme.primary,
+    color: theme.primary || '#003366',
     fontWeight: '700',
-    fontSize: theme.fontSize.subtitle,
+    fontSize: theme.fontSize.subtitle || '18px',
     textAlign: 'center',
-    marginBottom: 0,  // Quitamos el margen inferior
-    lineHeight: 1.2  // Ajustamos el line-height para que esté más junto
+    marginBottom: '2px',
+    lineHeight: 1.2
   },
   invoiceNumber: {
-    color: theme.text.primary,
-    fontSize: theme.fontSize.small,
-    fontWeight: '800',
+    color: theme.text.primary || '#333',
+    fontSize: theme.fontSize.small || '13px',
+    fontWeight: '600',
     textAlign: 'center',
-    marginTop: 0,
-    lineHeight: 1.2  // Ajustamos el line-height para que esté más junto
+    marginTop: '2px',
+    lineHeight: 1.2
   },
   invoiceDate: {
-    color: theme.text.primary,
-    fontSize: theme.fontSize.small,
-    fontWeight: '800',
+    color: theme.text.primary || '#333',
+    fontSize: theme.fontSize.small || '13px',
+    fontWeight: '600',
     textAlign: 'center',
-    marginTop: 'auto', // Empuja la fecha hacia abajo
-    paddingTop: '10px' // Espacio adicional arriba de la fecha
+    marginTop: 'auto',
+    paddingTop: '10px'  // Reducido de 15px
+  },
+  logo: {
+    maxWidth: '100px',  // Reducido de 120px
+    maxHeight: '60px',  // Reducido de 80px
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    marginBottom: '8px',
+    display: 'block'
   }
 });
 
-export const InvoiceHeader = ({ invoice, empresa, theme, documentType }) => { // Agrega documentType
+export const InvoiceHeader = ({ invoice, empresa, theme, documentType }) => {
   if (!invoice) return null;
 
   const styles = getStyles(theme);
 
   const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    if (!date) return 'Sin fecha';
+    
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    try {
+      return new Date(date).toLocaleDateString('es-ES', options);
+    } catch (error) {
+      console.error('Error al formatear fecha:', error);
+      return date.toString();
+    }
   };
 
   return (
@@ -123,12 +138,16 @@ export const InvoiceHeader = ({ invoice, empresa, theme, documentType }) => { //
             <Typography sx={styles.companyName}>
               {empresa.nombre}
             </Typography>
-            <Typography sx={styles.companyText}>
-              {empresa.direccion}
-            </Typography>
-            <Typography sx={styles.companyText}>
-              RIF: {empresa.rif}
-            </Typography>
+            {empresa.direccion && (
+              <Typography sx={styles.companyText}>
+                {empresa.direccion}
+              </Typography>
+            )}
+            {empresa.rif && (
+              <Typography sx={styles.companyText}>
+                RIF: {empresa.rif}
+              </Typography>
+            )}
             {empresa.telefono && (
               <Typography sx={styles.companyText}>
                 Tel: {empresa.telefono}
@@ -150,16 +169,16 @@ export const InvoiceHeader = ({ invoice, empresa, theme, documentType }) => { //
               <img
                 src={empresa.logoUrl}
                 alt=""
-                className="company-logo-background"
                 crossOrigin="anonymous"
               />
             </Box>
           )}
+          
           {/* Contenido de la factura */}
           <Box sx={styles.invoiceContent}>
             <Box sx={styles.invoiceHeader}>
               <Typography sx={styles.invoiceTitle}>
-                {documentType || 'FACTURA'} {/* Usa documentType o 'FACTURA' por defecto */}
+                {documentType || 'FACTURA'}
               </Typography>
               <Typography sx={styles.invoiceNumber}>
                 N°: {invoice.numero || invoice.number}

@@ -1,107 +1,174 @@
 // src/pages/invoices/InvoicePreview/InvoiceItemsTable.js
 import React from 'react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableContainer, 
+  TableHead, 
+  TableRow, 
+  Paper,
+  Box,
+  Typography
+} from '@mui/material';
 
 export const InvoiceItemsTable = ({ items = [], moneda = 'VES', theme = {} }) => {
   if (!items || items.length === 0) return null;
   
-  // Estilos base
-  const tableStyle = {
-    width: '100%',
-    marginTop: '20px',
-    marginBottom: '20px',
-    borderCollapse: 'collapse'
+  // Estilos para la tabla
+  const tableStyles = {
+    root: {
+      width: '100%',
+      marginTop: '25px',
+      marginBottom: '30px',
+      borderCollapse: 'collapse',
+      borderRadius: '6px',
+      overflow: 'hidden',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+    },
+    // Estilos para el encabezado
+    header: {
+      backgroundColor: theme.primary || '#003366',
+      '& th': {
+        color: '#FFFFFF',
+        padding: '12px 8px',
+        fontWeight: '600',
+        fontSize: '13px',
+        textTransform: 'uppercase',
+        letterSpacing: '0.5px',
+        textAlign: 'left',
+        borderBottom: 'none'
+      }
+    },
+    // Estilos para las celdas
+    cell: {
+      padding: '10px 8px',
+      borderBottom: '1px solid #eaeaea',
+      color: '#333',
+      fontSize: '13px',
+      fontWeight: '400'
+    },
+    // Estilos para filas alternas
+    evenRow: {
+      backgroundColor: '#f9f9f9',
+    },
+    oddRow: {
+      backgroundColor: '#FFFFFF',
+    },
+    // Estilos para la columna de exento
+    exentoColumn: {
+      width: '120px',
+      textAlign: 'center'
+    },
+    // Estilos para las etiquetas de exento/no exento
+    exentoTag: {
+      padding: '4px 8px',
+      borderRadius: '12px',
+      fontWeight: '600',
+      fontSize: '11px',
+      display: 'inline-block',
+      width: '80px',
+      textAlign: 'center',
+      boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+    },
+    exentoTrue: {
+      backgroundColor: '#4caf50',
+      color: 'white'
+    },
+    exentoFalse: {
+      backgroundColor: '#f44336',
+      color: 'white'
+    },
+    // Estilos para columnas numéricas
+    numeric: {
+      textAlign: 'right',
+      fontFamily: '"Roboto Mono", monospace'
+    },
+    // Estilos para la columna de cantidad
+    quantity: {
+      textAlign: 'center',
+      width: '80px'
+    },
+    // Estilos para la columna de código
+    code: {
+      width: '100px',
+      fontFamily: '"Roboto Mono", monospace',
+      fontSize: '12px'
+    }
   };
   
-  // Encabezado de la tabla
-  const headerCellStyle = {
-    backgroundColor: theme.primary || '#003366',
-    color: '#FFFFFF',
-    padding: '10px 8px',
-    fontWeight: 'bold',
-    textAlign: 'left',
-    borderBottom: '2px solid #ddd'
+  // Formatear valores numéricos
+  const formatCurrency = (value) => {
+    if (typeof value !== 'number') return '0.00';
+    return value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
   
-  // Estilo de celdas normales
-  const cellStyle = {
-    padding: '8px',
-    borderBottom: '1px solid #ddd',
-    color: '#333',
-    backgroundColor: '#FFFFFF'
+  const formatQuantity = (value) => {
+    if (typeof value !== 'number') return '1.00';
+    return value.toFixed(2);
   };
   
-  // Estilos para los indicadores de exento
-  const exentoStyle = {
-    backgroundColor: '#4caf50',
-    color: 'white',
-    fontWeight: 'bold',
-    padding: '4px 8px',
-    borderRadius: '12px',
-    display: 'inline-block',
-    fontSize: '12px',
-    width: '80px',
-    textAlign: 'center'
-  };
-  
-  const noExentoStyle = {
-    backgroundColor: '#f44336',
-    color: 'white',
-    fontWeight: 'bold',
-    padding: '4px 8px',
-    borderRadius: '12px',
-    display: 'inline-block',
-    fontSize: '12px',
-    width: '80px',
-    textAlign: 'center'
+  // Calcular el total de cada ítem
+  const calculateItemTotal = (item) => {
+    const cantidad = typeof item.cantidad === 'number' ? item.cantidad : 1;
+    const precio = typeof item.precioUnitario === 'number' ? item.precioUnitario : 0;
+    return cantidad * precio;
   };
   
   return (
-    <TableContainer component={Paper} elevation={0} className="invoice-items-table" 
-      sx={{ backgroundColor: 'transparent' }}>
-      <Table style={tableStyle}>
-        <TableHead>
-          <TableRow>
-            <TableCell style={{...headerCellStyle, width: '15%'}}>Código</TableCell>
-            <TableCell style={{...headerCellStyle, width: '35%'}}>Descripción</TableCell>
-            <TableCell style={{...headerCellStyle, width: '10%', textAlign: 'center'}}>Cantidad</TableCell>
-            <TableCell style={{...headerCellStyle, width: '15%', textAlign: 'right'}}>Precio Unit.</TableCell>
-            <TableCell style={{...headerCellStyle, width: '15%', textAlign: 'right'}}>Total</TableCell>
-            <TableCell style={{...headerCellStyle, width: '10%', textAlign: 'center'}}>Exento IVA</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {items.map((item, index) => {
-            // Aplicar color alternado a las filas
-            const rowColor = index % 2 === 0 ? '#FFFFFF' : '#F9F9F9';
-            
-            return (
-              <TableRow key={index} style={{ backgroundColor: rowColor }}>
-                <TableCell style={cellStyle}>{item.codigo || ''}</TableCell>
-                <TableCell style={cellStyle}>{item.descripcion || ''}</TableCell>
-                <TableCell style={{...cellStyle, textAlign: 'center'}}>
-                  {typeof item.cantidad === 'number' ? item.cantidad.toFixed(2) : '1.00'}
+    <Box sx={{ marginY: 3 }}>
+      <TableContainer component={Paper} elevation={0} className="invoice-items-table" 
+        sx={{ ...tableStyles.root, backgroundColor: 'transparent' }}>
+        <Table>
+          <TableHead>
+            <TableRow sx={tableStyles.header}>
+              <TableCell sx={{ width: '15%' }}>Código</TableCell>
+              <TableCell sx={{ width: '35%' }}>Descripción</TableCell>
+              <TableCell sx={{ ...tableStyles.quantity, width: '10%' }}>Cantidad</TableCell>
+              <TableCell sx={{ ...tableStyles.numeric, width: '15%' }}>Precio Unit.</TableCell>
+              <TableCell sx={{ ...tableStyles.numeric, width: '15%' }}>Total</TableCell>
+              <TableCell sx={{ ...tableStyles.exentoColumn, width: '10%' }}>Exento IVA</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {items.map((item, index) => (
+              <TableRow 
+                key={index} 
+                sx={index % 2 === 0 ? tableStyles.evenRow : tableStyles.oddRow}
+              >
+                <TableCell sx={{ ...tableStyles.cell, ...tableStyles.code }}>
+                  {item.codigo || ''}
                 </TableCell>
-                <TableCell style={{...cellStyle, textAlign: 'right'}}>
-                  {moneda} {typeof item.precioUnitario === 'number' ? item.precioUnitario.toFixed(2) : '0.00'}
+                <TableCell sx={{ ...tableStyles.cell }}>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {item.descripcion || ''}
+                  </Typography>
                 </TableCell>
-                <TableCell style={{...cellStyle, textAlign: 'right'}}>
-                  {moneda} {((typeof item.cantidad === 'number' ? item.cantidad : 1) * 
-                           (typeof item.precioUnitario === 'number' ? item.precioUnitario : 0)).toFixed(2)}
+                <TableCell sx={{ ...tableStyles.cell, ...tableStyles.quantity }}>
+                  {formatQuantity(item.cantidad)}
                 </TableCell>
-                <TableCell style={{...cellStyle, textAlign: 'center'}} className="exento-iva-column">
-                  <div 
-                    style={item.exentoIva ? exentoStyle : noExentoStyle}
+                <TableCell sx={{ ...tableStyles.cell, ...tableStyles.numeric }}>
+                  {moneda} {formatCurrency(item.precioUnitario)}
+                </TableCell>
+                <TableCell sx={{ ...tableStyles.cell, ...tableStyles.numeric }}>
+                  {moneda} {formatCurrency(calculateItemTotal(item))}
+                </TableCell>
+                <TableCell sx={{ ...tableStyles.cell, ...tableStyles.exentoColumn }}>
+                  <Box 
+                    sx={{ 
+                      ...tableStyles.exentoTag, 
+                      ...(item.exentoIva ? tableStyles.exentoTrue : tableStyles.exentoFalse)
+                    }}
                   >
                     {item.exentoIva ? 'EXENTO' : 'NO'}
-                  </div>
+                  </Box>
                 </TableCell>
               </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </TableContainer>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
   );
 };
 

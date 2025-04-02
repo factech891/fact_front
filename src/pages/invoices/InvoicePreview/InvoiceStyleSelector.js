@@ -1,16 +1,15 @@
+// src/pages/invoices/InvoicePreview/InvoiceStyleSelector.js
 import { Box, Button, ButtonGroup, Tooltip } from '@mui/material';
 import { 
   Palette, 
   Style, 
   ViewStreamOutlined, 
-  Business,
-  Print,
-  Download 
+  Business
 } from '@mui/icons-material';
 
 const styles = {
   selectorContainer: {
-    position: 'fixed', // Cambiado a fixed
+    position: 'fixed',
     top: '10px',
     left: '10px',
     zIndex: 1000,
@@ -21,13 +20,6 @@ const styles = {
     '@media print': {
       display: 'none !important' // Se oculta en impresión
     }
-  },
-  actionsContainer: {
-    marginTop: '5px',
-    backgroundColor: 'white',
-    padding: '5px',
-    borderRadius: '4px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
   }
 };
 
@@ -60,9 +52,7 @@ const invoiceStyles = [
 
 export const InvoiceStyleSelector = ({ 
   currentStyle, 
-  onStyleChange,
-  onDownload,
-  onPrint
+  onStyleChange
 }) => {
   return (
     <Box sx={styles.selectorContainer}>
@@ -75,9 +65,9 @@ export const InvoiceStyleSelector = ({
               startIcon={style.icon}
               sx={{
                 textTransform: 'none',
-                minWidth: '80px',      //reducir el ancho
-                fontSize: '8px',        //reducir la fuente
-                py: 0.00345            //reducir el tamaño completo  
+                minWidth: '80px',      // reducir el ancho
+                fontSize: '8px',       // reducir la fuente
+                py: 0.5              // reducir el padding vertical
               }}
             >
               {style.name}
@@ -85,38 +75,6 @@ export const InvoiceStyleSelector = ({
           </Tooltip>
         ))}
       </ButtonGroup>
-
-      {/* Sección de acciones (Descargar e Imprimir) */}
-      {(onDownload || onPrint) && (
-        <Box sx={styles.actionsContainer}>
-          <ButtonGroup size="small">
-            {onDownload && (
-              <Tooltip title="Descargar PDF">
-                <Button
-                  onClick={onDownload}
-                  startIcon={<Download />}
-                  variant="outlined"
-                  color="primary"
-                >
-                  Descargar
-                </Button>
-              </Tooltip>
-            )}
-            {onPrint && (
-              <Tooltip title="Imprimir">
-                <Button
-                  onClick={onPrint}
-                  startIcon={<Print />}
-                  variant="outlined"
-                  color="primary"
-                >
-                  Imprimir
-                </Button>
-              </Tooltip>
-            )}
-          </ButtonGroup>
-        </Box>
-      )}
     </Box>
   );
 };

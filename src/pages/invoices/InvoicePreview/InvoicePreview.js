@@ -1,5 +1,5 @@
 // src/pages/invoices/InvoicePreview/InvoicePreview.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Paper,
   Dialog,
@@ -8,9 +8,10 @@ import {
   Button,
   CircularProgress,
   Snackbar,
-  Alert
+  Alert,
+  Box
 } from '@mui/material';
-import { Download } from '@mui/icons-material';
+import { Download, Close } from '@mui/icons-material';
 import { InvoiceHeader } from './InvoiceHeader';
 import { ClientInfo } from './ClientInfo';
 import { InvoiceItemsTable } from './InvoiceItemsTable';
@@ -24,12 +25,17 @@ import { useCompany } from '../../../hooks/useCompany';
 const getStyles = (theme) => ({
   invoiceContainer: {
     padding: '0',
-    backgroundColor: theme.background.primary,
+    backgroundColor: theme.background?.primary || '#ffffff',
     width: '210mm',     // Ancho A4
     minHeight: '297mm', // Alto A4
     margin: '0 auto',
     position: 'relative',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    border: '1px solid #e0e0e0',
+    color: theme.text?.primary || '#333333',
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    overflow: 'hidden',
+    borderRadius: '4px',
     '&::before': {
       content: '""',
       position: 'absolute',
@@ -37,12 +43,12 @@ const getStyles = (theme) => ({
       left: 0,
       right: 0,
       height: '4px',
-      background: theme.gradient
+      background: theme.gradient || 'linear-gradient(135deg, #003366 0%, #004080 100%)'
     }
   },
   content: {
     padding: '20px 25px',
-    paddingBottom: '200px',
+    paddingBottom: '150px', // Espacio para el footer
     position: 'relative'
   },
   loadingContainer: {
@@ -51,6 +57,27 @@ const getStyles = (theme) => ({
     alignItems: 'center',
     height: '100%',
     width: '100%'
+  },
+  closeButton: {
+    position: 'absolute',
+    top: '10px',
+    right: '10px',
+    zIndex: 1100,
+    color: '#ffffff',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    '&:hover': {
+      backgroundColor: 'rgba(0,0,0,0.5)',
+    }
+  },
+  actionButton: {
+    padding: '12px 24px',
+    boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
+    borderRadius: '4px',
+    fontSize: '14px',
+    fontWeight: 500,
+    minWidth: '180px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px'
   }
 });
 
@@ -61,6 +88,7 @@ export const InvoicePreview = ({ open, onClose, invoice }) => {
   const theme = invoiceThemes[currentStyle];
   const styles = getStyles(theme);
   const { company, loading } = useCompany();
+  const invoiceRef = useRef(null);
 
   // Este efecto es para depuración - muestra lo que se está recibiendo
   useEffect(() => {
@@ -83,7 +111,7 @@ export const InvoicePreview = ({ open, onClose, invoice }) => {
       setIsGenerating(true);
       
       // Asegurar que las imágenes están completamente cargadas antes de generar el PDF
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 800));
       
       const result = await generatePDF(invoice);
       
@@ -134,6 +162,9 @@ export const InvoicePreview = ({ open, onClose, invoice }) => {
     email: 'info@tuempresa.com'
   };
 
+  // Determinar el tipo de documento
+  const documentType = invoice.tipo === 'cotizacion' ? 'COTIZACIÓN' : 'FACTURA';
+
   return (
     <>
       <Dialog
@@ -144,28 +175,45 @@ export const InvoicePreview = ({ open, onClose, invoice }) => {
           sx: {
             minWidth: '595px',
             height: '842px',
-            margin: '20px'
+            margin: '20px',
+            overflow: 'visible', // Para que el selector de estilos pueda salir del diálogo
+            position: 'relative'
           }
         }}
       >
-        <DialogContent sx={{ padding: 0 }} id="invoice-preview">
-          <InvoiceStyleSelector
-            currentStyle={currentStyle}
-            onStyleChange={setCurrentStyle}
-            className="style-selector"
-          />
+        <Button 
+          onClick={onClose}
+          sx={styles.closeButton}
+          size="small"
+          color="error"
+        >
+          <Close />
+        </Button>
+
+        {/* Solo selector de estilos */}
+        <InvoiceStyleSelector
+          currentStyle={currentStyle}
+          onStyleChange={setCurrentStyle}
+        />
+
+        <DialogContent sx={{ padding: 0, position: 'relative' }} id="invoice-preview">
           {loading ? (
-            <div style={styles.loadingContainer}>
+            <Box sx={styles.loadingContainer}>
               <CircularProgress />
-            </div>
+            </Box>
           ) : (
-            <Paper sx={styles.invoiceContainer}>
+            <Paper 
+              sx={styles.invoiceContainer} 
+              elevation={3}
+              ref={invoiceRef}
+            >
               <InvoiceHeader
                 invoice={invoice}
                 empresa={empresaData}
                 theme={theme}
+                documentType={documentType}
               />
-              <div style={styles.content}>
+              <Box sx={styles.content}>
                 <ClientInfo
                   client={invoice.client}
                   theme={theme}
@@ -181,7 +229,7 @@ export const InvoicePreview = ({ open, onClose, invoice }) => {
                   invoice={invoice}
                   theme={theme}
                 />
-              </div>
+              </Box>
               <InvoiceFooter
                 invoice={invoice}
                 theme={theme}
@@ -190,20 +238,26 @@ export const InvoicePreview = ({ open, onClose, invoice }) => {
           )}
         </DialogContent>
         <DialogActions sx={{
-          padding: '16px',
+          padding: '20px',
           borderTop: '1px solid #e0e0e7',
-          gap: '10px',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          background: '#f8f9fa'
         }}>
+          {/* Solo botón de descarga */}
           <Button
             variant="contained"
             startIcon={<Download />}
             onClick={handleDownload}
             disabled={loading || isGenerating}
-            size="large"
-            sx={{ minWidth: '150px' }}
+            sx={{ 
+              ...styles.actionButton,
+              backgroundColor: theme.primary || '#003366',
+              '&:hover': {
+                backgroundColor: theme.secondary || '#004080',
+              }
+            }}
           >
-            {isGenerating ? 'Generando...' : 'Descargar PDF'}
+            {isGenerating ? 'GENERANDO PDF...' : 'DESCARGAR PDF'}
           </Button>
         </DialogActions>
       </Dialog>
