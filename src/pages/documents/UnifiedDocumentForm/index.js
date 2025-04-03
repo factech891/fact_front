@@ -32,12 +32,42 @@ import {
   DOCUMENT_TYPE_NAMES
 } from '../constants/documentTypes';
 
-// Función auxiliar para formatear fechas en zona horaria local
-const formatLocalDate = (date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+// Función auxiliar para formatear fechas en zona horaria local, versión robusta
+const formatLocalDate = (dateInput) => {
+  // Protección para valores nulos o indefinidos
+  if (!dateInput) {
+    return new Date().toISOString().split('T')[0];
+  }
+  
+  // Si es un string, extraemos solo la parte YYYY-MM-DD sin conversiones
+  if (typeof dateInput === 'string') {
+    // Primero verificamos si tiene formato "T"
+    if (dateInput.includes('T')) {
+      return dateInput.split('T')[0];
+    }
+    // Si no tiene "T", verificamos si tiene guiones (formato YYYY-MM-DD)
+    if (dateInput.includes('-')) {
+      // Aseguramos de devolver solo la parte YYYY-MM-DD
+      return dateInput.split(' ')[0];
+    }
+    // Si llega aquí, formato desconocido, usamos la fecha actual
+    console.warn('Formato de fecha desconocido:', dateInput);
+    return new Date().toISOString().split('T')[0];
+  }
+  
+  // Para objetos Date, usamos toISOString() que es más confiable
+  try {
+    const date = new Date(dateInput);
+    if (isNaN(date.getTime())) {
+      // Fecha inválida
+      console.warn('Fecha inválida:', dateInput);
+      return new Date().toISOString().split('T')[0];
+    }
+    return date.toISOString().split('T')[0];
+  } catch (error) {
+    console.error('Error al procesar fecha:', error);
+    return new Date().toISOString().split('T')[0];
+  }
 };
 
 const UnifiedDocumentForm = ({
@@ -100,15 +130,27 @@ const UnifiedDocumentForm = ({
         });
         setSelectedProducts(documentProducts);
 
+        // Extraer las fechas de manera segura
+        let dateValue = initialData.date;
+        // Esta es una protección adicional para asegurar que la fecha no se modifique
+        if (dateValue && typeof dateValue === 'string' && dateValue.includes('T')) {
+          dateValue = dateValue.split('T')[0];
+        }
+
+        let expiryDateValue = initialData.expiryDate;
+        if (expiryDateValue && typeof expiryDateValue === 'string' && expiryDateValue.includes('T')) {
+          expiryDateValue = expiryDateValue.split('T')[0];
+        }
+
         const loadedData = {
           ...getInitialFormState(),
           ...initialData,
           type: initialData.type || (isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE),
           documentType: initialData.documentType || initialData.type || (isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE),
           documentNumber: initialData.documentNumber || initialData.number || '', // Usamos lo que venga del backend
-          // Corregimos el manejo de fechas
-          date: initialData.date ? formatLocalDate(new Date(initialData.date)) : formatLocalDate(new Date()),
-          expiryDate: initialData.expiryDate ? formatLocalDate(new Date(initialData.expiryDate)) : calculateExpiryDate(initialData.type),
+          // Usando directamente las fechas extrayendo la parte YYYY-MM-DD sin pasar por formatLocalDate
+          date: dateValue || formatLocalDate(new Date()),
+          expiryDate: expiryDateValue || calculateExpiryDate(initialData.type),
           status: isInvoice ? (initialData.status || 'DRAFT').toUpperCase() : initialData.status || DOCUMENT_STATUS.DRAFT,
           client: initialData.client || null,
           currency: initialData.currency || initialData.moneda || 'VES',
@@ -133,12 +175,18 @@ const UnifiedDocumentForm = ({
           notes: initialData.notes || '',
           terms: initialData.terms || ''
         };
+        
+        // Log adicional para verificar
+        console.log(`Fecha original: ${initialData.date}, Fecha procesada: ${loadedData.date}`);
+        
         setFormData(loadedData);
       } else {
         resetForm();
       }
     }
   }, [open, initialData, products, isInvoice]);
+
+  
 
   const resetForm = () => {
     setFormData(getInitialFormState());
