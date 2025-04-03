@@ -1,232 +1,161 @@
-// src/pages/invoices/InvoiceTable.js (VERSIÓN 1 - CORREGIDA PARA CLIENTE)
-import { useState } from 'react';
-import { DataGrid } from '@mui/x-data-grid';
-import { Box, IconButton, Tooltip, Chip, Menu, MenuItem } from '@mui/material';
+import React, { useState, useMemo } from 'react';
+import {
+  Box,
+  IconButton,
+  Tooltip,
+  Chip,
+  TextField,
+  InputAdornment,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  Paper,
+  Menu,      // Importación necesaria
+  MenuItem   // Importación necesaria
+} from '@mui/material';
 import {
   Edit,
   Delete,
   Visibility,
-  FileDownload
+  FileDownload,
+  Search as SearchIcon
 } from '@mui/icons-material';
 
+const InvoiceActions = ({ invoice, onPreview, onDownload, onEdit, onDelete }) => {
+  // Este componente no cambia
+  return (
+    <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <Tooltip title="Previsualizar"><IconButton onClick={() => onPreview && onPreview(invoice)} size="small"><Visibility fontSize="inherit" /></IconButton></Tooltip>
+      <Tooltip title="Descargar PDF"><IconButton onClick={() => onDownload && onDownload(invoice)} size="small"><FileDownload fontSize="inherit" /></IconButton></Tooltip>
+      <Tooltip title="Editar"><IconButton onClick={() => onEdit && onEdit(invoice)} size="small"><Edit fontSize="inherit" /></IconButton></Tooltip>
+      <Tooltip title="Eliminar"><IconButton onClick={() => onDelete && onDelete(invoice._id)} size="small"><Delete fontSize="inherit" /></IconButton></Tooltip>
+    </Box>
+  );
+};
+
 export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDownload, onStatusChange }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  // Estado para el menú de estado
   const [statusMenu, setStatusMenu] = useState(null);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
 
+  const filteredInvoices = useMemo(() => {
+    if (!searchTerm) return invoices;
+    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+    return invoices.filter(invoice =>
+      (invoice.number?.toLowerCase().includes(lowerCaseSearchTerm)) ||
+      (invoice.client?.nombre?.toLowerCase().includes(lowerCaseSearchTerm)) ||
+      (getStatusLabel(invoice.status).toLowerCase().includes(lowerCaseSearchTerm))
+    );
+  }, [invoices, searchTerm]);
+
+  const handleChangePage = (event, newPage) => setPage(newPage);
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  // Handlers para el menú de estado
   const handleStatusClick = (event, invoice) => {
     event.stopPropagation();
     setStatusMenu(event.currentTarget);
     setSelectedInvoice(invoice);
   };
-
   const handleStatusClose = () => {
     setStatusMenu(null);
-    setSelectedInvoice(null);
   };
-
   const handleStatusChange = (newStatus) => {
-    const invoiceId = selectedInvoice?._id || selectedInvoice?.id;
+    const invoiceId = selectedInvoice?._id;
     if (onStatusChange && invoiceId) {
       onStatusChange(invoiceId, newStatus);
     }
     handleStatusClose();
   };
 
-  // --- Funciones auxiliares para Status ---
-  const getStatusLabel = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'draft': return 'Borrador';
-      case 'pending': return 'Pendiente';
-      case 'paid': return 'Pagada';
-      case 'cancelled': return 'Anulada';
-      case 'overdue': return 'Vencida';
-      case 'partial': return 'Pago Parcial';
-      default: return 'Borrador';
-    }
-  };
+  // Funciones auxiliares (sin cambios)
+  const getStatusLabel = (status) => { switch (status?.toLowerCase()) { case 'draft': return 'Borrador'; case 'pending': return 'Pendiente'; case 'paid': return 'Pagada'; case 'cancelled': return 'Anulada'; case 'overdue': return 'Vencida'; case 'partial': return 'Pago Parcial'; default: return 'Borrador'; } };
+  const getStatusColorForMenu = (status) => { switch (status?.toLowerCase()) { case 'draft': return 'default'; case 'pending': return 'warning'; case 'paid': return 'success'; case 'cancelled': return 'error'; case 'overdue': return 'error'; case 'partial': return 'info'; default: return 'default'; } };
+  const getStatusColorSx = (status) => { switch (status?.toLowerCase()) { case 'draft': return { borderColor: 'grey.500', color: 'grey.700' }; case 'pending': return { borderColor: 'warning.main', color: 'warning.dark' }; case 'paid': return { borderColor: 'success.main', color: 'success.dark' }; case 'cancelled': return { borderColor: 'error.main', color: 'error.dark' }; case 'overdue': return { borderColor: 'error.main', color: 'error.dark' }; case 'partial': return { borderColor: 'info.main', color: 'info.dark' }; default: return { borderColor: 'grey.500', color: 'grey.700' }; } };
+  const formatDisplayDate = (dateString) => { if (!dateString) return '—'; try { if (dateString.includes('T')) { const d = new Date(dateString); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`; } const parts = dateString.split('-'); if (parts.length === 3) { return `${parts[2]}/${parts[1]}/${parts[0]}`; } return dateString; } catch (e) { console.error('Error formateando fecha:', e); return dateString || '—'; } };
+  const formatCurrency = (amount, currency = 'VES') => { if (amount === undefined || amount === null) return '—'; return new Intl.NumberFormat('es-ES', { style: 'currency', currency: currency }).format(amount); };
 
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'draft': return 'default';
-      case 'pending': return 'warning';
-      case 'paid': return 'success';
-      case 'cancelled': return 'error';
-      case 'overdue': return 'error';
-      case 'partial': return 'info';
-      default: return 'default';
-    }
-  };
-  // --- Fin Funciones auxiliares para Status ---
-
-
-  // --- Definición de Columnas para DataGrid ---
-  const columns = [
-    { field: 'number', headerName: 'N° Factura', flex: 1 },
-    {
-      field: 'date',
-      headerName: 'Fecha',
-      flex: 1,
-      renderCell: (params) => {
-        try {
-          return params.value ? new Date(params.value).toLocaleDateString() : 'N/A';
-        } catch (e) { return 'Fecha Inválida'; }
-      }
-    },
-    {
-      // --- Columna Cliente CORREGIDA ---
-      field: 'clientName', // <-- Usa directamente el campo creado abajo
-      headerName: 'Cliente',
-      flex: 1.5,
-      // No se necesita valueGetter ni renderCell para el nombre simple
-    },
-    {
-      field: 'total',
-      headerName: 'Total',
-      flex: 1,
-      renderCell: (params) => {
-        const currency = params.row?.moneda || 'VES';
-        const total = typeof params.row?.total === 'number' ? params.row.total : 0;
-        return `${currency} ${total.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-      }
-    },
-    {
-      field: 'status',
-      headerName: 'Estado',
-      flex: 1,
-      renderCell: (params) => {
-        const status = params.value || 'draft';
-        const rowData = params.row;
-        return (
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Chip
-              label={getStatusLabel(status)}
-              color={getStatusColor(status)}
-              size="small"
-              sx={{ mr: 1, cursor: 'pointer' }}
-              onClick={(e) => handleStatusClick(e, rowData)}
-            />
-          </Box>
-        );
-      }
-    },
-    {
-      field: 'actions',
-      headerName: 'Acciones',
-      width: 180,
-      sortable: false,
-      renderCell: (params) => {
-        // params.row es un objeto de processedRows, que ya tiene todo (incluyendo notes/terms)
-        const currentRow = params.row;
-
-        return (
-          <Box sx={{ display: 'flex', justifyContent: 'flex-start', width: '100%' }}>
-            <Tooltip title="Previsualizar">
-              <IconButton
-                onClick={() => {
-                  console.log('Datos (Opción 1 - Fila Procesada) a enviar a preview:', currentRow);
-                  if (onPreview) onPreview(currentRow);
-                }}
-                color="info" size="small" >
-                <Visibility fontSize="inherit" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Descargar PDF">
-              <IconButton
-                onClick={() => onDownload && onDownload(currentRow)}
-                color="secondary" size="small" >
-                <FileDownload fontSize="inherit" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Editar">
-              <IconButton
-                onClick={() => {
-                  console.log('Datos (Opción 1 - Fila Procesada) a enviar a edit:', currentRow);
-                  if (onEdit) onEdit(currentRow);
-                }}
-                color="primary" size="small" >
-                <Edit fontSize="inherit" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Eliminar">
-              <IconButton
-                onClick={() => onDelete && onDelete(currentRow.id)}
-                color="error" size="small" >
-                <Delete fontSize="inherit" />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        );
-      },
-    },
-  ];
-  // --- Fin Definición de Columnas ---
-
-
-  // --- Procesamiento de Filas (CORREGIDO para asegurar clientName) ---
-  const processedRows = invoices.map(invoice => ({
-    // --- Campos básicos visibles o para ID ---
-    id: invoice._id,
-    number: invoice.number || 'N/A',
-    date: invoice.date,
-    total: invoice.total || 0,
-    status: invoice.status || 'draft',
-    moneda: invoice.moneda || 'VES',
-
-    // --- Campo EXPLÍCITO para la columna Cliente ---
-    clientName: invoice.client?.nombre || 'N/A', // <--- CORREGIDO/ASEGURADO
-
-    // --- Campos COMPLETOS necesarios para ACCIONES (Preview/Edit) ---
-    _id: invoice._id,
-    client: invoice.client || null, // Objeto cliente completo
-    items: invoice.items || [],     // Items completos
-    subtotal: invoice.subtotal || 0,
-    tax: invoice.tax || 0,
-    condicionesPago: invoice.condicionesPago,
-    diasCredito: invoice.diasCredito,
-    notes: invoice.notes || '',     // Notas
-    terms: invoice.terms || ''      // Términos
-  }));
-  // --- Fin Procesamiento de Filas ---
-
-
-  // --- Renderizado del Componente ---
   return (
-    <>
-      <DataGrid
-        rows={processedRows}
-        columns={columns}
-        pageSize={10}
-        rowsPerPageOptions={[5, 10, 25, 100]}
-        autoHeight
-        disableSelectionOnClick
-        loading={!invoices || invoices.length === 0}
-        components={{
-          NoRowsOverlay: () => (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', p: 2 }}>
-              <Box>No hay facturas disponibles</Box>
-            </Box>
-          )
-        }}
-        sx={{
-          border: 'none',
-          '& .MuiDataGrid-columnHeaders': { backgroundColor: (theme) => theme.palette.grey[100], fontWeight: 'bold' },
-          '& .MuiDataGrid-cell': { borderBottom: (theme) => `1px solid ${theme.palette.grey[200]}` },
-          '& .MuiDataGrid-footerContainer': { borderTop: (theme) => `1px solid ${theme.palette.grey[300]}` },
-          '& .MuiDataGrid-row:hover': { backgroundColor: (theme) => theme.palette.action.hover }
-        }}
-      />
+    <Box>
+      <Box sx={{ p: 2 }}>
+         <TextField fullWidth size="small" variant="outlined" placeholder="Buscar por Nº Factura, Cliente o Estado..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} InputProps={{ startAdornment: ( <InputAdornment position="start"><SearchIcon color="action" /></InputAdornment> ), sx: { bgcolor: '#2a2a2a', borderRadius: '8px', color: 'rgba(255, 255, 255, 0.8)', '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.1)', }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.3)', }, '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main', }, '& .MuiInputAdornment-root .MuiSvgIcon-root': { color: 'rgba(255, 255, 255, 0.5)', } } }} />
+      </Box>
 
-      {/* Menú para cambiar estado */}
-      <Menu anchorEl={statusMenu} open={Boolean(statusMenu)} onClose={handleStatusClose} >
+      <TableContainer component={Paper} variant="outlined" sx={{ borderColor: 'rgba(255, 255, 255, 0.1)', bgcolor: '#1e1e1e' }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow sx={{ '& .MuiTableCell-head': { bgcolor: '#333', color: 'white', fontWeight: 'bold' } }}>
+              <TableCell>N° Factura</TableCell>
+              <TableCell>Fecha</TableCell>
+              <TableCell>Cliente</TableCell>
+              <TableCell>Total</TableCell>
+              <TableCell>Estado</TableCell>
+              <TableCell align="right">Acciones</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody sx={{ '& .MuiTableCell-body': { color: 'rgba(255, 255, 255, 0.8)' } }}>
+            {filteredInvoices.length === 0 ? ( <TableRow> <TableCell colSpan={6} align="center" sx={{ borderBottom: 'none', color: 'rgba(255, 255, 255, 0.5)', py: 4 }}> {searchTerm ? `No se encontraron facturas que coincidan con "${searchTerm}"` : 'No hay facturas disponibles' } </TableCell> </TableRow> ) : (
+              filteredInvoices
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((invoice) => (
+                  <TableRow key={invoice._id} hover sx={{ '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.05)' } }}>
+                    <TableCell sx={{ borderBottomColor: 'rgba(255, 255, 255, 0.1)' }}>{invoice.number || 'N/A'}</TableCell>
+                    <TableCell sx={{ borderBottomColor: 'rgba(255, 255, 255, 0.1)' }}>{formatDisplayDate(invoice.date)}</TableCell>
+                    <TableCell sx={{ borderBottomColor: 'rgba(255, 255, 255, 0.1)' }}>{invoice.client?.nombre || 'N/A'}</TableCell>
+                    <TableCell sx={{ borderBottomColor: 'rgba(255, 255, 255, 0.1)' }}>{formatCurrency(invoice.total, invoice.moneda)}</TableCell>
+                    <TableCell sx={{ borderBottomColor: 'rgba(255, 255, 255, 0.1)' }}>
+                      <Chip
+                        label={getStatusLabel(invoice.status)}
+                        size="small"
+                        variant="outlined"
+                        onClick={(e) => handleStatusClick(e, invoice)} // onClick añadido
+                        sx={{
+                          cursor: 'pointer', // Cursor pointer añadido
+                          ...getStatusColorSx(invoice.status),
+                          fontWeight: 'medium'
+                         }}
+                      />
+                    </TableCell>
+                    <TableCell align="right" sx={{ borderBottomColor: 'rgba(255, 255, 255, 0.1)' }}>
+                      <InvoiceActions invoice={invoice} onPreview={onPreview} onDownload={onDownload} onEdit={onEdit} onDelete={onDelete} />
+                    </TableCell>
+                  </TableRow>
+                ))
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <TablePagination rowsPerPageOptions={[5, 10, 25]} component="div" count={filteredInvoices.length} rowsPerPage={rowsPerPage} page={page} onPageChange={handleChangePage} onRowsPerPageChange={handleChangeRowsPerPage} labelRowsPerPage="Filas por página" labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`} sx={{ color: 'rgba(255, 255, 255, 0.7)', borderTop: '1px solid rgba(255, 255, 255, 0.1)', bgcolor: '#1e1e1e', '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows, & .MuiTablePagination-select, & .MuiTablePagination-selectIcon': { color: 'inherit' } }} />
+
+      {/* Menú de estado añadido */}
+      <Menu
+        anchorEl={statusMenu}
+        open={Boolean(statusMenu)}
+        onClose={handleStatusClose}
+      >
         {['draft', 'pending', 'paid', 'partial', 'overdue', 'cancelled'].map((status) => (
           <MenuItem key={status} onClick={() => handleStatusChange(status)}>
-            <Chip label={getStatusLabel(status)} size="small" color={getStatusColor(status)} sx={{ minWidth: '100px' }} />
+            <Chip
+                label={getStatusLabel(status)}
+                size="small"
+                color={getStatusColorForMenu(status)} // Usamos color estándar aquí
+                sx={{ minWidth: '100px', fontWeight: 'medium' }}
+             />
           </MenuItem>
         ))}
       </Menu>
-    </>
+    </Box>
   );
-  
 };
 
-export default InvoiceTable;

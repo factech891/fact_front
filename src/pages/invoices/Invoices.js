@@ -1,9 +1,8 @@
-// src/pages/invoices/Invoices.js - MODIFICADO PARA QUITAR TÍTULO Y ALINEAR BOTÓN
-import { useState } from 'react';
+import React, { useState, useMemo } from 'react'; // Añadido useMemo
 import {
     Box,
     Button,
-    Typography, // Typography ya no se usa para el título aquí, pero puede usarse en otros lados
+    Typography,
     Snackbar,
     Alert,
     Paper,
@@ -21,7 +20,7 @@ import {
     DeleteForever as DeleteIcon,
     Cancel as CancelIcon
 } from '@mui/icons-material';
-import InvoiceTable from './InvoiceTable';
+import { InvoiceTable } from './InvoiceTable';
 import UnifiedDocumentForm from '../documents/UnifiedDocumentForm';
 import { InvoicePreview } from './InvoicePreview/InvoicePreview';
 import { useInvoices } from '../../hooks/useInvoices';
@@ -42,18 +41,21 @@ const Invoices = () => {
   const { clients, loading: loadingClients } = useClients();
   const { products, loading: loadingProducts } = useProducts();
 
+  // Ordenar facturas por fecha descendente
+  const sortedInvoices = useMemo(() => {
+    return [...invoices].sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [invoices]);
+
   const showSnackbar = (message, severity = 'info') => {
     setSnackbarInfo({ open: true, message, severity });
   };
 
   const processInvoiceData = (invoice) => {
-     // ... (tu lógica de processInvoiceData aquí, sin cambios) ...
      console.log('Procesando datos de factura:', invoice);
     if (!invoice) return null;
     try {
       const processedItems = invoice.items?.map(item => {
         const isExento = item.exentoIva === true || item.taxExempt === true;
-        console.log(`Ítem ${item.codigo || item.product?.codigo || 'sin código'}: exentoIva=${isExento}`);
         return {
           codigo: item.codigo || item.product?.codigo || '',
           descripcion: item.descripcion || item.product?.nombre || '',
@@ -66,7 +68,7 @@ const Invoices = () => {
       }) || [];
       const subtotal = processedItems.reduce((sum, item) => sum + item.total, 0);
       const iva = processedItems.reduce((sum, item) => {
-        if (item.exentoIva !== true) { return sum + (item.total * 0.16); } // Asumiendo IVA 16%
+        if (item.exentoIva !== true) { return sum + (item.total * 0.16); }
         return sum;
       }, 0);
       const total = subtotal + iva;
@@ -146,8 +148,7 @@ const Invoices = () => {
     }
   };
 
-  if (loadingInvoices || loadingClients /* || loadingProducts */) {
-    // Puedes usar un CircularProgress aquí también si prefieres
+  if (loadingInvoices || loadingClients) {
     return (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
             <CircularProgress />
@@ -156,12 +157,8 @@ const Invoices = () => {
   }
 
   return (
-    <Box>
-      {/* --- Bloque Modificado --- */}
+    <Box sx={{ p: 3 }}> {/* Añadido padding aquí */}
       <Box sx={{ mb: 4, display: 'flex', alignItems: 'center' }}>
-         {/* Typography eliminado */}
-
-        {/* Botón con margen automático a la izquierda */}
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -169,16 +166,15 @@ const Invoices = () => {
             setSelectedInvoice(null);
             setOpenForm(true);
           }}
-          sx={{ marginLeft: 'auto' }} // <--- ¡CAMBIO CLAVE AQUÍ!
+          sx={{ marginLeft: 'auto' }}
         >
           NUEVA FACTURA
         </Button>
       </Box>
-      {/* --- Fin Bloque Modificado --- */}
 
       <Paper elevation={1} sx={{ mb: 3, borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.1)', bgcolor: '#1e1e1e' }}>
         <InvoiceTable
-          invoices={invoices}
+          invoices={sortedInvoices} // Pasa la lista ordenada
           onEdit={handleEdit}
           onDelete={handleDelete}
           onPreview={handlePreview}
