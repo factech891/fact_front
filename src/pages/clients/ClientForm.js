@@ -32,6 +32,35 @@ import {
 } from '@mui/icons-material';
 
 export const ClientForm = ({ open, onClose, client, onSave }) => {
+  // Estilo para botones de acción principal
+  const actionButtonStyle = {
+    borderRadius: '50px',
+    color: 'white',
+    fontWeight: 600,
+    padding: '8px 22px',
+    textTransform: 'none',
+    backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+    boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)',
+    transition: 'all 0.2s ease-in-out',
+    border: 'none',
+    backgroundColor: 'transparent',
+    fontSize: '14px',
+    '&:hover': {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 6px 20px rgba(79, 172, 254, 0.6)',
+      backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+      backgroundColor: 'transparent',
+    },
+    '&:active': {
+      transform: 'translateY(0)',
+      boxShadow: '0 2px 10px rgba(79, 172, 254, 0.4)',
+    },
+    '&.Mui-disabled': {
+      backgroundImage: 'linear-gradient(to right, #919191 0%, #b7b7b7 100%)',
+      color: 'rgba(255, 255, 255, 0.6)',
+    }
+  };
+
   // Usamos un ref para evitar re-renders innecesarios
   const initialFormState = {
     // Datos básicos
@@ -204,7 +233,13 @@ export const ClientForm = ({ open, onClose, client, onSave }) => {
       disableEscapeKeyDown={saving}
       PaperProps={{ sx: { bgcolor: '#1e1e1e', backgroundImage: 'none' } }}
     >
-      <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <DialogTitle sx={{ 
+        backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)', 
+        color: 'white', 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center' 
+      }}>
         {client ? 'Editar Cliente' : 'Nuevo Cliente'}
         <IconButton onClick={handleClose} sx={{ color: 'white' }} disabled={saving}>
           <CloseIcon />
@@ -737,12 +772,12 @@ export const ClientForm = ({ open, onClose, client, onSave }) => {
         </Button>
         <Button
           variant="contained"
-          color="primary"
           onClick={handleSave}
           startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
           disabled={saving}
+          sx={{ ...actionButtonStyle }}
         >
-          {saving ? 'Guardando...' : 'Guardar'}
+          {saving ? 'GUARDANDO...' : 'GUARDAR'}
         </Button>
       </DialogActions>
     </Dialog>

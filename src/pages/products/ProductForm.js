@@ -13,10 +13,11 @@ import {
   CircularProgress, 
   Alert, 
   InputAdornment,
-  Select,        // <-- Importado para el selector
-  MenuItem,      // <-- Importado para las opciones del selector
-  FormControl,   // <-- Importado para envolver el selector
-  InputLabel     // <-- Importado para la etiqueta del selector
+  Select,        
+  MenuItem,      
+  FormControl,   
+  InputLabel,
+  FormHelperText  // Movido aquí arriba la importación
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -25,6 +26,35 @@ import {
 } from '@mui/icons-material';
 
 export const ProductForm = ({ open, onClose, product, onSave }) => {
+  // Estilo para botones de acción principal
+  const actionButtonStyle = {
+    borderRadius: '50px',
+    color: 'white',
+    fontWeight: 600,
+    padding: '8px 22px',
+    textTransform: 'none',
+    backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+    boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)',
+    transition: 'all 0.2s ease-in-out',
+    border: 'none',
+    backgroundColor: 'transparent',
+    fontSize: '14px',
+    '&:hover': {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 6px 20px rgba(79, 172, 254, 0.6)',
+      backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+      backgroundColor: 'transparent',
+    },
+    '&:active': {
+      transform: 'translateY(0)',
+      boxShadow: '0 2px 10px rgba(79, 172, 254, 0.4)',
+    },
+    '&.Mui-disabled': {
+      backgroundImage: 'linear-gradient(to right, #919191 0%, #b7b7b7 100%)',
+      color: 'rgba(255, 255, 255, 0.6)',
+    }
+  };
+
   const initialFormData = {
     // --- Nuevo campo para el tipo ---
     tipo: 'producto', // Valor por defecto
@@ -210,7 +240,15 @@ export const ProductForm = ({ open, onClose, product, onSave }) => {
       PaperProps={{ sx: { bgcolor: '#1e1e1e', backgroundImage: 'none', border: '1px solid rgba(255, 255, 255, 0.1)' } }}
     >
       <DialogTitle
-        sx={{ bgcolor: 'primary.main', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5, px: 2 }}
+        sx={{ 
+          backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+          color: 'white', 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          py: 1.5, 
+          px: 2 
+        }}
       >
         {/* Cambiar título según si edita o crea */}
         {product ? `Editar ${formData.tipo === 'producto' ? 'Producto' : 'Servicio'}` : `Nuevo ${formData.tipo === 'producto' ? 'Producto' : 'Servicio'}`}
@@ -294,18 +332,15 @@ export const ProductForm = ({ open, onClose, product, onSave }) => {
         </Button>
         <Button
           variant="contained"
-          color="primary"
           onClick={handleSave}
           startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
           disabled={saving}
+          sx={{ ...actionButtonStyle }}
         >
           {/* Cambiar texto del botón según si edita o crea */}
-          {saving ? (product ? 'Guardando...' : 'Creando...') : (product ? 'Guardar Cambios' : 'Crear')}
+          {saving ? (product ? 'GUARDANDO...' : 'CREANDO...') : (product ? 'GUARDAR CAMBIOS' : 'CREAR')}
         </Button>
       </DialogActions>
     </Dialog>
   );
 };
-
-// No olvidar importar FormHelperText si lo usas para el error del Select
-import { FormHelperText } from '@mui/material';

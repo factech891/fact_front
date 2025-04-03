@@ -11,6 +11,35 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 
 const LatestTransactions = ({ invoices, clients }) => {
+  // Estilo para botones de acción principal
+  const actionButtonStyle = {
+    borderRadius: '50px',
+    color: 'white',
+    fontWeight: 600,
+    padding: '8px 22px',
+    textTransform: 'none',
+    backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+    boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)',
+    transition: 'all 0.2s ease-in-out',
+    border: 'none',
+    backgroundColor: 'transparent',
+    fontSize: '14px',
+    '&:hover': {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 6px 20px rgba(79, 172, 254, 0.6)',
+      backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+      backgroundColor: 'transparent',
+    },
+    '&:active': {
+      transform: 'translateY(0)',
+      boxShadow: '0 2px 10px rgba(79, 172, 254, 0.4)',
+    },
+    '&.Mui-disabled': {
+      backgroundImage: 'linear-gradient(to right, #919191 0%, #b7b7b7 100%)',
+      color: 'rgba(255, 255, 255, 0.6)',
+    }
+  };
+  
   const [tabValue, setTabValue] = useState(0);
 
   const handleTabChange = (event, newValue) => {
@@ -50,9 +79,7 @@ const LatestTransactions = ({ invoices, clients }) => {
               startIcon={<AddIcon />} 
               variant="contained" 
               sx={{ 
-                borderRadius: 2,
-                bgcolor: '#4477CE',
-                '&:hover': { bgcolor: '#3366BB' }
+                ...actionButtonStyle
               }}
             >
               NUEVA FACTURA
@@ -119,9 +146,7 @@ const LatestTransactions = ({ invoices, clients }) => {
               startIcon={<AddIcon />} 
               variant="contained" 
               sx={{ 
-                borderRadius: 2,
-                bgcolor: '#4477CE',
-                '&:hover': { bgcolor: '#3366BB' }
+                ...actionButtonStyle
               }}
             >
               NUEVO CLIENTE
