@@ -1,9 +1,9 @@
-// src/pages/products/Products.js - MODIFICADO PARA QUITAR TÍTULO Y ALINEAR BOTÓN
+// src/pages/products/Products.js
 import { useState } from 'react';
 import {
   Box,
   Button,
-  Typography, // Ya no se usa para el título principal
+  Typography,
   Dialog,
   DialogActions,
   DialogContent,
@@ -11,8 +11,9 @@ import {
   DialogTitle,
   IconButton,
   CircularProgress,
-  // Considerar importar Paper si quieres envolver la tabla como en los otros
-  // Paper
+  Paper,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -25,23 +26,60 @@ import { ProductForm } from './ProductForm';
 import { useProducts } from '../../hooks/useProducts';
 
 const Products = () => {
+  // Estilo para botones de acción principal
+  const actionButtonStyle = {
+    borderRadius: '50px',
+    color: 'white',
+    fontWeight: 600,
+    padding: '8px 22px',
+    textTransform: 'none',
+    backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+    boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)',
+    transition: 'all 0.2s ease-in-out',
+    border: 'none',
+    backgroundColor: 'transparent',
+    fontSize: '14px',
+    '&:hover': {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 6px 20px rgba(79, 172, 254, 0.6)',
+      backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+      backgroundColor: 'transparent',
+    },
+    '&:active': {
+      transform: 'translateY(0)',
+      boxShadow: '0 2px 10px rgba(79, 172, 254, 0.4)',
+    },
+    '&.Mui-disabled': {
+      backgroundImage: 'linear-gradient(to right, #919191 0%, #b7b7b7 100%)',
+      color: 'rgba(255, 255, 255, 0.6)',
+    }
+  };
+
   const [openForm, setOpenForm] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const { products, loading, error, saveProduct, deleteProduct } = useProducts();
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
   const [productIdToDelete, setProductIdToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   const handleSave = async (product) => {
     try {
       await saveProduct(product);
       setOpenForm(false);
       setSelectedProduct(null);
-      // TODO: Añadir Snackbar de éxito
-      console.log('Producto guardado (simulado, añadir snackbar)');
+      setSnackbar({ 
+        open: true, 
+        message: product._id ? 'Producto actualizado exitosamente' : 'Producto creado exitosamente', 
+        severity: 'success' 
+      });
     } catch (error) {
       console.error('Error saving product:', error);
-      // TODO: Añadir Snackbar de error
+      setSnackbar({ 
+        open: true, 
+        message: error.message || 'No se pudo guardar el producto', 
+        severity: 'error' 
+      });
     }
   };
 
@@ -60,11 +98,18 @@ const Products = () => {
       setDeleting(true);
       try {
         await deleteProduct(productIdToDelete);
-        // TODO: Añadir Snackbar de éxito
-        console.log('Producto eliminado (simulado, añadir snackbar)');
+        setSnackbar({ 
+          open: true, 
+          message: 'Producto eliminado exitosamente', 
+          severity: 'success' 
+        });
       } catch (error) {
         console.error('Error deleting product:', error);
-        // TODO: Añadir Snackbar de error
+        setSnackbar({ 
+          open: true, 
+          message: error.message || 'No se pudo eliminar el producto', 
+          severity: 'error' 
+        });
       } finally {
         setDeleting(false);
         setOpenConfirmDialog(false);
@@ -82,7 +127,11 @@ const Products = () => {
   const handleCloseForm = () => {
     setOpenForm(false);
     setSelectedProduct(null);
-   }
+  }
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
 
   // Indicador de carga más robusto
   if (loading && !products?.length) return (
@@ -98,14 +147,9 @@ const Products = () => {
       </Typography>
   );
 
-
   return (
-    <Box>
-      {/* --- Bloque Modificado --- */}
+    <Box sx={{ p: 3 }}>
       <Box sx={{ mb: 4, display: 'flex', alignItems: 'center' }}>
-        {/* Typography eliminado */}
-
-        {/* Botón con margen automático a la izquierda */}
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -113,25 +157,20 @@ const Products = () => {
              setSelectedProduct(null);
              setOpenForm(true);
             }}
-          sx={{ marginLeft: 'auto' }} // <--- ¡CAMBIO CLAVE AQUÍ!
+          sx={{ ...actionButtonStyle, marginLeft: 'auto' }}
         >
-          Nuevo Producto
+          NUEVO PRODUCTO
         </Button>
       </Box>
-      {/* --- Fin Bloque Modificado --- */}
 
-
-      {/* Nota: Aquí la tabla no está envuelta en Paper como en Invoices/Clients */}
-      {/* Si quieres consistencia visual, puedes envolverla */}
-      {/* <Paper elevation={1} sx={{ mb: 3, borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.1)', bgcolor: '#1e1e1e' }}> */}
+      <Paper elevation={1} sx={{ mb: 3, borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.1)', bgcolor: '#1e1e1e' }}>
         <ProductTable
           products={products || []}
           onEdit={handleEdit}
           onDelete={handleDelete}
-          loading={loading} // Se pasa el estado loading
+          loading={loading}
         />
-      {/* </Paper> */}
-
+      </Paper>
 
       <ProductForm
         open={openForm}
@@ -205,6 +244,17 @@ const Products = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} variant="filled" sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

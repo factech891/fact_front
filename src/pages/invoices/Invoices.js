@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'; // Añadido useMemo
+import React, { useState, useMemo } from 'react';
 import {
     Box,
     Button,
@@ -29,6 +29,30 @@ import { useProducts } from '../../hooks/useProducts';
 import { generatePDF } from '../../utils/pdfGenerator';
 
 const Invoices = () => {
+  // Estilo para botones de acción (crear, editar, etc.)
+  const actionButtonStyle = {
+    borderRadius: '50px',
+    color: 'white',
+    fontWeight: 600, // Aumentado a 600 para mejor visibilidad
+    padding: '8px 22px',
+    textTransform: 'none',
+    backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+    boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)',
+    transition: 'all 0.2s ease-in-out',
+    border: 'none',
+    backgroundColor: 'transparent',
+    '&:hover': {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 6px 20px rgba(79, 172, 254, 0.6)',
+      backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+      backgroundColor: 'transparent',
+    },
+    '&:active': {
+      transform: 'translateY(0)',
+      boxShadow: '0 2px 10px rgba(79, 172, 254, 0.4)',
+    },
+  };
+
   const [openForm, setOpenForm] = useState(false);
   const [openPreview, setOpenPreview] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
@@ -157,7 +181,7 @@ const Invoices = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}> {/* Añadido padding aquí */}
+    <Box sx={{ p: 3 }}>
       <Box sx={{ mb: 4, display: 'flex', alignItems: 'center' }}>
         <Button
           variant="contained"
@@ -166,20 +190,40 @@ const Invoices = () => {
             setSelectedInvoice(null);
             setOpenForm(true);
           }}
-          sx={{ marginLeft: 'auto' }}
+          sx={{ ...actionButtonStyle, marginLeft: 'auto', fontSize: '14px' }}
         >
           NUEVA FACTURA
         </Button>
       </Box>
 
-      <Paper elevation={1} sx={{ mb: 3, borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.1)', bgcolor: '#1e1e1e' }}>
+      <Paper elevation={1} sx={{ 
+        mb: 3, 
+        borderRadius: '8px', 
+        overflow: 'hidden', 
+        border: '1px solid rgba(255, 255, 255, 0.1)', 
+        bgcolor: '#1e1e1e',
+      }}>
         <InvoiceTable
-          invoices={sortedInvoices} // Pasa la lista ordenada
+          invoices={sortedInvoices}
           onEdit={handleEdit}
           onDelete={handleDelete}
           onPreview={handlePreview}
           onDownload={handleDownload}
           onStatusChange={handleStatusChange}
+          tableHeaderStyle={{
+            fontWeight: 700,  // Más negrita para los encabezados
+            fontSize: '15px',  // Texto ligeramente más grande
+            color: 'rgba(255, 255, 255, 0.9)',  // Más brillante para mejor legibilidad
+          }}
+          tableCellStyle={{
+            fontWeight: 600,  // Más negrita para texto normal
+            fontSize: '14px',  // Texto ligeramente más grande
+            color: 'rgba(255, 255, 255, 0.85)',  // Mejor contraste
+          }}
+          statusChipStyle={{
+            fontWeight: 600,  // Más negrita para los chips de estado
+            textShadow: '0px 0px 1px rgba(0,0,0,0.5)',  // Sombra para mejorar legibilidad
+          }}
         />
       </Paper>
 
@@ -248,7 +292,7 @@ const Invoices = () => {
           </IconButton>
         </DialogTitle>
         <DialogContent sx={{ p: 3, bgcolor: '#1e1e1e', color: 'rgba(255, 255, 255, 0.8)' }}>
-          <DialogContentText id="confirm-delete-dialog-description" sx={{ color: 'inherit' }}>
+          <DialogContentText id="confirm-delete-dialog-description" sx={{ color: 'inherit', fontWeight: 500 }}>
             ¿Está seguro de que desea eliminar esta factura? Esta acción no se puede deshacer.
           </DialogContentText>
         </DialogContent>
@@ -258,7 +302,7 @@ const Invoices = () => {
             onClick={handleCloseConfirmDialog}
             startIcon={<CancelIcon />}
             disabled={deleting}
-            sx={{ color: 'rgba(255, 255, 255, 0.7)', borderColor: 'rgba(255, 255, 255, 0.3)', '&:hover': { borderColor: 'rgba(255, 255, 255, 0.5)', bgcolor: 'rgba(255, 255, 255, 0.05)' } }}
+            sx={{ color: 'rgba(255, 255, 255, 0.7)', borderColor: 'rgba(255, 255, 255, 0.3)', fontWeight: 600, '&:hover': { borderColor: 'rgba(255, 255, 255, 0.5)', bgcolor: 'rgba(255, 255, 255, 0.05)' } }}
           >
             Cancelar
           </Button>
@@ -268,6 +312,7 @@ const Invoices = () => {
             onClick={handleConfirmDelete}
             startIcon={deleting ? <CircularProgress size={20} color="inherit" /> : <DeleteIcon />}
             disabled={deleting}
+            sx={{ fontWeight: 600 }}
           >
             {deleting ? 'Eliminando...' : 'Eliminar'}
           </Button>

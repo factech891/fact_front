@@ -1,9 +1,9 @@
-// src/pages/clients/Clients.js - MODIFICADO PARA QUITAR TÍTULO Y ALINEAR BOTÓN
+// src/pages/clients/Clients.js
 import { useState } from 'react';
 import {
     Box,
     Button,
-    Typography, // Ya no se usa para el título principal aquí
+    Typography,
     Snackbar,
     Alert,
     CircularProgress,
@@ -26,6 +26,35 @@ import { ClientForm } from './ClientForm';
 import useClients from '../../hooks/useClients';
 
 const Clients = () => {
+  // Estilo para botones de acción principal
+  const actionButtonStyle = {
+    borderRadius: '50px',
+    color: 'white',
+    fontWeight: 600,
+    padding: '8px 22px',
+    textTransform: 'none',
+    backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+    boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)',
+    transition: 'all 0.2s ease-in-out',
+    border: 'none',
+    backgroundColor: 'transparent',
+    fontSize: '14px',
+    '&:hover': {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 6px 20px rgba(79, 172, 254, 0.6)',
+      backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+      backgroundColor: 'transparent',
+    },
+    '&:active': {
+      transform: 'translateY(0)',
+      boxShadow: '0 2px 10px rgba(79, 172, 254, 0.4)',
+    },
+    '&.Mui-disabled': {
+      backgroundImage: 'linear-gradient(to right, #919191 0%, #b7b7b7 100%)',
+      color: 'rgba(255, 255, 255, 0.6)',
+    }
+  };
+
   const [openForm, setOpenForm] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
   const [alert, setAlert] = useState({ open: false, message: '', severity: 'info' });
@@ -96,7 +125,7 @@ const Clients = () => {
   };
 
   if (loading) return (
-    <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh"> {/* Usar minHeight para mejor visualización */}
+    <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
       <CircularProgress />
     </Box>
   );
@@ -108,12 +137,8 @@ const Clients = () => {
   );
 
   return (
-    <Box>
-      {/* --- Bloque Modificado --- */}
+    <Box sx={{ p: 3 }}>
       <Box sx={{ mb: 4, display: 'flex', alignItems: 'center' }}>
-        {/* Typography eliminado */}
-
-        {/* Botón con margen automático a la izquierda */}
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -121,13 +146,11 @@ const Clients = () => {
             setSelectedClient(null);
             setOpenForm(true);
           }}
-          sx={{ marginLeft: 'auto' }} // <--- ¡CAMBIO CLAVE AQUÍ!
+          sx={{ ...actionButtonStyle, marginLeft: 'auto' }}
         >
-          Nuevo Cliente
+          NUEVO CLIENTE
         </Button>
       </Box>
-      {/* --- Fin Bloque Modificado --- */}
-
 
        <Paper elevation={1} sx={{ mb: 3, borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.1)', bgcolor: '#1e1e1e' }}>
           <ClientTable

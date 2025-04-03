@@ -1,4 +1,4 @@
-// src/pages/documents/Documents.js - CORREGIDO CON IMPORT IconButton
+// src/pages/documents/Documents.js
 import React, { useState } from 'react';
 import {
   Box,
@@ -13,16 +13,44 @@ import {
   Snackbar,
   Alert,
   CircularProgress,
-  IconButton // <--- CORREGIDO: Importación añadida
+  IconButton
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
-// Importar los iconos del diálogo de borrado
 import { Close as CloseIcon, DeleteForever as DeleteIcon, Cancel as CancelIcon } from '@mui/icons-material';
 import DocumentTable from './DocumentTable';
 import DocumentFormModal from './components/DocumentFormModal';
 import { useDocuments } from '../../hooks/useDocuments';
 
 const Documents = () => {
+  // Estilo para botones de acción principal
+  const actionButtonStyle = {
+    borderRadius: '50px',
+    color: 'white',
+    fontWeight: 600,
+    padding: '8px 22px',
+    textTransform: 'none', // Mantenemos el textTransform none para controlar manualmente las mayúsculas
+    backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+    boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)',
+    transition: 'all 0.2s ease-in-out',
+    border: 'none',
+    backgroundColor: 'transparent',
+    fontSize: '14px', // Tamaño de fuente consistente
+    '&:hover': {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 6px 20px rgba(79, 172, 254, 0.6)',
+      backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+      backgroundColor: 'transparent',
+    },
+    '&:active': {
+      transform: 'translateY(0)',
+      boxShadow: '0 2px 10px rgba(79, 172, 254, 0.4)',
+    },
+    '&.Mui-disabled': {
+      backgroundImage: 'linear-gradient(to right, #919191 0%, #b7b7b7 100%)',
+      color: 'rgba(255, 255, 255, 0.6)',
+    }
+  };
+
   const {
     documents,
     loading,
@@ -77,7 +105,6 @@ const Documents = () => {
     try {
       await deleteDocument(documentToDelete._id);
       setSnackbar({ open: true, message: 'Documento eliminado correctamente', severity: 'success' });
-      // fetchDocuments(); // Descomentar si deleteDocument no refresca la lista
     } catch (err) {
       console.error("Error eliminando documento:", err)
       setSnackbar({ open: true, message: 'Error al eliminar el documento: ' + (err.message || ''), severity: 'error' });
@@ -108,36 +135,30 @@ const Documents = () => {
 
   return (
     <Box sx={{p: 3}}>
-      {/* --- Bloque Modificado --- */}
       <Box sx={{ mb: 4 }}>
         <Grid container justifyContent="flex-end" alignItems="center" spacing={2}>
-          {/* Grid item del título eliminado */}
           <Grid item>
             <Button
               variant="contained"
               startIcon={<AddIcon />}
               onClick={handleCreateNew}
-              color="primary"
-              // Añadido sx para asegurar margen si es necesario, aunque flex-end debería bastar
-              // sx={{ marginLeft: 'auto' }} // Probablemente no necesario con Grid y flex-end
+              sx={{
+                ...actionButtonStyle,
+              }}
             >
-              Nueva Cotización
+              NUEVA COTIZACIÓN
             </Button>
           </Grid>
         </Grid>
       </Box>
-      {/* --- Fin Bloque Modificado --- */}
-
 
       <Paper sx={{ mb: 3, borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.1)', bgcolor: '#1e1e1e' }}>
-         {/* Contenido de la tabla con mejor manejo de loading/error dentro */}
-         {loading && documents.length > 0 ? ( // Mostrar un spinner pequeño si ya hay datos pero se recarga
+         {loading && documents.length > 0 ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}><CircularProgress size={24} /></Box>
-          ) : error ? ( // Mostrar error incluso si hay datos viejos
+          ) : error ? (
             <Alert severity="error" sx={{ m: 2 }}>Error: {typeof error === 'string' ? error : error?.message || 'No se pudieron cargar/actualizar los documentos'}</Alert>
           ) : null}
-          {/* La tabla siempre se renderiza si hay documentos o no hay error */}
-          { !(error && documents.length === 0) && // Evitar renderizar tabla vacía si hubo error inicial
+          { !(error && documents.length === 0) &&
             <DocumentTable
               documents={documents || []}
               onDelete={handleDeleteRequest}
@@ -147,7 +168,6 @@ const Documents = () => {
            }
       </Paper>
 
-      {/* Diálogo de confirmación de borrado */}
       <Dialog open={deleteDialogOpen} onClose={handleCloseDeleteDialog} disableEscapeKeyDown={deleting}>
         <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5, px: 2 }}>
             Confirmar eliminación
@@ -184,7 +204,6 @@ const Documents = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar para notificaciones */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
@@ -201,7 +220,6 @@ const Documents = () => {
         </Alert>
       </Snackbar>
 
-      {/* Modal del formulario */}
       <DocumentFormModal
         open={formOpen}
         onClose={handleFormClose}
