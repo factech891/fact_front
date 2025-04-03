@@ -1,3 +1,4 @@
+// src/layouts/DashboardLayout/Navbar.js - CORREGIDO getPageTitle
 import React from 'react';
 import {
   AppBar,
@@ -25,39 +26,33 @@ const Navbar = () => {
   const open = Boolean(anchorEl);
   const notificationsOpen = Boolean(notificationsAnchorEl);
   const location = useLocation();
-  
-  // Puedes cambiar este color principal fácilmente
-  const mainColor = '#4CAF50'; // Color verde por defecto
-  
-  // Otros colores que puedes probar comentando/descomentando:
-  // const mainColor = '#FF9800'; // Naranja
-  // const mainColor = '#9C27B0'; // Púrpura
-  // const mainColor = '#2196F3'; // Azul original
-  
+
+  const mainColor = '#4CAF50'; // Color verde
+
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
   };
-  
+
   const handleClose = () => {
     setAnchorEl(null);
   };
-  
+
   const handleNotificationsClick = (event) => {
     setNotificationsAnchorEl(event.currentTarget);
   };
-  
+
   const handleNotificationsClose = () => {
     setNotificationsAnchorEl(null);
   };
 
-  // Datos del usuario - esto debería venir de tu contexto de autenticación
+  // Datos del usuario (ejemplo)
   const user = {
-    name: 'Admin', // Nombre de ejemplo
+    name: 'Admin',
     role: 'Administrador',
     email: 'admin@transportesexpress.com'
   };
 
-  // Notificaciones de ejemplo
+  // Notificaciones (ejemplo)
   const notifications = [
     { id: 1, title: 'Nueva factura creada', time: 'Hace 5 minutos' },
     { id: 2, title: 'Cliente actualizado', time: 'Hace 30 minutos' },
@@ -65,25 +60,27 @@ const Navbar = () => {
     { id: 4, title: 'Producto añadido al inventario', time: 'Ayer' }
   ];
 
-  // Obtener el título correcto según la ruta actual
+  // --- FUNCIÓN MODIFICADA ---
   const getPageTitle = () => {
     const path = location.pathname;
     if (path === '/' || path === '/dashboard') return 'Dashboard';
     if (path.startsWith('/invoices')) return 'Facturas';
+    if (path.startsWith('/documents')) return 'Cotizaciones'; // <--- LÍNEA AÑADIDA
     if (path.startsWith('/clients')) return 'Clientes';
     if (path.startsWith('/products')) return 'Productos';
     if (path.startsWith('/settings')) return 'Configuración';
-    return '';
+    return ''; // Retorna vacío si no es ninguna de las anteriores
   };
+  // --- FIN FUNCIÓN MODIFICADA ---
 
   return (
-    <AppBar 
-      position="static" 
-      color="transparent" 
+    <AppBar
+      position="static"
+      color="transparent"
       elevation={0}
-      sx={{ 
+      sx={{
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        backgroundColor: '#2a2a2a', // Color oscuro similar a las tarjetas
+        backgroundColor: '#2a2a2a',
         color: '#ffffff'
       }}
     >
@@ -94,14 +91,15 @@ const Navbar = () => {
           component="div"
           sx={{ flexGrow: 1, fontWeight: 500 }}
         >
+          {/* El título ahora se actualizará correctamente */}
           {getPageTitle()}
         </Typography>
-        
+
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           {/* Notificaciones */}
           <Tooltip title="Notificaciones">
-            <IconButton 
-              size="medium" 
+            <IconButton
+              size="medium"
               onClick={handleNotificationsClick}
               sx={{
                 mr: 1,
@@ -111,8 +109,8 @@ const Navbar = () => {
                 }
               }}
             >
-              <Badge 
-                badgeContent={notifications.length} 
+              <Badge
+                badgeContent={notifications.length}
                 color="error"
                 sx={{
                   '& .MuiBadge-badge': {
@@ -127,7 +125,7 @@ const Navbar = () => {
               </Badge>
             </IconButton>
           </Tooltip>
-          
+
           {/* Menú de notificaciones */}
           <Menu
             id="notifications-menu"
@@ -147,53 +145,53 @@ const Navbar = () => {
             transformOrigin={{ horizontal: 'right', vertical: 'top' }}
             anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
           >
-            <Box sx={{ p: 2, pb: 1 }}>
-              <Typography variant="subtitle1" fontWeight="medium">
-                Notificaciones
-              </Typography>
-            </Box>
-            <Divider />
-            
-            {notifications.map((notification) => (
-              <MenuItem 
-                key={notification.id} 
-                onClick={handleNotificationsClose}
-                sx={{
-                  py: 1.5,
-                  px: 2,
-                  borderBottom: '1px solid rgba(0, 0, 0, 0.04)'
-                }}
-              >
-                <Box>
-                  <Typography variant="body2" noWrap>
-                    {notification.title}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {notification.time}
-                  </Typography>
-                </Box>
-              </MenuItem>
-            ))}
-            
-            <Divider />
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 1.5 }}>
-              <Typography 
-                variant="body2" 
-                color={mainColor}
-                sx={{ 
-                  cursor: 'pointer',
-                  fontWeight: 'medium',
-                  '&:hover': {
-                    textDecoration: 'underline'
-                  }
-                }}
-                onClick={handleNotificationsClose}
-              >
-                Ver todas las notificaciones
-              </Typography>
-            </Box>
+             <Box sx={{ p: 2, pb: 1 }}>
+               <Typography variant="subtitle1" fontWeight="medium">
+                 Notificaciones
+               </Typography>
+             </Box>
+             <Divider />
+
+             {notifications.map((notification) => (
+               <MenuItem
+                 key={notification.id}
+                 onClick={handleNotificationsClose}
+                 sx={{
+                   py: 1.5,
+                   px: 2,
+                   borderBottom: '1px solid rgba(0, 0, 0, 0.04)'
+                 }}
+               >
+                 <Box>
+                   <Typography variant="body2" noWrap>
+                     {notification.title}
+                   </Typography>
+                   <Typography variant="caption" color="text.secondary">
+                     {notification.time}
+                   </Typography>
+                 </Box>
+               </MenuItem>
+             ))}
+
+             <Divider />
+             <Box sx={{ display: 'flex', justifyContent: 'center', p: 1.5 }}>
+               <Typography
+                 variant="body2"
+                 color={mainColor} // Usa el color principal definido
+                 sx={{
+                   cursor: 'pointer',
+                   fontWeight: 'medium',
+                   '&:hover': {
+                     textDecoration: 'underline'
+                   }
+                 }}
+                 onClick={handleNotificationsClose}
+               >
+                 Ver todas las notificaciones
+               </Typography>
+             </Box>
           </Menu>
-          
+
           {/* Perfil de usuario */}
           <Tooltip title={user.name}>
             <IconButton
@@ -204,20 +202,20 @@ const Navbar = () => {
               aria-controls={open ? 'account-menu' : undefined}
               aria-haspopup="true"
               aria-expanded={open ? 'true' : undefined}
-              sx={{ 
+              sx={{
                 ml: 1,
-                border: `2px solid ${mainColor}`,
+                border: `2px solid ${mainColor}`, // Usa el color principal definido
                 padding: 0.5,
                 '&:hover': {
                   backgroundColor: 'rgba(255, 255, 255, 0.08)',
                 }
               }}
             >
-              <Avatar 
-                sx={{ 
-                  width: 32, 
-                  height: 32, 
-                  bgcolor: mainColor,
+              <Avatar
+                sx={{
+                  width: 32,
+                  height: 32,
+                  bgcolor: mainColor, // Usa el color principal definido
                   fontWeight: 'bold',
                   color: 'white'
                 }}
@@ -226,8 +224,8 @@ const Navbar = () => {
               </Avatar>
             </IconButton>
           </Tooltip>
-          
-          {/* Menú de usuario mejorado */}
+
+          {/* Menú de usuario */}
           <Menu
             id="account-menu"
             anchorEl={anchorEl}
@@ -245,7 +243,6 @@ const Navbar = () => {
             transformOrigin={{ horizontal: 'right', vertical: 'top' }}
             anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
           >
-            {/* Encabezado con info del usuario */}
             <Box sx={{ px: 2, pt: 2, pb: 1.5 }}>
               <Typography variant="subtitle1" fontWeight="medium">
                 {user.name}
@@ -255,24 +252,22 @@ const Navbar = () => {
               </Typography>
             </Box>
             <Divider />
-            
-            {/* Opciones de menú */}
             <MenuItem onClick={handleClose} sx={{ py: 1.5 }}>
               <ListItemIcon>
-                <PersonOutlineIcon fontSize="small" sx={{ color: mainColor }} />
+                <PersonOutlineIcon fontSize="small" sx={{ color: mainColor }} /> {/* Usa el color principal definido */}
               </ListItemIcon>
               Mi Perfil
             </MenuItem>
             <MenuItem onClick={handleClose} sx={{ py: 1.5 }}>
               <ListItemIcon>
-                <SettingsOutlinedIcon fontSize="small" sx={{ color: mainColor }} />
+                <SettingsOutlinedIcon fontSize="small" sx={{ color: mainColor }} /> {/* Usa el color principal definido */}
               </ListItemIcon>
               Preferencias
             </MenuItem>
             <Divider />
             <MenuItem onClick={handleClose} sx={{ py: 1.5 }}>
               <ListItemIcon>
-                <LogoutIcon fontSize="small" sx={{ color: mainColor }} />
+                <LogoutIcon fontSize="small" sx={{ color: mainColor }} /> {/* Usa el color principal definido */}
               </ListItemIcon>
               Cerrar Sesión
             </MenuItem>

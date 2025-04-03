@@ -1,65 +1,55 @@
-// src/pages/invoices/Invoices.js - MODIFICADO CON DIÁLOGO DE BORRADO ESTILIZADO
+// src/pages/invoices/Invoices.js - MODIFICADO PARA QUITAR TÍTULO Y ALINEAR BOTÓN
 import { useState } from 'react';
-import { 
-    Box, 
-    Button, 
-    Typography, 
-    Snackbar, 
-    Alert, 
+import {
+    Box,
+    Button,
+    Typography, // Typography ya no se usa para el título aquí, pero puede usarse en otros lados
+    Snackbar,
+    Alert,
     Paper,
-    // --- Imports para el Diálogo ---
-    Dialog, 
-    DialogActions, 
-    DialogContent, 
-    DialogContentText, 
-    DialogTitle, 
-    IconButton, 
-    CircularProgress 
-    // --- Fin Imports Diálogo ---
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogContentText,
+    DialogTitle,
+    IconButton,
+    CircularProgress
 } from '@mui/material';
-import { 
+import {
     Add as AddIcon,
-    // --- Imports Iconos Diálogo ---
-    Close as CloseIcon, 
-    DeleteForever as DeleteIcon, 
-    Cancel as CancelIcon 
-    // --- Fin Imports Iconos ---
+    Close as CloseIcon,
+    DeleteForever as DeleteIcon,
+    Cancel as CancelIcon
 } from '@mui/icons-material';
-import InvoiceTable from './InvoiceTable'; // Asegúrate que el import sea correcto
-import UnifiedDocumentForm from '../documents/UnifiedDocumentForm'; // O la ruta correcta
-import { InvoicePreview } from './InvoicePreview/InvoicePreview'; // O la ruta correcta
+import InvoiceTable from './InvoiceTable';
+import UnifiedDocumentForm from '../documents/UnifiedDocumentForm';
+import { InvoicePreview } from './InvoicePreview/InvoicePreview';
 import { useInvoices } from '../../hooks/useInvoices';
 import { useClients } from '../../hooks/useClients';
 import { useProducts } from '../../hooks/useProducts';
-import { generatePDF } from '../../utils/pdfGenerator'; // O la ruta correcta
+import { generatePDF } from '../../utils/pdfGenerator';
 
 const Invoices = () => {
   const [openForm, setOpenForm] = useState(false);
   const [openPreview, setOpenPreview] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
-  const [snackbarInfo, setSnackbarInfo] = useState({ open: false, message: '', severity: 'info' }); // Unificado para Snackbar
-
-  // --- Estado para el diálogo de confirmación ---
+  const [snackbarInfo, setSnackbarInfo] = useState({ open: false, message: '', severity: 'info' });
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
   const [invoiceIdToDelete, setInvoiceIdToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  // --- Fin Estado Diálogo ---
 
   const { invoices, loading: loadingInvoices, saveInvoice, deleteInvoice, changeInvoiceStatus } = useInvoices();
   const { clients, loading: loadingClients } = useClients();
-  // Nota: useProducts puede no ser necesario aquí si UnifiedDocumentForm lo maneja internamente
-  const { products, loading: loadingProducts } = useProducts(); 
+  const { products, loading: loadingProducts } = useProducts();
 
-  // --- Función para mostrar Snackbar (reutilizable) ---
   const showSnackbar = (message, severity = 'info') => {
     setSnackbarInfo({ open: true, message, severity });
   };
 
-  // --- Función de procesamiento (sin cambios) ---
-   const processInvoiceData = (invoice) => {
-    // ... (tu lógica de processInvoiceData aquí, sin cambios) ...
-     console.log('Procesando datos de factura:', invoice);    
-    if (!invoice) return null;    
+  const processInvoiceData = (invoice) => {
+     // ... (tu lógica de processInvoiceData aquí, sin cambios) ...
+     console.log('Procesando datos de factura:', invoice);
+    if (!invoice) return null;
     try {
       const processedItems = invoice.items?.map(item => {
         const isExento = item.exentoIva === true || item.taxExempt === true;
@@ -69,16 +59,16 @@ const Invoices = () => {
           descripcion: item.descripcion || item.product?.nombre || '',
           cantidad: parseFloat(item.quantity || item.cantidad) || 1,
           precioUnitario: parseFloat(item.price || item.precioUnitario) || 0,
-          total: parseFloat(item.subtotal) || 
+          total: parseFloat(item.subtotal) ||
                 (parseFloat(item.quantity || item.cantidad) || 1) * (parseFloat(item.price || item.precioUnitario) || 0),
           exentoIva: isExento
         };
-      }) || [];      
-      const subtotal = processedItems.reduce((sum, item) => sum + item.total, 0);      
+      }) || [];
+      const subtotal = processedItems.reduce((sum, item) => sum + item.total, 0);
       const iva = processedItems.reduce((sum, item) => {
         if (item.exentoIva !== true) { return sum + (item.total * 0.16); } // Asumiendo IVA 16%
         return sum;
-      }, 0);      
+      }, 0);
       const total = subtotal + iva;
       const processedInvoice = { ...invoice, items: processedItems, subtotal, iva, total, moneda: invoice.moneda || 'VES' };
       console.log('Factura procesada:', processedInvoice);
@@ -86,7 +76,6 @@ const Invoices = () => {
     } catch (error) { console.error('Error procesando factura:', error); throw error; }
    };
 
-  // --- Manejadores (Preview, Download, Edit - sin cambios funcionales) ---
   const handlePreview = (invoice) => {
     try {
       const processedInvoice = processInvoiceData(invoice);
@@ -102,74 +91,52 @@ const Invoices = () => {
     try {
       const processedInvoice = processInvoiceData(invoice);
       if (!processedInvoice) throw new Error("No se pudo procesar la factura.");
-      setSelectedInvoice(processedInvoice); 
-      // Asegurarse de que la vista previa esté lista podría necesitar un enfoque diferente
-      // Quizás generar el PDF directamente sin depender del renderizado de InvoicePreview
-      // O usar un estado para saber cuándo está listo InvoicePreview
-      showSnackbar('Generando PDF...', 'info'); 
-      await generatePDF(processedInvoice); // Asumiendo que generatePDF maneja la descarga/apertura
-      // showSnackbar('PDF generado exitosamente.', 'success'); // Opcional
+      setSelectedInvoice(processedInvoice);
+      showSnackbar('Generando PDF...', 'info');
+      await generatePDF(processedInvoice);
     } catch (error) {
       console.error('Error preparando/generando PDF:', error);
       showSnackbar('Error al generar el PDF: ' + error.message, 'error');
-    } finally {
-        // No es necesario mantener la vista previa abierta si solo se descarga
-        // setOpenPreview(false); 
-        // setSelectedInvoice(null); 
     }
   };
 
   const handleEdit = (invoice) => {
     console.log('Editando factura:', invoice);
-    // Asegúrate de pasar la factura original, no la procesada, al formulario
-    // Asumiendo que `invoice` en este punto es la original de la tabla
-    setSelectedInvoice(invoice); 
+    setSelectedInvoice(invoice);
     setOpenForm(true);
   };
 
-
-  // --- handleDelete MODIFICADO para usar Diálogo ---
   const handleDelete = (id) => {
-    setInvoiceIdToDelete(id); // Guardar ID
-    setOpenConfirmDialog(true); // Abrir diálogo
+    setInvoiceIdToDelete(id);
+    setOpenConfirmDialog(true);
   };
-  // --- Fin handleDelete ---
 
-
-  // --- NUEVA Función para confirmar borrado desde el diálogo ---
   const handleConfirmDelete = async () => {
     if (invoiceIdToDelete) {
-      setDeleting(true); 
+      setDeleting(true);
       try {
-        await deleteInvoice(invoiceIdToDelete); // Llamar a la API
+        await deleteInvoice(invoiceIdToDelete);
         showSnackbar('Factura eliminada exitosamente', 'success');
       } catch (err) {
         console.error('Error al eliminar la factura:', err);
         showSnackbar('Error al eliminar la factura: ' + (err.message || ''), 'error');
       } finally {
-        setDeleting(false); 
+        setDeleting(false);
         setOpenConfirmDialog(false);
         setInvoiceIdToDelete(null);
       }
     }
   };
-  // --- Fin handleConfirmDelete ---
 
-
-  // --- NUEVA Función para cerrar el diálogo de confirmación ---
   const handleCloseConfirmDialog = () => {
-    if (deleting) return; 
+    if (deleting) return;
     setOpenConfirmDialog(false);
     setInvoiceIdToDelete(null);
   };
-  // --- Fin handleCloseConfirmDialog ---
 
-
-  // --- handleStatusChange (sin cambios funcionales, usa Snackbar) ---
   const handleStatusChange = async (id, newStatus) => {
     try {
       await changeInvoiceStatus(id, newStatus);
-      // Generar etiqueta del estado para el mensaje
        const statusLabels = { draft: 'Borrador', pending: 'Pendiente', paid: 'Pagada', partial: 'Pago Parcial', overdue: 'Vencida', cancelled: 'Anulada' };
        const statusLabel = statusLabels[newStatus] || newStatus;
       showSnackbar(`Estado de la factura actualizado a "${statusLabel}"`, 'success');
@@ -178,20 +145,23 @@ const Invoices = () => {
       showSnackbar('Error al cambiar el estado: ' + (err.message || ''), 'error');
     }
   };
-  
-  // --- Loading state ---
-  // Considera un indicador más granular si es necesario
-  if (loadingInvoices || loadingClients /* || loadingProducts si es relevante */) { 
-    return <Typography>Cargando...</Typography>;
+
+  if (loadingInvoices || loadingClients /* || loadingProducts */) {
+    // Puedes usar un CircularProgress aquí también si prefieres
+    return (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
+            <CircularProgress />
+        </Box>
+    );
   }
 
   return (
     <Box>
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-         {/* Título de la página (opcional) */}
-         <Typography variant="h4" component="h1">
-           Facturas
-         </Typography>
+      {/* --- Bloque Modificado --- */}
+      <Box sx={{ mb: 4, display: 'flex', alignItems: 'center' }}>
+         {/* Typography eliminado */}
+
+        {/* Botón con margen automático a la izquierda */}
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -199,46 +169,41 @@ const Invoices = () => {
             setSelectedInvoice(null);
             setOpenForm(true);
           }}
+          sx={{ marginLeft: 'auto' }} // <--- ¡CAMBIO CLAVE AQUÍ!
         >
           NUEVA FACTURA
         </Button>
       </Box>
+      {/* --- Fin Bloque Modificado --- */}
 
-      {/* --- Tabla envuelta en Paper para estilo (opcional) --- */}
-      <Paper elevation={1} sx={{ mb: 3, borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.1)', // Ejemplo borde oscuro
-         bgcolor: '#1e1e1e' // Ejemplo fondo oscuro para tabla si quieres consistencia total
-        }}> 
+      <Paper elevation={1} sx={{ mb: 3, borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.1)', bgcolor: '#1e1e1e' }}>
         <InvoiceTable
           invoices={invoices}
           onEdit={handleEdit}
-          onDelete={handleDelete} // Ahora abre el diálogo
+          onDelete={handleDelete}
           onPreview={handlePreview}
           onDownload={handleDownload}
           onStatusChange={handleStatusChange}
-          // Podrías pasar loadingInvoices a InvoiceTable si necesita mostrar un spinner interno
-          // loading={loadingInvoices} 
         />
       </Paper>
 
-      {/* --- Formulario y Vista Previa (sin cambios) --- */}
       <UnifiedDocumentForm
         open={openForm}
         initialData={selectedInvoice}
         clients={clients}
-        products={products} // Pasar productos/items
+        products={products}
         onClose={() => {
           setOpenForm(false);
           setSelectedInvoice(null);
         }}
-        // Pasar la función saveInvoice aquí
-        onSave={async (data) => { 
+        onSave={async (data) => {
             try {
                 await saveInvoice(data);
                 showSnackbar(data._id ? 'Factura actualizada' : 'Factura creada', 'success');
             } catch(err) {
                  console.error("Error al guardar desde form:", err);
                  showSnackbar('Error al guardar: ' + (err.message || ''), 'error');
-                 throw err; // Re-lanzar para que el form sepa que falló
+                 throw err;
             }
         }}
         isInvoice={true}
@@ -253,7 +218,6 @@ const Invoices = () => {
         }}
       />
 
-      {/* --- Snackbar unificado (sin cambios) --- */}
       <Snackbar
         open={snackbarInfo.open}
         autoHideDuration={6000}
@@ -270,52 +234,49 @@ const Invoices = () => {
         </Alert>
       </Snackbar>
 
-      {/* --- NUEVO: Diálogo de Confirmación de Borrado (Estilizado) --- */}
       <Dialog
         open={openConfirmDialog}
         onClose={handleCloseConfirmDialog}
         aria-labelledby="confirm-delete-dialog-title"
         aria-describedby="confirm-delete-dialog-description"
-        disableEscapeKeyDown={deleting} 
+        disableEscapeKeyDown={deleting}
         PaperProps={{ sx: { bgcolor: '#1e1e1e', backgroundImage: 'none', border: '1px solid rgba(255, 255, 255, 0.1)' } }}
       >
-        <DialogTitle 
-          id="confirm-delete-dialog-title" 
+        <DialogTitle
+          id="confirm-delete-dialog-title"
           sx={{ bgcolor: 'primary.main', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5, px: 2 }}
         >
           Confirmar Eliminación
           <IconButton onClick={handleCloseConfirmDialog} sx={{ color: 'white' }} disabled={deleting}>
-            <CloseIcon /> 
+            <CloseIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent sx={{ p: 3, bgcolor: '#1e1e1e', color: 'rgba(255, 255, 255, 0.8)' }}> 
+        <DialogContent sx={{ p: 3, bgcolor: '#1e1e1e', color: 'rgba(255, 255, 255, 0.8)' }}>
           <DialogContentText id="confirm-delete-dialog-description" sx={{ color: 'inherit' }}>
-            {/* --- Mensaje específico para factura --- */}
             ¿Está seguro de que desea eliminar esta factura? Esta acción no se puede deshacer.
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ p: 2, display: 'flex', justifyContent: 'space-between', bgcolor: '#2a2a2a', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }} >
-          <Button 
-            variant="outlined" 
-            onClick={handleCloseConfirmDialog} 
+          <Button
+            variant="outlined"
+            onClick={handleCloseConfirmDialog}
             startIcon={<CancelIcon />}
             disabled={deleting}
             sx={{ color: 'rgba(255, 255, 255, 0.7)', borderColor: 'rgba(255, 255, 255, 0.3)', '&:hover': { borderColor: 'rgba(255, 255, 255, 0.5)', bgcolor: 'rgba(255, 255, 255, 0.05)' } }}
           >
             Cancelar
           </Button>
-          <Button 
-            variant="contained" 
-            color="error" 
-            onClick={handleConfirmDelete} 
-            startIcon={deleting ? <CircularProgress size={20} color="inherit" /> : <DeleteIcon />} 
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleConfirmDelete}
+            startIcon={deleting ? <CircularProgress size={20} color="inherit" /> : <DeleteIcon />}
             disabled={deleting}
           >
-            {deleting ? 'Eliminando...' : 'Eliminar'} 
+            {deleting ? 'Eliminando...' : 'Eliminar'}
           </Button>
         </DialogActions>
       </Dialog>
-      {/* --- Fin Diálogo --- */}
 
     </Box>
   );

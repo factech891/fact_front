@@ -1,10 +1,11 @@
-// src/pages/settings/Settings.js
+// src/pages/settings/Settings.js - MODIFICADO PARA QUITAR TÍTULO
 import React, { useState } from 'react';
 import { Box, Tab, Tabs, Typography, Paper } from '@mui/material';
 import CompanyForm from './CompanySettings/CompanyForm';
 import LogoUploader from './CompanySettings/LogoUploader';
 import CompanyPreview from './CompanySettings/CompanyPreview';
 
+// El componente TabPanel no necesita cambios
 function TabPanel({ children, value, index, ...other }) {
   return (
     <div
@@ -32,10 +33,13 @@ export default function Settings() {
 
   return (
     <Box sx={{ width: '100%', p: 3 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
+      {/* --- Título Eliminado --- */}
+      {/* <Typography variant="h4" component="h1" gutterBottom>
         Configuración
-      </Typography>
-      
+      </Typography> */}
+      {/* --- Fin Título Eliminado --- */}
+
+      {/* El Paper con las Tabs empieza directamente */}
       <Paper sx={{ width: '100%', mb: 2 }}>
         <Tabs
           value={tabValue}
@@ -45,12 +49,13 @@ export default function Settings() {
           sx={{
             borderBottom: 1,
             borderColor: 'divider',
-            bgcolor: 'background.paper'
+            // Considera si quieres mantener el fondo o hacerlo transparente
+            // bgcolor: 'background.paper'
           }}
         >
-          <Tab label="Información de Empresa" />
-          <Tab label="Logo" />
-          <Tab label="Vista Previa" />
+          <Tab label="Información de Empresa" id="settings-tab-0" aria-controls="settings-tabpanel-0" />
+          <Tab label="Logo" id="settings-tab-1" aria-controls="settings-tabpanel-1" />
+          <Tab label="Vista Previa" id="settings-tab-2" aria-controls="settings-tabpanel-2" />
         </Tabs>
 
         <TabPanel value={tabValue} index={0}>
