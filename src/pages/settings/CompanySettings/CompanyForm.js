@@ -13,6 +13,35 @@ import {
 import { useCompany } from '../../../hooks/useCompany';
 
 const CompanyForm = () => {
+  // Estilo para botones de acción principal
+  const actionButtonStyle = {
+    borderRadius: '50px',
+    color: 'white',
+    fontWeight: 600,
+    padding: '8px 22px',
+    textTransform: 'none',
+    backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+    boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)',
+    transition: 'all 0.2s ease-in-out',
+    border: 'none',
+    backgroundColor: 'transparent',
+    fontSize: '14px',
+    '&:hover': {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 6px 20px rgba(79, 172, 254, 0.6)',
+      backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+      backgroundColor: 'transparent',
+    },
+    '&:active': {
+      transform: 'translateY(0)',
+      boxShadow: '0 2px 10px rgba(79, 172, 254, 0.4)',
+    },
+    '&.Mui-disabled': {
+      backgroundImage: 'linear-gradient(to right, #919191 0%, #b7b7b7 100%)',
+      color: 'rgba(255, 255, 255, 0.6)',
+    }
+  };
+
   const { company, loading, error: apiError, saveCompany } = useCompany();
   const [formData, setFormData] = useState({
     nombre: '',
@@ -81,6 +110,13 @@ const CompanyForm = () => {
               value={formData.nombre}
               onChange={handleChange}
               required
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                  '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+                  '&.Mui-focused fieldset': { borderColor: 'primary.main' },
+                }
+              }}
             />
           </Grid>
 
@@ -92,6 +128,13 @@ const CompanyForm = () => {
               value={formData.rif}
               onChange={handleChange}
               required
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                  '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+                  '&.Mui-focused fieldset': { borderColor: 'primary.main' },
+                }
+              }}
             />
           </Grid>
 
@@ -109,6 +152,13 @@ const CompanyForm = () => {
               name="direccion"
               value={formData.direccion}
               onChange={handleChange}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                  '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+                  '&.Mui-focused fieldset': { borderColor: 'primary.main' },
+                }
+              }}
             />
           </Grid>
 
@@ -119,6 +169,13 @@ const CompanyForm = () => {
               name="ciudad"
               value={formData.ciudad}
               onChange={handleChange}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                  '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+                  '&.Mui-focused fieldset': { borderColor: 'primary.main' },
+                }
+              }}
             />
           </Grid>
 
@@ -129,6 +186,13 @@ const CompanyForm = () => {
               name="estado"
               value={formData.estado}
               onChange={handleChange}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                  '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+                  '&.Mui-focused fieldset': { borderColor: 'primary.main' },
+                }
+              }}
             />
           </Grid>
 
@@ -148,6 +212,13 @@ const CompanyForm = () => {
               value={formData.email}
               onChange={handleChange}
               required
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                  '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+                  '&.Mui-focused fieldset': { borderColor: 'primary.main' },
+                }
+              }}
             />
           </Grid>
 
@@ -158,6 +229,13 @@ const CompanyForm = () => {
               name="telefono"
               value={formData.telefono}
               onChange={handleChange}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                  '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+                  '&.Mui-focused fieldset': { borderColor: 'primary.main' },
+                }
+              }}
             />
           </Grid>
 
@@ -206,16 +284,23 @@ const CompanyForm = () => {
                     }
                   }
                 }}
+                sx={{ 
+                  borderColor: 'rgba(255, 77, 77, 0.5)', 
+                  '&:hover': { 
+                    borderColor: 'error.main', 
+                    bgcolor: 'rgba(255, 77, 77, 0.1)' 
+                  } 
+                }}
               >
                 Eliminar Información
               </Button>
               <Button
                 type="submit"
                 variant="contained"
-                color="primary"
                 disabled={loading}
+                sx={{ ...actionButtonStyle }}
               >
-                {loading ? <CircularProgress size={24} /> : 'Guardar Cambios'}
+                {loading ? <CircularProgress size={20} color="inherit" /> : 'GUARDAR CAMBIOS'}
               </Button>
             </Box>
           </Grid>
