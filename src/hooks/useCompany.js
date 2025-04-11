@@ -40,10 +40,22 @@ export const useCompany = () => {
       console.log('5. Intentando subir logo:', file.name);
       const result = await companyApi.uploadLogo(file);
       console.log('6. Logo subido:', result);
-      setCompany(prev => ({
-        ...prev,
-        ...result
-      }));
+      
+      // Creamos un objeto actualizado con los datos correctos
+      const updatedCompany = {
+        ...company,
+        logoUrl: result.url,
+        logoId: result.public_id || result.logoId || ''
+      };
+      
+      console.log('Actualizando empresa con nuevo logo:', updatedCompany);
+      
+      // Guardamos en la BD a través de la API
+      await companyApi.update(updatedCompany);
+      
+      // Actualizamos el estado local
+      setCompany(updatedCompany);
+      
       return result;
     } catch (error) {
       console.error('Error al subir logo:', error);

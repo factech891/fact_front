@@ -6,47 +6,47 @@ const getStyles = (theme) => ({
     backgroundColor: theme.primary || '#003366',
     background: theme.gradient || 'linear-gradient(135deg, #003366 0%, #004080 100%)',
     color: 'white',
-    padding: '15px 25px',  // Reducido de 25px 25px 30px
+    padding: '15px 25px',
     position: 'relative',
-    minHeight: '110px',    // Reducido de 140px
+    minHeight: '110px',
     borderBottom: `1px solid ${theme.border || '#e0e0e0'}`,
     boxShadow: '0 1px 6px rgba(0,0,0,0.1)'
   },
   leftSection: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px'  // Reducido de 12px
+    gap: '8px'
   },
   companyInfo: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '3px'  // Reducido de 5px
+    gap: '3px'
   },
   companyName: {
     color: 'white',
     fontWeight: '700',
-    fontSize: theme.fontSize.title || '22px', // Reducido de 24px
+    fontSize: theme.fontSize.title || '22px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase',
     lineHeight: 1.2,
-    marginBottom: '3px' // Reducido de 5px
+    marginBottom: '3px'
   },
   companyText: {
     color: 'white',
-    fontSize: theme.fontSize.small || '12px', // Reducido de 13px
+    fontSize: theme.fontSize.small || '12px',
     lineHeight: 1.4,
     opacity: '0.95'
   },
   invoiceBox: {
     backgroundColor: 'white',
-    padding: '12px',  // Reducido de 15px
+    padding: '12px',
     borderRadius: '8px',
     color: theme.primary || '#003366',
     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
     border: `1px solid ${theme.border || '#e0e0e0'}`,
     position: 'relative',
-    width: '200px',   // Reducido de 220px
-    minHeight: '110px', // Reducido de 140px
+    width: '200px',
+    minHeight: '110px',
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden'
@@ -57,12 +57,13 @@ const getStyles = (theme) => ({
     left: '50%',
     transform: 'translate(-50%, -50%)',
     width: '100%',
-    height: '130%',
-    opacity: 0.1,
+    height: '100%',
+    opacity: 0.25, 
     '& img': {
       width: '100%',
       height: '100%',
-      objectFit: 'contain'
+      objectFit: 'cover',
+      padding: 0
     }
   },
   invoiceContent: {
@@ -101,11 +102,11 @@ const getStyles = (theme) => ({
     fontWeight: '600',
     textAlign: 'center',
     marginTop: 'auto',
-    paddingTop: '10px'  // Reducido de 15px
+    paddingTop: '10px'
   },
   logo: {
-    maxWidth: '100px',  // Reducido de 120px
-    maxHeight: '60px',  // Reducido de 80px
+    maxWidth: '100px',
+    maxHeight: '60px',
     marginLeft: 'auto',
     marginRight: 'auto',
     marginBottom: '8px',
@@ -117,6 +118,7 @@ export const InvoiceHeader = ({ invoice, empresa, theme, documentType }) => {
   if (!invoice) return null;
 
   const styles = getStyles(theme);
+  console.log("EMPRESA EN INVOICE HEADER:", empresa);
 
   const formatDate = (date) => {
     if (!date) return 'Sin fecha';
@@ -133,6 +135,7 @@ export const InvoiceHeader = ({ invoice, empresa, theme, documentType }) => {
   return (
     <Grid container sx={styles.header} spacing={2}>
       <Grid item xs={8}>
+        {/* Ya quitamos el logo de aquí como pediste, mi pana */}
         <Box sx={styles.leftSection}>
           <Box sx={styles.companyInfo}>
             <Typography sx={styles.companyName}>
@@ -163,7 +166,7 @@ export const InvoiceHeader = ({ invoice, empresa, theme, documentType }) => {
       </Grid>
       <Grid item xs={4} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
         <Box sx={styles.invoiceBox}>
-          {/* Logo de fondo */}
+          {/* Logo de fondo con la opacidad que quieres */}
           {empresa.logoUrl && (
             <Box sx={styles.logoBackground}>
               <img

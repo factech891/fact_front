@@ -64,7 +64,8 @@ const LogoUploader = () => {
     try {
       await saveCompany({
         ...company,
-        logo: null
+        logoUrl: null,
+        logoId: null
       });
       setPreviewUrl(null);
       setUploadStatus({
@@ -87,7 +88,7 @@ const LogoUploader = () => {
         </Typography>
 
         {/* Preview del logo */}
-        {(previewUrl || company?.logo?.url) && (
+        {(previewUrl || company?.logoUrl) && (
           <Box
             sx={{
               width: 200,
@@ -103,7 +104,7 @@ const LogoUploader = () => {
             }}
           >
             <img
-              src={previewUrl || company?.logo?.url}
+              src={previewUrl || company?.logoUrl}
               alt="Logo de la empresa"
               style={{
                 maxWidth: '100%',
@@ -131,7 +132,7 @@ const LogoUploader = () => {
             />
           </Button>
 
-          {(previewUrl || company?.logo?.url) && (
+          {(previewUrl || company?.logoUrl) && (
             <Button
               variant="outlined"
               color="error"
@@ -165,6 +166,85 @@ const LogoUploader = () => {
           Tamaño máximo: 5MB
         </Typography>
       </Box>
+
+      {/* AQUÍ COMIENZA LA NUEVA SECCIÓN DE VISTA PREVIA */}
+      <Box mt={4}>
+        <Typography variant="h6">Vista Previa en Factura</Typography>
+        <Paper 
+          sx={{ 
+            p: 2, 
+            mt: 2, 
+            backgroundColor: '#003366', // Color azul como el de tu factura
+            color: 'white',
+            display: 'flex',
+            justifyContent: 'space-between',
+            maxWidth: 600
+          }}
+        >
+          <Box>
+            <Typography variant="h5" fontWeight="bold">EMPRESA</Typography>
+            <Typography variant="body2">RIF: Por definir</Typography>
+            <Typography variant="body2">Email: por@definir.com</Typography>
+          </Box>
+          <Box 
+            sx={{ 
+              bgcolor: 'white', 
+              p: 2, 
+              borderRadius: '8px',
+              width: 180,
+              height: 120,
+              position: 'relative'
+            }}
+          >
+            {(previewUrl || company?.logoUrl) && (
+              <Box 
+                sx={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  opacity: 0.35,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <img
+                  src={previewUrl || company?.logoUrl}
+                  alt="Logo Preview"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover'
+                  }}
+                />
+              </Box>
+            )}
+            <Box 
+              sx={{ 
+                position: 'relative', 
+                zIndex: 1, 
+                textAlign: 'center',
+                color: '#003366',
+                height: '100%',
+                display: 'flex', 
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}
+            >
+              <div>
+                <Typography fontWeight="bold">FACTURA</Typography>
+                <Typography variant="body2">N°: EJEMPLO</Typography>
+              </div>
+              <Typography variant="body2" mt="auto">
+                Fecha: {new Date().toLocaleDateString()}
+              </Typography>
+            </Box>
+          </Box>
+        </Paper>
+      </Box>
+      {/* FIN DE LA NUEVA SECCIÓN */}
     </Paper>
   );
 };

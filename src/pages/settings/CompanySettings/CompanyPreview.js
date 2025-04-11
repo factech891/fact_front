@@ -31,6 +31,9 @@ const CompanyPreview = () => {
     );
   }
 
+  // Añadimos este console.log para ver qué está llegando
+  console.log("VAMOS A VER BIEN ESTA VAINA:", company);
+
   return (
     <Paper elevation={0} sx={{ p: 3 }}>
       <Typography variant="h6" gutterBottom>
@@ -54,10 +57,17 @@ const CompanyPreview = () => {
               <img
                 src={company.logoUrl}
                 alt="Logo de la empresa"
+                crossOrigin="anonymous" 
                 style={{
                   maxWidth: 200,
                   maxHeight: 100,
-                  objectFit: 'contain'
+                  objectFit: 'contain',
+                  border: '1px solid #ddd'
+                }}
+                onError={(e) => {
+                  console.error("JODIDO EL LOGO:", e);
+                  e.target.onerror = null;
+                  e.target.src = 'https://via.placeholder.com/200x100?text=Logo';
                 }}
               />
             ) : (
