@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+// src/layouts/DashboardLayout/Sidebar.js
+import React from 'react';
 import { useLocation, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
@@ -9,30 +10,40 @@ import {
   ListItemIcon,
   ListItemText,
   Typography,
-  Divider,
+  Divider, // <-- No se usa, se puede quitar si quieres
   Avatar,
   Tooltip,
   Chip
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { useCompany } from '../../hooks/useCompany'; // Asegúrate que la ruta sea correcta
 
-const Sidebar = ({ companyName = "Transportes Express" }) => {
+const Sidebar = () => {
   const location = useLocation();
   const theme = useTheme();
-  const [open, setOpen] = useState(false); // Estado inicial: colapsado
+  // Estado para controlar si el mouse está sobre el sidebar (simplificado)
+  const [isHovering, setIsHovering] = React.useState(false);
+
+  // Obtenemos los datos de la empresa y el estado de carga
+  const { company, loading: companyLoading } = useCompany(); // Añadimos loading
+
+  // Usamos el nombre real o un valor por defecto/carga
+  const companyName = company?.nombre || "Mi Empresa"; // Default más genérico
+  const companyLogoUrl = company?.logoUrl; // Guardamos la URL del logo
 
   const collapsedWidth = 72;
   const expandedWidth = 240;
+  const open = isHovering; // El estado 'open' ahora depende de 'isHovering'
 
   const handleMouseEnter = () => {
-    setOpen(true);
+    setIsHovering(true);
   };
 
   const handleMouseLeave = () => {
-    setOpen(false);
+    setIsHovering(false);
   };
 
-  // Configuración de los items del menú (Revertido a Productos)
+  // Configuración de los items del menú (sin cambios)
   const menuItems = [
     {
       id: 'dashboard',
@@ -59,16 +70,14 @@ const Sidebar = ({ companyName = "Transportes Express" }) => {
       path: '/clients',
     },
     {
-      // ***** REVERTIDO AQUÍ *****
-      id: 'products', // antes 'items'
-      text: 'Productos', // antes 'Items'
+      id: 'products',
+      text: 'Productos',
       icon: (
         <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <span role="img" aria-label="products" style={{ fontSize: '20px' }}>📦</span>
         </Box>
       ),
-      path: '/products', // antes '/items'
-      // ***** FIN REVERSIÓN *****
+      path: '/products',
     },
     {
       id: 'settings',
@@ -83,21 +92,31 @@ const Sidebar = ({ companyName = "Transportes Express" }) => {
   const supportIcon = ( <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span role="img" aria-label="support" style={{ fontSize: '20px' }}>❓</span></Box> );
   const logoutIcon = ( <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span role="img" aria-label="logout" style={{ fontSize: '20px' }}>🚪</span></Box> );
 
-  // Funciones auxiliares (getCompanyInitials sin cambios)
-  const getCompanyInitials = () => companyName.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase();
+  // Función para obtener iniciales (ahora usa la empresa real)
+  const getCompanyInitials = () => {
+    if (!companyName || companyLoading) return "..."; // Muestra "..." si está cargando o no hay nombre
+    // Lógica para iniciales (simplificada)
+    const words = companyName.split(' ');
+    if (words.length > 1) {
+        return (words[0][0] + words[1][0]).toUpperCase();
+    } else if (words.length === 1 && words[0].length > 1) {
+        return (words[0][0] + words[0][1]).toUpperCase();
+    } else if (words.length === 1 && words[0].length === 1) {
+         return words[0][0].toUpperCase();
+    }
+    return '??';
+  };
 
-  // isActive actualizado para volver a buscar /products
+  // isActive (sin cambios)
   const isActive = (path) => {
     if (!path) return false;
     if (path === '/documents' && location.pathname.startsWith('/documents')) return true;
-    // ***** REVERTIDO AQUÍ *****
     if (path === '/products' && location.pathname.startsWith('/products')) return true;
-    // Asegurarse que la comparación exacta y startsWith funcionen bien juntos
     return location.pathname === path || (path !== '/' && location.pathname.startsWith(path) && path !== '/documents' && path !== '/products');
   };
 
 
-  const mainColor = '#2196F3';
+  const mainColor = '#2196F3'; // Color principal (sin cambios)
   const drawerStyles = {
     width: open ? expandedWidth : collapsedWidth,
     transition: theme.transitions.create('width', {
@@ -105,13 +124,13 @@ const Sidebar = ({ companyName = "Transportes Express" }) => {
       duration: open ? theme.transitions.duration.enteringScreen : theme.transitions.duration.leavingScreen,
     }),
     overflowX: 'hidden',
-    bgcolor: '#ffffff',
-    color: '#333333',
+    bgcolor: '#ffffff', // Fondo blanco
+    color: '#333333', // Color de texto oscuro
     boxSizing: 'border-box',
     display: 'flex',
     flexDirection: 'column',
     height: '100%',
-    borderRight: '1px solid #e0e0e0',
+    borderRight: '1px solid #e0e0e0', // Borde derecho sutil
   };
 
 
@@ -133,20 +152,74 @@ const Sidebar = ({ companyName = "Transportes Express" }) => {
         onMouseLeave: handleMouseLeave,
       }}
     >
-      {/* Cabecera del sidebar (sin cambios respecto a la versión anterior) */}
-       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: theme.spacing(2), borderBottom: '1px solid #e0e0e0', height: '72px', ...(open && { justifyContent: 'flex-start', }) }} >
-         <Avatar sx={{ bgcolor: mainColor, color: 'white', mr: open ? 1.5 : 0, transition: theme.transitions.create('margin', { easing: theme.transitions.easing.sharp, duration: theme.transitions.duration.leavingScreen, }) }}>
-           {getCompanyInitials()}
-         </Avatar>
+      {/* ================================================= */}
+      {/* Cabecera del Sidebar Modificada        */}
+      {/* ================================================= */}
+       <Box sx={{
+           display: 'flex',
+           alignItems: 'center',
+           justifyContent: open ? 'flex-start' : 'center', // Centrado si colapsado
+           padding: theme.spacing(0, open ? 2 : 1), // Ajusta padding
+           borderBottom: '1px solid #e0e0e0',
+           height: '72px', // Altura fija para la cabecera
+           overflow: 'hidden' // Evitar desbordamiento
+        }}>
+
+         {/* Renderizado Condicional del Logo/Avatar */}
+         {companyLogoUrl ? (
+           // Si hay logoUrl, muestra el logo
+           <Avatar
+             variant="rounded" // Puedes cambiar a 'square' o 'circular'
+             src={companyLogoUrl}
+             alt={`${companyName} logo`}
+             sx={{
+               width: 40, // Tamaño del logo
+               height: 40, // Tamaño del logo
+               mr: open ? 1.5 : 0, // Margen derecho si está expandido
+               transition: theme.transitions.create(['margin', 'width', 'height'], {
+                 easing: theme.transitions.easing.sharp,
+                 duration: theme.transitions.duration.leavingScreen,
+               }),
+               bgcolor: 'transparent', // Fondo transparente si la imagen lo tiene
+               // Podrías añadir un borde si quieres: border: '1px solid #eee'
+             }}
+           />
+         ) : (
+           // Si NO hay logoUrl (o está cargando), muestra las iniciales
+           <Avatar sx={{
+               bgcolor: mainColor,
+               color: 'white',
+               width: 40,
+               height: 40,
+               mr: open ? 1.5 : 0,
+               transition: theme.transitions.create(['margin', 'width', 'height'], {
+                 easing: theme.transitions.easing.sharp,
+                 duration: theme.transitions.duration.leavingScreen,
+               })
+             }}>
+             {/* Muestra iniciales o "..." si está cargando */}
+             {companyLoading ? '...' : getCompanyInitials()}
+           </Avatar>
+         )}
+
+         {/* Nombre y RIF (solo visible si está expandido) */}
          {open && (
-           <Box sx={{ overflow: 'hidden' }}>
-             <Typography variant="subtitle1" fontWeight="bold" color="#333333" noWrap>{companyName}</Typography>
-             <Typography variant="caption" color="#666666" noWrap>Sistema de Facturación</Typography>
+           <Box sx={{ overflow: 'hidden', flexGrow: 1, ml: 0 }}> {/* Ajuste ml */}
+             <Typography variant="subtitle1" fontWeight="bold" color="#333333" noWrap>
+               {companyLoading ? 'Cargando...' : companyName}
+             </Typography>
+             <Typography variant="caption" color="#666666" noWrap>
+               {companyLoading ? '' : (company?.rif ? `RIF: ${company.rif}` : 'Sistema de Facturación')}
+             </Typography>
            </Box>
          )}
        </Box>
+      {/* ================================================= */}
+      {/* Fin de la Cabecera Modificada           */}
+      {/* ================================================= */}
 
-      {/* Menú principal (la lógica interna ya usa menuItems actualizado) */}
+
+      {/* Menú principal (sin cambios) */}
       <List sx={{ px: open ? 1 : 1.5, py: 2 }}>
         {menuItems.map((item) => {
           const active = isActive(item.path);
@@ -166,13 +239,11 @@ const Sidebar = ({ companyName = "Transportes Express" }) => {
         })}
       </List>
 
-      {/* SECCIÓN PLAN PREMIUM ELIMINADA */}
-
-      <Box sx={{ flexGrow: 1 }} /> {/* Espacio flexible */}
+      <Box sx={{ flexGrow: 1 }} /> {/* Espacio flexible (sin cambios) */}
 
       {/* Asistente IA (sin cambios) */}
        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
-         {open ? ( /* ... JSX para asistente abierto ... */
+         {open ? (
             <Box sx={{ mx: 2, overflow: 'hidden', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid rgba(33, 150, 243, 0.1)', width: '100%' }} >
               <Box sx={{ bgcolor: mainColor, p: 1.5, display: 'flex', alignItems: 'center', gap: 1 }} >
                 <Box sx={{ width: 32, height: 32, bgcolor: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} > <span role="img" aria-label="robot" style={{ fontSize: '18px' }}>🤖</span> </Box>
@@ -182,7 +253,7 @@ const Sidebar = ({ companyName = "Transportes Express" }) => {
                 <Chip label="Próximamente" size="small" sx={{ bgcolor: 'rgba(33, 150, 243, 0.08)', color: mainColor, fontWeight: 'medium', border: '1px solid rgba(33, 150, 243, 0.2)' }} />
               </Box>
             </Box>
-         ) : ( /* ... JSX para asistente cerrado ... */
+         ) : (
            <Tooltip title="Asistente IA - Próximamente" placement="right">
              <Avatar sx={{ width: 42, height: 42, bgcolor: mainColor, color: 'white', fontSize: 18, boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)' }} > 🤖 </Avatar>
            </Tooltip>
@@ -195,13 +266,13 @@ const Sidebar = ({ companyName = "Transportes Express" }) => {
           <Tooltip title="Soporte" placement="right" disableHoverListener={open}>
             <ListItemIcon sx={{ minWidth: 0, mr: open ? 2 : 0 }}> {supportIcon} </ListItemIcon>
           </Tooltip>
-          <ListItemText primary="Soporte" sx={{ opacity: open ? 1 : 0, transition: theme.transitions.create('opacity', { /* ... */ }), '& .MuiTypography-root': { color: '#666666', whiteSpace: 'nowrap' } }} />
+          <ListItemText primary="Soporte" sx={{ opacity: open ? 1 : 0, transition: theme.transitions.create('opacity', { duration: theme.transitions.duration.leavingScreen }), '& .MuiTypography-root': { color: '#666666', whiteSpace: 'nowrap' } }} />
         </ListItemButton>
         <ListItemButton sx={{ borderRadius: 1, justifyContent: 'center', minHeight: 42, '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)', }, }} >
           <Tooltip title="Cerrar sesión" placement="right" disableHoverListener={open}>
             <ListItemIcon sx={{ minWidth: 0, mr: open ? 2 : 0 }}> {logoutIcon} </ListItemIcon>
           </Tooltip>
-           <ListItemText primary="Cerrar sesión" sx={{ opacity: open ? 1 : 0, transition: theme.transitions.create('opacity', { /* ... */ }), '& .MuiTypography-root': { color: '#666666', whiteSpace: 'nowrap' } }} />
+           <ListItemText primary="Cerrar sesión" sx={{ opacity: open ? 1 : 0, transition: theme.transitions.create('opacity', { duration: theme.transitions.duration.leavingScreen }), '& .MuiTypography-root': { color: '#666666', whiteSpace: 'nowrap' } }} />
         </ListItemButton>
       </Box>
     </Drawer>
