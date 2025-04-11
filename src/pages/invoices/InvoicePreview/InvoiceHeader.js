@@ -1,7 +1,8 @@
 // src/pages/invoices/InvoicePreview/InvoiceHeader.js
 import { Grid, Typography, Box } from '@mui/material';
+import { useEffect, useState } from 'react';
 
-const getStyles = (theme) => ({
+const getStyles = (theme, logoOpacity) => ({
   header: {
     backgroundColor: theme.primary || '#003366',
     background: theme.gradient || 'linear-gradient(135deg, #003366 0%, #004080 100%)',
@@ -58,7 +59,7 @@ const getStyles = (theme) => ({
     transform: 'translate(-50%, -50%)',
     width: '100%',
     height: '100%',
-    opacity: 0.25, 
+    opacity: logoOpacity, // Usamos el valor de opacidad pasado
     '& img': {
       width: '100%',
       height: '100%',
@@ -117,7 +118,19 @@ const getStyles = (theme) => ({
 export const InvoiceHeader = ({ invoice, empresa, theme, documentType }) => {
   if (!invoice) return null;
 
-  const styles = getStyles(theme);
+  // Usar el estado para cargar la opacidad del localStorage
+  const [logoOpacity, setLogoOpacity] = useState(0.25); // Valor por defecto
+
+  // Cargar la opacidad guardada cuando el componente se monta
+  useEffect(() => {
+    const savedOpacity = localStorage.getItem('logoOpacity');
+    if (savedOpacity) {
+      setLogoOpacity(parseFloat(savedOpacity));
+    }
+  }, []);
+
+  // Pasar la opacidad al getStyles
+  const styles = getStyles(theme, logoOpacity);
   console.log("EMPRESA EN INVOICE HEADER:", empresa);
 
   const formatDate = (date) => {
@@ -135,7 +148,6 @@ export const InvoiceHeader = ({ invoice, empresa, theme, documentType }) => {
   return (
     <Grid container sx={styles.header} spacing={2}>
       <Grid item xs={8}>
-        {/* Ya quitamos el logo de aquí como pediste, mi pana */}
         <Box sx={styles.leftSection}>
           <Box sx={styles.companyInfo}>
             <Typography sx={styles.companyName}>
@@ -166,9 +178,9 @@ export const InvoiceHeader = ({ invoice, empresa, theme, documentType }) => {
       </Grid>
       <Grid item xs={4} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
         <Box sx={styles.invoiceBox}>
-          {/* Logo de fondo con la opacidad que quieres */}
+          {/* Logo de fondo con la opacidad configurable */}
           {empresa.logoUrl && (
-            <Box sx={styles.logoBackground}>
+            <Box sx={styles.logoBackground} className="factura-preview-logo">
               <img
                 src={empresa.logoUrl}
                 alt=""

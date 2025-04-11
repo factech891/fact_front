@@ -1,12 +1,12 @@
-// src/pages/settings/Settings.js - SIN LA PESTAÑA DE VISTA PREVIA
+// src/pages/settings/Settings.js
 import React, { useState } from 'react';
-import { Box, Tab, Tabs, Typography, Paper } from '@mui/material';
+import { Box, Tab, Tabs, Typography, Paper, Grid, Slider, Button } from '@mui/material';
+import { Save as SaveIcon } from '@mui/icons-material';
 import CompanyForm from './CompanySettings/CompanyForm';
 import LogoUploader from './CompanySettings/LogoUploader';
-// Ya no necesitamos este import, lo quitamos
-// import CompanyPreview from './CompanySettings/CompanyPreview';
+// Quitamos completamente el import de LogoOpacityControl que estaba causando duplicación
+// import LogoOpacityControl from './CompanySettings/LogoOpacityControl';
 
-// El componente TabPanel no necesita cambios
 function TabPanel({ children, value, index, ...other }) {
   return (
     <div
@@ -35,7 +35,6 @@ export default function Settings() {
   return (
     <Box sx={{ width: '100%', p: 3 }}>
       
-      {/* El Paper con las Tabs empieza directamente */}
       <Paper sx={{ width: '100%', mb: 2 }}>
         <Tabs
           value={tabValue}
@@ -49,7 +48,6 @@ export default function Settings() {
         >
           <Tab label="Información de Empresa" id="settings-tab-0" aria-controls="settings-tabpanel-0" />
           <Tab label="Logo" id="settings-tab-1" aria-controls="settings-tabpanel-1" />
-          
         </Tabs>
 
         <TabPanel value={tabValue} index={0}>
@@ -58,6 +56,7 @@ export default function Settings() {
 
         <TabPanel value={tabValue} index={1}>
           <LogoUploader />
+          {/* IMPORTANTE: Eliminamos la referencia a LogoOpacityControl que estaba duplicando */}
         </TabPanel>
 
       </Paper>
