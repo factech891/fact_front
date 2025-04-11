@@ -11,6 +11,7 @@ import {
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useCompany } from '../../../hooks/useCompany';
+import { companyApi } from '../../../services/api';
 
 const LogoUploader = () => {
   const { company, loading, uploadLogo, saveCompany } = useCompany();
@@ -62,11 +63,24 @@ const LogoUploader = () => {
 
   const handleRemoveLogo = async () => {
     try {
+      // Si hay un ID de logo, primero eliminamos de Cloudinary
+      if (company?.logoId) {
+        try {
+          // Usamos el método deleteLogo del API
+          await companyApi.deleteLogo(company.logoId);
+          console.log('Logo eliminado de Cloudinary y servidor');
+        } catch (error) {
+          console.error('Error eliminando logo desde servidor:', error);
+        }
+      }
+      
+      // Actualizamos la empresa en la base de datos
       await saveCompany({
         ...company,
         logoUrl: null,
         logoId: null
       });
+      
       setPreviewUrl(null);
       setUploadStatus({
         success: true,
@@ -117,21 +131,25 @@ const LogoUploader = () => {
 
         {/* Botones de acción */}
         <Box display="flex" gap={2}>
-          <Button
-            component="label"
-            variant="contained"
-            startIcon={<CloudUploadIcon />}
-            disabled={loading}
-          >
-            Subir Logo
-            <input
-              type="file"
-              hidden
-              accept="image/*"
-              onChange={handleFileSelect}
-            />
-          </Button>
+          {/* Solo mostramos el botón de subir si NO hay logo */}
+          {!(previewUrl || company?.logoUrl) && (
+            <Button
+              component="label"
+              variant="contained"
+              startIcon={<CloudUploadIcon />}
+              disabled={loading}
+            >
+              Subir Logo
+              <input
+                type="file"
+                hidden
+                accept="image/*"
+                onChange={handleFileSelect}
+              />
+            </Button>
+          )}
 
+          {/* Botón para eliminar logo existente */}
           {(previewUrl || company?.logoUrl) && (
             <Button
               variant="outlined"
@@ -167,14 +185,14 @@ const LogoUploader = () => {
         </Typography>
       </Box>
 
-      {/* AQUÍ COMIENZA LA NUEVA SECCIÓN DE VISTA PREVIA */}
+      {/* SECCIÓN DE VISTA PREVIA DE FACTURA */}
       <Box mt={4}>
         <Typography variant="h6">Vista Previa en Factura</Typography>
         <Paper 
           sx={{ 
             p: 2, 
             mt: 2, 
-            backgroundColor: '#003366', // Color azul como el de tu factura
+            backgroundColor: '#003366',
             color: 'white',
             display: 'flex',
             justifyContent: 'space-between',
@@ -244,7 +262,6 @@ const LogoUploader = () => {
           </Box>
         </Paper>
       </Box>
-      {/* FIN DE LA NUEVA SECCIÓN */}
     </Paper>
   );
 };

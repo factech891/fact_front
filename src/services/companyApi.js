@@ -23,6 +23,12 @@ export const companyApi = {
     return response.data;
   },
 
+  // Método nuevo para borrar el logo
+  deleteLogo: async (logoId) => {
+    const response = await api.delete(`/company/logo/${logoId}`);
+    return response.data;
+  },
+
   updateInvoiceSettings: async (settings) => {
     const response = await api.put('/company/invoice-settings', settings);
     return response.data;

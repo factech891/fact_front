@@ -203,6 +203,15 @@ export const companyApi = {
     });
     return handleResponse(response);
   },
+  deleteLogo: async (logoId) => {
+    // MODIFICACIÓN: Codificamos el ID para manejar caracteres como "/"
+    const encodedId = encodeURIComponent(logoId);
+    
+    const response = await fetch(`${API_BASE_URL}/company/logo/${encodedId}`, {
+      method: 'DELETE'
+    });
+    return handleResponse(response);
+  },
   updateTheme: async (settings) => {
     const response = await fetch(`${API_BASE_URL}/company/theme`, {
       method: 'PUT',
