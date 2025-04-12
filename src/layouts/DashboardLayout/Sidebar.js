@@ -10,7 +10,6 @@ import {
   ListItemIcon,
   ListItemText,
   Typography,
-  Divider, // <-- No se usa, se puede quitar si quieres
   Avatar,
   Tooltip,
   Chip
@@ -219,7 +218,7 @@ const Sidebar = () => {
       {/* ================================================= */}
 
 
-      {/* Menú principal (sin cambios) */}
+      {/* Menú principal (con cambios para arreglar el problema) */}
       <List sx={{ px: open ? 1 : 1.5, py: 2 }}>
         {menuItems.map((item) => {
           const active = isActive(item.path);
@@ -227,12 +226,33 @@ const Sidebar = () => {
             <ListItem key={item.id} disablePadding sx={{ display: 'block', position: 'relative', mb: 0.5 }} >
               {active && ( <Box sx={{ position: 'absolute', left: 0, top: '15%', width: 4, height: '70%', backgroundColor: mainColor, borderRadius: '0 4px 4px 0', opacity: open ? 1 : 0, transition: theme.transitions.create('opacity', { easing: theme.transitions.easing.sharp, duration: theme.transitions.duration.leavingScreen, }) }} /> )}
               <ListItemButton component={RouterLink} to={item.path || '#'} sx={{ minHeight: 48, justifyContent: 'center', px: 2, py: 1, borderRadius: 1, backgroundColor: active ? 'rgba(33, 150, 243, 0.08)' : 'transparent', '&:hover': { backgroundColor: 'rgba(33, 150, 243, 0.12)' }, }} >
-                <Tooltip title={item.text} placement="right" disableHoverListener={open}>
-                  <ListItemIcon sx={{ minWidth: 0, mr: open ? 2 : 0, justifyContent: 'center', transition: theme.transitions.create('margin', { easing: theme.transitions.easing.sharp, duration: theme.transitions.duration.leavingScreen, }) }} >
+                {/* Solo mostramos el tooltip cuando está cerrado */}
+                {!open ? (
+                  <Tooltip title={item.text} placement="right">
+                    <ListItemIcon sx={{ minWidth: 0, justifyContent: 'center' }}>
+                      {item.icon}
+                    </ListItemIcon>
+                  </Tooltip>
+                ) : (
+                  <ListItemIcon sx={{ minWidth: 0, mr: 2, justifyContent: 'center', transition: theme.transitions.create('margin', { easing: theme.transitions.easing.sharp, duration: theme.transitions.duration.leavingScreen, }) }}>
                     {item.icon}
                   </ListItemIcon>
-                </Tooltip>
-                <ListItemText primary={item.text} sx={{ opacity: open ? 1 : 0, transition: theme.transitions.create('opacity', { easing: theme.transitions.easing.sharp, duration: theme.transitions.duration.leavingScreen, }), '& .MuiTypography-root': { fontWeight: active ? 'medium' : 'normal', color: active ? mainColor : '#333333', whiteSpace: 'nowrap', } }} />
+                )}
+                <ListItemText 
+                  primary={item.text} 
+                  sx={{ 
+                    opacity: open ? 1 : 0, 
+                    transition: theme.transitions.create('opacity', { 
+                      easing: theme.transitions.easing.sharp, 
+                      duration: theme.transitions.duration.leavingScreen, 
+                    }), 
+                    '& .MuiTypography-root': { 
+                      fontWeight: active ? 'medium' : 'normal', 
+                      color: active ? mainColor : '#333333', 
+                      whiteSpace: 'nowrap',
+                    } 
+                  }} 
+                />
               </ListItemButton>
             </ListItem>
           );
@@ -260,19 +280,27 @@ const Sidebar = () => {
          )}
        </Box>
 
-      {/* Footer del sidebar (sin cambios) */}
+      {/* Footer del sidebar (con la misma corrección) */}
       <Box sx={{ px: open ? 2 : 1, pb: 2, pt: 1, borderTop: '1px solid #e0e0e0' }}>
         <ListItemButton sx={{ borderRadius: 1, mb: 1, justifyContent: 'center', minHeight: 42, '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)', }, }} >
-          <Tooltip title="Soporte" placement="right" disableHoverListener={open}>
-            <ListItemIcon sx={{ minWidth: 0, mr: open ? 2 : 0 }}> {supportIcon} </ListItemIcon>
-          </Tooltip>
+          {!open ? (
+            <Tooltip title="Soporte" placement="right">
+              <ListItemIcon sx={{ minWidth: 0 }}> {supportIcon} </ListItemIcon>
+            </Tooltip>
+          ) : (
+            <ListItemIcon sx={{ minWidth: 0, mr: 2 }}> {supportIcon} </ListItemIcon>
+          )}
           <ListItemText primary="Soporte" sx={{ opacity: open ? 1 : 0, transition: theme.transitions.create('opacity', { duration: theme.transitions.duration.leavingScreen }), '& .MuiTypography-root': { color: '#666666', whiteSpace: 'nowrap' } }} />
         </ListItemButton>
         <ListItemButton sx={{ borderRadius: 1, justifyContent: 'center', minHeight: 42, '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)', }, }} >
-          <Tooltip title="Cerrar sesión" placement="right" disableHoverListener={open}>
-            <ListItemIcon sx={{ minWidth: 0, mr: open ? 2 : 0 }}> {logoutIcon} </ListItemIcon>
-          </Tooltip>
-           <ListItemText primary="Cerrar sesión" sx={{ opacity: open ? 1 : 0, transition: theme.transitions.create('opacity', { duration: theme.transitions.duration.leavingScreen }), '& .MuiTypography-root': { color: '#666666', whiteSpace: 'nowrap' } }} />
+          {!open ? (
+            <Tooltip title="Cerrar sesión" placement="right">
+              <ListItemIcon sx={{ minWidth: 0 }}> {logoutIcon} </ListItemIcon>
+            </Tooltip>
+          ) : (
+            <ListItemIcon sx={{ minWidth: 0, mr: 2 }}> {logoutIcon} </ListItemIcon>
+          )}
+          <ListItemText primary="Cerrar sesión" sx={{ opacity: open ? 1 : 0, transition: theme.transitions.create('opacity', { duration: theme.transitions.duration.leavingScreen }), '& .MuiTypography-root': { color: '#666666', whiteSpace: 'nowrap' } }} />
         </ListItemButton>
       </Box>
     </Drawer>
