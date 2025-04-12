@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 
 const CustomDateRangePicker = ({ open, onClose, onSelectRange }) => {
+  // Usar directamente la fecha local del navegador
   const today = new Date();
   const defaultStartDate = new Date(today.getFullYear(), today.getMonth(), 1);
   
@@ -62,7 +63,7 @@ const CustomDateRangePicker = ({ open, onClose, onSelectRange }) => {
       return;
     }
     
-    // Configurar las horas correctamente
+    // Configurar las horas correctamente en zona horaria local
     start.setHours(0, 0, 0, 0);
     end.setHours(23, 59, 59, 999);
     

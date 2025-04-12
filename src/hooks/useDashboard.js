@@ -1,4 +1,4 @@
-// src/hooks/useDashboard.js - Actualizado para soportar rango personalizado
+// src/hooks/useDashboard.js - Actualizado para usar zona horaria local y corregir íconos de estado
 import { useState, useEffect, useMemo } from 'react';
 import { useInvoices } from './useInvoices';
 import { useClients } from './useClients';
@@ -558,7 +558,6 @@ export const useDashboard = (selectedRange = 'thisMonth', customDateRange = null
     }));
   }, [filteredInvoices, loading, exchangeRate]);
 
-  // El resto del código permanece igual...
   const facturasRecientes = useMemo(() => {
     if (loading || !filteredInvoices.length) return [];
 
@@ -599,9 +598,13 @@ export const useDashboard = (selectedRange = 'thisMonth', customDateRange = null
           case 'pagada':
             estadoEmoji = '✅ ';
             break;
+          case 'pending':
+          case 'pendiente':
+            estadoEmoji = '⏳ ';
+            break;
           case 'issued':
           case 'emitida':
-            estadoEmoji = '⏳ ';
+            estadoEmoji = '📨 ';
             break;
           case 'draft':
           case 'borrador':
@@ -621,10 +624,12 @@ export const useDashboard = (selectedRange = 'thisMonth', customDateRange = null
           'issued': 'Emitida',
           'paid': 'Pagada',
           'cancelled': 'Cancelada',
+          'pending': 'Pendiente',
           'borrador': 'Borrador',
           'emitida': 'Emitida',
           'pagada': 'Pagada',
-          'cancelada': 'Cancelada'
+          'cancelada': 'Cancelada',
+          'pendiente': 'Pendiente'
         }[estado.toLowerCase()] || 'Borrador';
         
         return {
