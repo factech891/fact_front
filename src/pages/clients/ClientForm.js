@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -61,77 +61,47 @@ export const ClientForm = ({ open, onClose, client, onSave }) => {
     }
   };
 
-  // Usamos un ref para evitar re-renders innecesarios
-  const initialFormState = {
+  const getInitialFormState = (clientData) => ({
     // Datos básicos
-    nombre: client?.nombre || '',
-    tipoRif: client?.rif?.split('-')[0] || 'V',
-    rif: client?.rif?.split('-')[1] || '',
-    tipoPersona: client?.tipoPersona || 'natural',
+    nombre: clientData?.nombre || '',
+    tipoRif: clientData?.rif?.split('-')[0] || 'V',
+    rif: clientData?.rif?.split('-')[1] || '',
+    tipoPersona: clientData?.tipoPersona || 'natural',
     
     // Contacto
-    email: client?.email || '',
-    telefono: client?.telefono || '',
-    telefonoAlt: client?.telefonoAlt || '',
-    sitioWeb: client?.sitioWeb || '',
+    email: clientData?.email || '',
+    telefono: clientData?.telefono || '',
+    telefonoAlt: clientData?.telefonoAlt || '',
+    sitioWeb: clientData?.sitioWeb || '',
     
     // Ubicación
-    direccion: client?.direccion || '',
-    ciudad: client?.ciudad || '',
-    estado: client?.estado || '',
-    codigoPostal: client?.codigoPostal || '',
+    direccion: clientData?.direccion || '',
+    ciudad: clientData?.ciudad || '',
+    estado: clientData?.estado || '',
+    codigoPostal: clientData?.codigoPostal || '',
     
     // Comercial
-    tipoCliente: client?.tipoCliente || 'regular',
-    condicionesPago: client?.condicionesPago || 'contado',
-    diasCredito: client?.diasCredito || 0,
-    limiteCredito: client?.limiteCredito || 0,
+    tipoCliente: clientData?.tipoCliente || 'regular',
+    condicionesPago: clientData?.condicionesPago || 'contado',
+    diasCredito: clientData?.diasCredito || 0,
+    limiteCredito: clientData?.limiteCredito || 0,
     
     // Adicional
-    sector: client?.sector || '',
-    notas: client?.notas || ''
-  };
+    sector: clientData?.sector || '',
+    notas: clientData?.notas || ''
+  });
   
-  const [formData, setFormData] = useState(initialFormState);
+  const [formData, setFormData] = useState(getInitialFormState(client));
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   
-  // Manejar la carga inicial de datos
+  // Manejar la carga inicial de datos y cambios en client
   useEffect(() => {
-    if (client) {
-      const rifParts = (client.rif || '').split('-');
-      
-      setFormData({
-        // Datos básicos
-        nombre: client.nombre || '',
-        tipoRif: rifParts[0] || 'V',
-        rif: rifParts[1] || '',
-        tipoPersona: client.tipoPersona || 'natural',
-        
-        // Contacto
-        email: client.email || '',
-        telefono: client.telefono || '',
-        telefonoAlt: client.telefonoAlt || '',
-        sitioWeb: client.sitioWeb || '',
-        
-        // Ubicación
-        direccion: client.direccion || '',
-        ciudad: client.ciudad || '',
-        estado: client.estado || '',
-        codigoPostal: client.codigoPostal || '',
-        
-        // Comercial
-        tipoCliente: client.tipoCliente || 'regular',
-        condicionesPago: client.condicionesPago || 'contado',
-        diasCredito: client.diasCredito || 0,
-        limiteCredito: client.limiteCredito || 0,
-        
-        // Adicional
-        sector: client.sector || '',
-        notas: client.notas || ''
-      });
+    if (open) {
+      setFormData(getInitialFormState(client));
+      setErrors({});
     }
-  }, [client]);
+  }, [client, open]);
 
   // Validación del formulario - Solo en el envío para evitar re-renders
   const validateForm = () => {
@@ -142,6 +112,16 @@ export const ClientForm = ({ open, onClose, client, onSave }) => {
       newErrors.email = 'El email es requerido';
     } else if (!formData.email.includes('@')) {
       newErrors.email = 'Email inválido';
+    }
+    
+    // Validación para teléfono - campo obligatorio
+    if (!formData.telefono.trim()) {
+      newErrors.telefono = 'El teléfono es requerido';
+    }
+    
+    // Validación para dirección - campo obligatorio
+    if (!formData.direccion.trim()) {
+      newErrors.direccion = 'La dirección es requerida';
     }
     
     setErrors(newErrors);
@@ -202,6 +182,7 @@ export const ClientForm = ({ open, onClose, client, onSave }) => {
       
       onSave(clientToSave)
         .then(() => {
+          setSaving(false);
           handleClose();
         })
         .catch(error => {
@@ -214,14 +195,18 @@ export const ClientForm = ({ open, onClose, client, onSave }) => {
 
   // Función para resetear formulario
   const resetForm = () => {
-    setFormData(initialFormState);
+    setFormData(getInitialFormState(null));
     setErrors({});
   };
 
   // Función para cerrar formulario
   const handleClose = () => {
-    resetForm();
-    onClose();
+    // Esperamos al próximo ciclo para evitar problemas de actualización
+    setTimeout(() => {
+      resetForm();
+      setSaving(false);
+      onClose();
+    }, 0);
   };
 
   return (
@@ -457,8 +442,11 @@ export const ClientForm = ({ open, onClose, client, onSave }) => {
                     name="telefono"
                     label="Teléfono Principal"
                     fullWidth
+                    required
                     value={formData.telefono}
                     onChange={handleFieldChange}
+                    error={!!errors.telefono}
+                    helperText={errors.telefono}
                     variant="outlined"
                     InputLabelProps={{ sx: { color: 'text.secondary' } }}
                     sx={{
@@ -516,10 +504,13 @@ export const ClientForm = ({ open, onClose, client, onSave }) => {
                     name="direccion"
                     label="Dirección"
                     fullWidth
+                    required
                     multiline
                     rows={2}
                     value={formData.direccion}
                     onChange={handleFieldChange}
+                    error={!!errors.direccion}
+                    helperText={errors.direccion}
                     variant="outlined"
                     InputLabelProps={{ sx: { color: 'text.secondary' } }}
                     sx={{
