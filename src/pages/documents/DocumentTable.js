@@ -13,7 +13,9 @@ import {
   TextField,
   InputAdornment,
   Chip,
-  Divider
+  Divider,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import {
   Search as SearchIcon
@@ -29,6 +31,12 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [previewDocument, setPreviewDocument] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  // Añadir estado para el snackbar
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
 
   // Filtrar documentos según el término de búsqueda
   const filteredDocuments = documents.filter(doc => {
@@ -69,13 +77,22 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
     }
   };
 
+  // Función para cerrar el snackbar
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
+  };
+
   // MODIFICADO: Acepta 'invoiceDataFromModal'
   const handleConvertToInvoice = async (invoiceDataFromModal) => {
     // Obtenemos el ID del documento original desde los datos pasados
     const documentId = invoiceDataFromModal.originalDocument;
     if (!documentId) {
         console.error("No se encontró el ID del documento original en los datos del modal.");
-        alert("Error: No se pudo identificar el documento original.");
+        setSnackbar({
+          open: true,
+          message: "Error: No se pudo identificar el documento original.",
+          severity: "error"
+        });
         return;
     }
 
@@ -85,14 +102,22 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
       // MODIFICADO: Llamar al API con el ID y los datos del modal
       await convertToInvoice(documentId, invoiceDataFromModal);
 
-      // Mostrar mensaje de éxito
-      alert("Documento convertido a factura correctamente");
+      // Mostrar mensaje de éxito en un Snackbar estilizado
+      setSnackbar({
+        open: true,
+        message: "Documento convertido a factura correctamente",
+        severity: "success"
+      });
 
       // Recargar la tabla
       handleRefresh();
     } catch (error) {
       console.error("Error al convertir documento:", error);
-      alert("Error al convertir documento a factura: " + (error.message || ""));
+      setSnackbar({
+        open: true,
+        message: "Error al convertir documento a factura: " + (error.message || ""),
+        severity: "error"
+      });
     }
   };
 
@@ -238,6 +263,32 @@ const DocumentTable = ({ documents = [], onDelete, onConvert, onRefresh }) => {
         documentId={previewDocument}
         onRefresh={handleRefresh}
       />
+
+      {/* Añadir el Snackbar estilizado */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbar.severity} 
+          variant="filled"
+          sx={{ 
+            width: '100%',
+            boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.25)',
+            borderRadius: '8px',
+            ...(snackbar.severity === 'success' && {
+              backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+              '& .MuiAlert-icon': { color: 'white' },
+              color: 'white'
+            })
+          }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 };

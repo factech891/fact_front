@@ -45,6 +45,13 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
   const [statusMenu, setStatusMenu] = useState(null);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
 
+  // Funciones auxiliares (MOVIDAS AQUÍ ARRIBA)
+  const getStatusLabel = (status) => { switch (status?.toLowerCase()) { case 'draft': return 'Borrador'; case 'pending': return 'Pendiente'; case 'paid': return 'Pagada'; case 'cancelled': return 'Anulada'; case 'overdue': return 'Vencida'; case 'partial': return 'Pago Parcial'; default: return 'Borrador'; } };
+  const getStatusColorForMenu = (status) => { switch (status?.toLowerCase()) { case 'draft': return 'default'; case 'pending': return 'warning'; case 'paid': return 'success'; case 'cancelled': return 'error'; case 'overdue': return 'error'; case 'partial': return 'info'; default: return 'default'; } };
+  const getStatusColorSx = (status) => { switch (status?.toLowerCase()) { case 'draft': return { borderColor: 'grey.500', color: 'grey.700' }; case 'pending': return { borderColor: 'warning.main', color: 'warning.dark' }; case 'paid': return { borderColor: 'success.main', color: 'success.dark' }; case 'cancelled': return { borderColor: 'error.main', color: 'error.dark' }; case 'overdue': return { borderColor: 'error.main', color: 'error.dark' }; case 'partial': return { borderColor: 'info.main', color: 'info.dark' }; default: return { borderColor: 'grey.500', color: 'grey.700' }; } };
+  const formatDisplayDate = (dateString) => { if (!dateString) return '—'; try { if (dateString.includes('T')) { const d = new Date(dateString); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`; } const parts = dateString.split('-'); if (parts.length === 3) { return `${parts[2]}/${parts[1]}/${parts[0]}`; } return dateString; } catch (e) { console.error('Error formateando fecha:', e); return dateString || '—'; } };
+  const formatCurrency = (amount, currency = 'VES') => { if (amount === undefined || amount === null) return '—'; return new Intl.NumberFormat('es-ES', { style: 'currency', currency: currency }).format(amount); };
+
   const filteredInvoices = useMemo(() => {
     if (!searchTerm) return invoices;
     const lowerCaseSearchTerm = searchTerm.toLowerCase();
@@ -77,13 +84,6 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
     }
     handleStatusClose();
   };
-
-  // Funciones auxiliares (sin cambios)
-  const getStatusLabel = (status) => { switch (status?.toLowerCase()) { case 'draft': return 'Borrador'; case 'pending': return 'Pendiente'; case 'paid': return 'Pagada'; case 'cancelled': return 'Anulada'; case 'overdue': return 'Vencida'; case 'partial': return 'Pago Parcial'; default: return 'Borrador'; } };
-  const getStatusColorForMenu = (status) => { switch (status?.toLowerCase()) { case 'draft': return 'default'; case 'pending': return 'warning'; case 'paid': return 'success'; case 'cancelled': return 'error'; case 'overdue': return 'error'; case 'partial': return 'info'; default: return 'default'; } };
-  const getStatusColorSx = (status) => { switch (status?.toLowerCase()) { case 'draft': return { borderColor: 'grey.500', color: 'grey.700' }; case 'pending': return { borderColor: 'warning.main', color: 'warning.dark' }; case 'paid': return { borderColor: 'success.main', color: 'success.dark' }; case 'cancelled': return { borderColor: 'error.main', color: 'error.dark' }; case 'overdue': return { borderColor: 'error.main', color: 'error.dark' }; case 'partial': return { borderColor: 'info.main', color: 'info.dark' }; default: return { borderColor: 'grey.500', color: 'grey.700' }; } };
-  const formatDisplayDate = (dateString) => { if (!dateString) return '—'; try { if (dateString.includes('T')) { const d = new Date(dateString); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`; } const parts = dateString.split('-'); if (parts.length === 3) { return `${parts[2]}/${parts[1]}/${parts[0]}`; } return dateString; } catch (e) { console.error('Error formateando fecha:', e); return dateString || '—'; } };
-  const formatCurrency = (amount, currency = 'VES') => { if (amount === undefined || amount === null) return '—'; return new Intl.NumberFormat('es-ES', { style: 'currency', currency: currency }).format(amount); };
 
   return (
     <Box>
@@ -158,4 +158,3 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
     </Box>
   );
 };
-

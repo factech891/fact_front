@@ -290,8 +290,30 @@ const ConvertToInvoiceModal = ({ open, onClose, onConfirm, document }) => {
         <Button 
           onClick={handleConfirm} 
           variant="contained" 
-          color="primary"
           startIcon={<CheckIcon />}
+          sx={{
+            borderRadius: '50px',
+            color: 'white',
+            fontWeight: 600,
+            padding: '8px 22px',
+            textTransform: 'none',
+            backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+            boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)',
+            transition: 'all 0.2s ease-in-out',
+            border: 'none',
+            backgroundColor: 'transparent',
+            fontSize: '14px',
+            '&:hover': {
+              transform: 'translateY(-2px)',
+              boxShadow: '0 6px 20px rgba(79, 172, 254, 0.6)',
+              backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+              backgroundColor: 'transparent',
+            },
+            '&:active': {
+              transform: 'translateY(0)',
+              boxShadow: '0 2px 10px rgba(79, 172, 254, 0.4)',
+            }
+          }}
         >
           CONVERTIR
         </Button>
