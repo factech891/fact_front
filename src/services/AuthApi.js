@@ -1,4 +1,4 @@
-// src/services/AuthApi.js
+// src/services/AuthApi.js (actualizado según controlador de autenticación)
 import { API_BASE_URL, handleResponse } from './api';
 
 export const authApi = {
@@ -12,10 +12,29 @@ export const authApi = {
   },
   
   register: async (userData) => {
+    // Adaptar el formato de datos para que coincida con lo que espera el backend
+    const formattedData = {
+      company: {
+        nombre: userData.company.name,
+        rif: userData.company.rif,
+        direccion: userData.company.address || '',
+        ciudad: userData.company.city || '',
+        estado: userData.company.state || '',
+        telefono: userData.company.phone || '',
+        email: userData.company.email
+      },
+      user: {
+        nombre: `${userData.user.firstName} ${userData.user.lastName}`,
+        email: userData.user.email,
+        password: userData.user.password
+        // El rol admin se asigna por defecto en el backend
+      }
+    };
+    
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(userData)
+      body: JSON.stringify(formattedData)
     });
     return handleResponse(response);
   },
@@ -38,20 +57,33 @@ export const authApi = {
     return handleResponse(response);
   },
   
-  verifyToken: async () => {
-    // Obtener el token del almacenamiento local
-    const token = localStorage.getItem('token');
-    
+  getMe: async (token) => {
     if (!token) {
       throw new Error('No hay token de autenticación');
     }
     
-    const response = await fetch(`${API_BASE_URL}/auth/verify`, {
+    const response = await fetch(`${API_BASE_URL}/auth/me`, {
       method: 'GET',
       headers: { 
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       }
+    });
+    return handleResponse(response);
+  },
+  
+  changePassword: async (currentPassword, newPassword, token) => {
+    if (!token) {
+      throw new Error('No hay token de autenticación');
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ currentPassword, newPassword })
     });
     return handleResponse(response);
   }

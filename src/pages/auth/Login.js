@@ -1,4 +1,4 @@
-// src/pages/auth/Login.js
+// src/pages/auth/Login.js (actualizado)
 import React, { useState } from 'react';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -37,6 +37,7 @@ const Login = () => {
       // Redirigir al usuario después del login exitoso
       navigate(from, { replace: true });
     } catch (error) {
+      console.error('Error de login:', error);
       setError(error.message || 'Error al iniciar sesión');
     } finally {
       setLoading(false);

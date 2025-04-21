@@ -1,4 +1,4 @@
-// src/context/AuthContext.js
+// src/context/AuthContext.js (actualizado)
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { authApi } from '../services/AuthApi';
 import { useNavigate } from 'react-router-dom';
@@ -13,6 +13,8 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
+  const [company, setCompany] = useState(null);
+  const [subscription, setSubscription] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -23,14 +25,27 @@ export const AuthProvider = ({ children }) => {
     const verifyToken = async () => {
       if (token) {
         try {
-          const userData = await authApi.verifyToken();
-          setCurrentUser(userData);
+          const data = await authApi.getMe(token);
+          if (data.success) {
+            setCurrentUser(data.user);
+            setCompany(data.company);
+            setSubscription(data.subscription);
+          } else {
+            // Token inválido o expirado, limpiar estado
+            localStorage.removeItem('token');
+            setToken(null);
+            setCurrentUser(null);
+            setCompany(null);
+            setSubscription(null);
+          }
         } catch (error) {
           console.error('Error verificando token:', error);
           // Token inválido o expirado, limpiar estado
           localStorage.removeItem('token');
           setToken(null);
           setCurrentUser(null);
+          setCompany(null);
+          setSubscription(null);
         }
       }
       setLoading(false);
@@ -44,14 +59,21 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       const response = await authApi.login({ email, password });
-      const { token, user } = response;
       
-      // Guardar token en localStorage y estado
-      localStorage.setItem('token', token);
-      setToken(token);
-      setCurrentUser(user);
-      
-      return user;
+      if (response.success) {
+        const { token, user, company, subscription } = response;
+        
+        // Guardar token en localStorage y estado
+        localStorage.setItem('token', token);
+        setToken(token);
+        setCurrentUser(user);
+        setCompany(company);
+        setSubscription(subscription);
+        
+        return { user, company, subscription };
+      } else {
+        throw new Error(response.message || 'Error al iniciar sesión');
+      }
     } catch (error) {
       setError(error.message);
       throw error;
@@ -63,16 +85,21 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       const response = await authApi.register(userData);
-      const { token, user } = response;
       
-      // Guardar token y usuario si el registro inicia sesión automáticamente
-      if (token) {
+      if (response.success) {
+        const { token, user, company, subscription } = response;
+        
+        // Guardar token en localStorage y estado
         localStorage.setItem('token', token);
         setToken(token);
         setCurrentUser(user);
+        setCompany(company);
+        setSubscription(subscription);
+        
+        return { user, company, subscription };
+      } else {
+        throw new Error(response.message || 'Error en el registro');
       }
-      
-      return response;
     } catch (error) {
       setError(error.message);
       throw error;
@@ -84,6 +111,8 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     setToken(null);
     setCurrentUser(null);
+    setCompany(null);
+    setSubscription(null);
     navigate('/auth/login');
   };
 
@@ -91,7 +120,11 @@ export const AuthProvider = ({ children }) => {
   const forgotPassword = async (email) => {
     try {
       setError(null);
-      return await authApi.forgotPassword(email);
+      const response = await authApi.forgotPassword(email);
+      if (!response.success) {
+        throw new Error(response.message || 'Error al procesar la solicitud');
+      }
+      return response;
     } catch (error) {
       setError(error.message);
       throw error;
@@ -102,7 +135,26 @@ export const AuthProvider = ({ children }) => {
   const resetPassword = async (token, newPassword) => {
     try {
       setError(null);
-      return await authApi.resetPassword(token, newPassword);
+      const response = await authApi.resetPassword(token, newPassword);
+      if (!response.success) {
+        throw new Error(response.message || 'Error al restablecer la contraseña');
+      }
+      return response;
+    } catch (error) {
+      setError(error.message);
+      throw error;
+    }
+  };
+
+  // Función para cambiar contraseña del usuario actual
+  const changePassword = async (currentPassword, newPassword) => {
+    try {
+      setError(null);
+      const response = await authApi.changePassword(currentPassword, newPassword, token);
+      if (!response.success) {
+        throw new Error(response.message || 'Error al cambiar la contraseña');
+      }
+      return response;
     } catch (error) {
       setError(error.message);
       throw error;
@@ -111,13 +163,15 @@ export const AuthProvider = ({ children }) => {
 
   // Verificar si el usuario tiene un rol específico
   const hasRole = (role) => {
-    if (!currentUser || !currentUser.roles) return false;
-    return currentUser.roles.includes(role);
+    if (!currentUser || !currentUser.role) return false;
+    return currentUser.role === role;
   };
 
   // Proporcionar el contexto
   const value = {
     currentUser,
+    company,
+    subscription,
     token,
     loading,
     error,
@@ -126,6 +180,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     forgotPassword,
     resetPassword,
+    changePassword,
     hasRole
   };
 
