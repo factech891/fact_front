@@ -1,4 +1,4 @@
-// src/services/api.js
+// src/services/api.js modificado
 const API_BASE_URL = 'http://localhost:5002/api';
 
 // Función para manejar respuestas de la API
@@ -40,20 +40,39 @@ const handleResponse = async (response) => {
   return null;
 };
 
-// Servicios para Clientes
+// Función para obtener las cabeceras con el token de autenticación
+const getAuthHeaders = (contentType = 'application/json') => {
+  const headers = { 'Content-Type': contentType };
+  const token = localStorage.getItem('token');
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return headers;
+};
+
+// Exportamos las funciones para usar en otras partes de la aplicación
+export { API_BASE_URL, handleResponse, getAuthHeaders };
+
+// Servicios para Clientes con autenticación
 export const clientsApi = {
   getAll: async () => {
-    const response = await fetch(`${API_BASE_URL}/clients`);
+    const response = await fetch(`${API_BASE_URL}/clients`, {
+      headers: getAuthHeaders()
+    });
     return handleResponse(response);
   },
   getById: async (id) => {
-    const response = await fetch(`${API_BASE_URL}/clients/${id}`);
+    const response = await fetch(`${API_BASE_URL}/clients/${id}`, {
+      headers: getAuthHeaders()
+    });
     return handleResponse(response);
   },
   create: async (data) => {
     const response = await fetch(`${API_BASE_URL}/clients`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data)
     });
     return handleResponse(response);
@@ -61,33 +80,38 @@ export const clientsApi = {
   update: async (id, data) => {
     const response = await fetch(`${API_BASE_URL}/clients/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data)
     });
     return handleResponse(response);
   },
   delete: async (id) => {
     const response = await fetch(`${API_BASE_URL}/clients/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: getAuthHeaders()
     });
     return handleResponse(response);
   }
 };
 
-// Servicios para Productos
+// Servicios para Productos con autenticación
 export const productsApi = {
   getAll: async () => {
-    const response = await fetch(`${API_BASE_URL}/products`);
+    const response = await fetch(`${API_BASE_URL}/products`, {
+      headers: getAuthHeaders()
+    });
     return handleResponse(response);
   },
   getById: async (id) => {
-    const response = await fetch(`${API_BASE_URL}/products/${id}`);
+    const response = await fetch(`${API_BASE_URL}/products/${id}`, {
+      headers: getAuthHeaders()
+    });
     return handleResponse(response);
   },
   create: async (data) => {
     const response = await fetch(`${API_BASE_URL}/products`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data)
     });
     return handleResponse(response);
@@ -95,33 +119,38 @@ export const productsApi = {
   update: async (id, data) => {
     const response = await fetch(`${API_BASE_URL}/products/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data)
     });
     return handleResponse(response);
   },
   delete: async (id) => {
     const response = await fetch(`${API_BASE_URL}/products/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: getAuthHeaders()
     });
     return handleResponse(response);
   }
 };
 
-// Servicios para Facturas
+// Servicios para Facturas con autenticación
 export const invoicesApi = {
   getAll: async () => {
-    const response = await fetch(`${API_BASE_URL}/invoices`);
+    const response = await fetch(`${API_BASE_URL}/invoices`, {
+      headers: getAuthHeaders()
+    });
     return handleResponse(response);
   },
   getById: async (id) => {
-    const response = await fetch(`${API_BASE_URL}/invoices/${id}`);
+    const response = await fetch(`${API_BASE_URL}/invoices/${id}`, {
+      headers: getAuthHeaders()
+    });
     return handleResponse(response);
   },
   create: async (data) => {
     const response = await fetch(`${API_BASE_URL}/invoices`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data)
     });
     return handleResponse(response);
@@ -129,14 +158,15 @@ export const invoicesApi = {
   update: async (id, data) => {
     const response = await fetch(`${API_BASE_URL}/invoices/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data)
     });
     return handleResponse(response);
   },
   delete: async (id) => {
     const response = await fetch(`${API_BASE_URL}/invoices/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: getAuthHeaders()
     });
     return handleResponse(response);
   },
@@ -145,6 +175,7 @@ export const invoicesApi = {
       const response = await fetch(`${API_BASE_URL}/invoices/${invoiceId}/pdf`, {
         method: 'GET',
         headers: {
+          ...getAuthHeaders('application/pdf'),
           'Accept': 'application/pdf'
         }
       });
@@ -179,16 +210,18 @@ export const invoicesApi = {
   }
 };
 
-// Servicios para Company
+// Servicios para Company con autenticación
 export const companyApi = {
   get: async () => {
-    const response = await fetch(`${API_BASE_URL}/company`);
+    const response = await fetch(`${API_BASE_URL}/company`, {
+      headers: getAuthHeaders()
+    });
     return handleResponse(response);
   },
   update: async (data) => {
     const response = await fetch(`${API_BASE_URL}/company`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data)
     });
     return handleResponse(response);
@@ -197,9 +230,17 @@ export const companyApi = {
     const formData = new FormData();
     formData.append('logo', file);
     
+    // Para FormData no incluimos Content-Type, pero sí el token de autorización
+    const headers = {};
+    const token = localStorage.getItem('token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     const response = await fetch(`${API_BASE_URL}/company/logo`, {
       method: 'POST',
-      body: formData // No establecer Content-Type, fetch lo hará automáticamente
+      headers,
+      body: formData
     });
     return handleResponse(response);
   },
@@ -208,14 +249,15 @@ export const companyApi = {
     const encodedId = encodeURIComponent(logoId);
     
     const response = await fetch(`${API_BASE_URL}/company/logo/${encodedId}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: getAuthHeaders()
     });
     return handleResponse(response);
   },
   updateTheme: async (settings) => {
     const response = await fetch(`${API_BASE_URL}/company/theme`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(settings)
     });
     return handleResponse(response);

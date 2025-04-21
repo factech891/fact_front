@@ -1,4 +1,4 @@
-// src/layouts/DashboardLayout/Navbar.js
+// src/layouts/DashboardLayout/Navbar.js (modificado)
 import React from 'react';
 import {
   AppBar,
@@ -13,19 +13,18 @@ import {
   Tooltip,
   ListItemIcon,
   Divider,
-  List // <-- Añadido List para el menú de notificaciones
+  List
 } from '@mui/material';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import LogoutIcon from '@mui/icons-material/Logout';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext'; // Importamos el contexto de autenticación
 
-// --- Importa Iconos que podrías usar para notificaciones ---
+// Importación de iconos para notificaciones (sin cambios)
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
-// import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline'; // Descomenta si usas
-// import ReceiptOutlinedIcon from '@mui/icons-material/ReceiptOutlined'; // Descomenta si usas
 import PaidOutlinedIcon from '@mui/icons-material/PaidOutlined';
 import MarkChatReadOutlinedIcon from '@mui/icons-material/MarkChatReadOutlined';
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
@@ -36,9 +35,13 @@ const Navbar = () => {
   const open = Boolean(anchorEl);
   const notificationsOpen = Boolean(notificationsAnchorEl);
   const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Obtenemos la función logout y el usuario actual del contexto de autenticación
+  const { logout, currentUser } = useAuth();
 
-  // Color principal (definido aquí, considera moverlo al tema si es global)
-  const mainColor = '#4CAF50'; // Color verde (o el que uses globalmente)
+  // Color principal (sin cambios)
+  const mainColor = '#4CAF50';
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -56,14 +59,20 @@ const Navbar = () => {
     setNotificationsAnchorEl(null);
   };
 
-  // Datos del usuario (EJEMPLO - Reemplazar con datos reales)
-  const user = {
-    name: 'Admin',
-    role: 'Administrador',
-    email: 'admin@facttech.com'
+  // Función para manejar el cierre de sesión
+  const handleLogout = () => {
+    handleClose(); // Cerrar el menú
+    logout(); // Llamar a la función de logout del contexto
   };
 
-  // Notificaciones (EJEMPLO MÁS DETALLADO - Reemplazar con datos reales)
+  // Datos del usuario (ahora usando el contexto de autenticación)
+  const user = currentUser || {
+    name: 'Usuario',
+    role: 'Usuario',
+    email: 'usuario@facttech.com'
+  };
+
+  // Notificaciones (sin cambios)
   const notifications = [
     { id: 1, type: 'payment', icon: <PaidOutlinedIcon fontSize="small" color="success"/>, title: 'Pago recibido F-008', detail: 'Cliente: Ana Gómez', time: 'Hace 5 min', read: false, link: '/invoices/F-008' },
     { id: 2, type: 'quote_pending', icon: <ArticleOutlinedIcon fontSize="small" color="info"/>, title: 'Cotización C-012 pendiente', detail: 'Revisar y enviar', time: 'Hace 30 min', read: false, link: '/documents/C-012' },
@@ -71,26 +80,21 @@ const Navbar = () => {
     { id: 4, type: 'system', icon: <InfoOutlinedIcon fontSize="small" color="action"/>, title: 'Mantenimiento programado', detail: 'Esta noche a las 11 PM', time: 'Ayer', read: true, link: '/announcements/1' }
   ];
 
-  // Calcula no leídas
+  // Calcula no leídas (sin cambios)
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  // Placeholder para acciones futuras de notificaciones
+  // Placeholder para acciones futuras de notificaciones (sin cambios)
   const handleNotificationClick = (notification) => {
       console.log("Navegar a:", notification.link);
-      // Aquí iría la lógica para:
-      // 1. Marcar la notificación como leída (en el estado/backend)
-      // 2. Navegar a notification.link usando react-router-dom
-      handleNotificationsClose(); // Cerrar el menú
+      handleNotificationsClose();
   };
 
   const handleMarkAllRead = () => {
       console.log("Marcar todas como leídas");
-      // Aquí iría la lógica para marcar todas como leídas en el estado/backend
-      handleNotificationsClose(); // Cerrar el menú
+      handleNotificationsClose();
   };
 
-
-  // Función para obtener el título (sin cambios respecto a tu versión)
+  // Función para obtener el título (sin cambios)
   const getPageTitle = () => {
     const path = location.pathname;
     if (path === '/' || path === '/dashboard') return 'Dashboard';
@@ -99,7 +103,8 @@ const Navbar = () => {
     if (path.startsWith('/clients')) return 'Clientes';
     if (path.startsWith('/products')) return 'Productos';
     if (path.startsWith('/settings')) return 'Configuración';
-    return ''; // Retorna vacío si no es ninguna de las anteriores
+    if (path.startsWith('/users')) return 'Gestión de Usuarios';
+    return '';
   };
 
   return (
@@ -109,8 +114,8 @@ const Navbar = () => {
       elevation={0}
       sx={{
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        backgroundColor: '#2a2a2a', // Fondo oscuro
-        color: '#ffffff' // Texto blanco
+        backgroundColor: '#2a2a2a',
+        color: '#ffffff'
       }}
     >
       <Toolbar sx={{ minHeight: '64px' }}>
@@ -125,7 +130,7 @@ const Navbar = () => {
         </Typography>
 
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          {/* --- SECCIÓN DE NOTIFICACIONES --- */}
+          {/* SECCIÓN DE NOTIFICACIONES (sin cambios) */}
           <Tooltip title="Notificaciones">
             <IconButton
               size="medium"
@@ -137,11 +142,11 @@ const Navbar = () => {
               }}
             >
               <Badge
-                badgeContent={unreadCount} // Mostrar solo no leídas
+                badgeContent={unreadCount}
                 color="error"
                 sx={{
                   '& .MuiBadge-badge': {
-                    backgroundColor: '#F44336', // Rojo para el badge
+                    backgroundColor: '#F44336',
                     fontWeight: 'bold',
                     minWidth: 18,
                     height: 18
@@ -153,7 +158,7 @@ const Navbar = () => {
             </IconButton>
           </Tooltip>
 
-          {/* Menú de notificaciones con estructura mejorada */}
+          {/* Menú de notificaciones (sin cambios) */}
           <Menu
             id="notifications-menu"
             anchorEl={notificationsAnchorEl}
@@ -166,10 +171,10 @@ const Navbar = () => {
                 filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.1))',
                 mt: 1.5,
                 minWidth: 280,
-                maxWidth: 350, // Un poco más de ancho si es necesario
-                bgcolor: 'background.paper', // Fondo del menú
-                color: 'text.primary', // Color de texto del menú
-                borderRadius: '8px' // Bordes redondeados
+                maxWidth: 350,
+                bgcolor: 'background.paper',
+                color: 'text.primary',
+                borderRadius: '8px'
               },
             }}
             transformOrigin={{ horizontal: 'right', vertical: 'top' }}
@@ -179,7 +184,6 @@ const Navbar = () => {
                <Typography variant="subtitle1" fontWeight="medium">
                  Notificaciones
                </Typography>
-               {/* Botón opcional para marcar todas como leídas */}
                {unreadCount > 0 && (
                   <Tooltip title="Marcar todas como leídas">
                     <IconButton size="small" onClick={handleMarkAllRead}>
@@ -190,10 +194,10 @@ const Navbar = () => {
              </Box>
              <Divider sx={{ borderColor: 'rgba(0, 0, 0, 0.08)' }} />
 
-             {/* Lista de Notificaciones */}
-             <List sx={{ padding: 0, maxHeight: 400, overflowY: 'auto' }}> {/* Scroll si hay muchas */}
+             {/* Lista de Notificaciones (sin cambios) */}
+             <List sx={{ padding: 0, maxHeight: 400, overflowY: 'auto' }}>
                  {notifications.length > 0 ? (
-                    notifications.slice(0, 7).map((notification) => ( // Mostrar hasta 7, por ejemplo
+                    notifications.slice(0, 7).map((notification) => (
                     <MenuItem
                         key={notification.id}
                         onClick={() => handleNotificationClick(notification)}
@@ -201,9 +205,9 @@ const Navbar = () => {
                           py: 1.5,
                           px: 2,
                           borderBottom: '1px solid rgba(0, 0, 0, 0.04)',
-                          bgcolor: notification.read ? 'transparent' : 'rgba(33, 150, 243, 0.05)', // Fondo sutil si no está leída (Azul)
+                          bgcolor: notification.read ? 'transparent' : 'rgba(33, 150, 243, 0.05)',
                           '&:hover': {
-                             bgcolor: notification.read ? 'rgba(0, 0, 0, 0.03)' : 'rgba(33, 150, 243, 0.08)' // Hover un poco más oscuro
+                             bgcolor: notification.read ? 'rgba(0, 0, 0, 0.03)' : 'rgba(33, 150, 243, 0.08)'
                           },
                           '&:last-child': { borderBottom: 'none' }
                         }}
@@ -224,23 +228,22 @@ const Navbar = () => {
                     </MenuItem>
                     ))
                  ) : (
-                    // Mensaje si no hay notificaciones
                     <Typography sx={{ p: 3, textAlign: 'center', color: 'text.secondary' }}>
                         No tienes notificaciones nuevas.
                     </Typography>
                  )}
              </List>
 
-             {/* Footer del Menú */}
+             {/* Footer del Menú (sin cambios) */}
              {notifications.length > 0 && (
                 <>
                 <Divider sx={{ borderColor: 'rgba(0, 0, 0, 0.08)' }} />
                 <Box sx={{ display: 'flex', justifyContent: 'center', p: 1.5 }}>
                     <Typography
                       variant="body2"
-                      color={mainColor} // Color principal
+                      color={mainColor}
                       sx={{ cursor: 'pointer', fontWeight: 'medium', '&:hover': { textDecoration: 'underline' } }}
-                      onClick={() => { console.log("Navegar a /notifications"); handleNotificationsClose(); }} // Placeholder
+                      onClick={() => { console.log("Navegar a /notifications"); handleNotificationsClose(); }}
                     >
                       Ver todas las notificaciones
                     </Typography>
@@ -249,10 +252,8 @@ const Navbar = () => {
              )}
           </Menu>
      
-
-
-          {/* --- SECCIÓN DE USUARIO --- */}
-          <Tooltip title={user.name}>
+          {/* SECCIÓN DE USUARIO (modificada para usar datos reales) */}
+          <Tooltip title={user.firstName || user.name || "Usuario"}>
             <IconButton
               onClick={handleClick}
               size="small"
@@ -263,7 +264,7 @@ const Navbar = () => {
               aria-expanded={open ? 'true' : undefined}
               sx={{
                 ml: 1,
-                border: `2px solid ${mainColor}`, // Usa color principal
+                border: `2px solid ${mainColor}`,
                 padding: 0.5,
                 '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.08)' }
               }}
@@ -272,18 +273,18 @@ const Navbar = () => {
                 sx={{
                   width: 32,
                   height: 32,
-                  bgcolor: mainColor, // Usa color principal
+                  bgcolor: mainColor,
                   fontWeight: 'bold',
                   color: 'white'
                 }}
               >
-                {/* Usar inicial del usuario real cuando se conecte */}
-                {user.name.charAt(0)}
+                {/* Usar inicial del nombre real del usuario */}
+                {(user.firstName || user.name || "U").charAt(0)}
               </Avatar>
             </IconButton>
           </Tooltip>
 
-          {/* Menú de usuario */}
+          {/* Menú de usuario (modificado para usar datos reales y función de logout) */}
           <Menu
             id="account-menu"
             anchorEl={anchorEl}
@@ -296,8 +297,8 @@ const Navbar = () => {
                 filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.1))',
                 mt: 1.5,
                 width: 220,
-                bgcolor: 'background.paper', // Fondo del menú
-                color: 'text.primary', // Color de texto
+                bgcolor: 'background.paper',
+                color: 'text.primary',
                 borderRadius: '8px'
               },
             }}
@@ -306,38 +307,38 @@ const Navbar = () => {
           >
             <Box sx={{ px: 2, pt: 2, pb: 1.5 }}>
               <Typography variant="subtitle1" fontWeight="medium">
-                {/* Usar nombre real cuando se conecte */}
-                {user.name}
+                {user.firstName ? `${user.firstName} ${user.lastName || ''}` : user.name}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                {/* Usar email real cuando se conecte */}
                 {user.email}
               </Typography>
-              {/* Aquí podrías mostrar el ROL del usuario también */}
-              {/* <Typography variant="caption" display="block" sx={{ mt: 0.5, color: mainColor }}>{user.role}</Typography> */}
+              {user.roles && user.roles.length > 0 && (
+                <Typography variant="caption" display="block" sx={{ mt: 0.5, color: mainColor }}>
+                  {user.roles[0]} {/* Mostrar el primer rol */}
+                </Typography>
+              )}
             </Box>
             <Divider sx={{ borderColor: 'rgba(0, 0, 0, 0.08)' }} />
-            <MenuItem onClick={handleClose} sx={{ py: 1.5 }}>
+            <MenuItem onClick={() => { navigate('/settings/profile'); handleClose(); }} sx={{ py: 1.5 }}>
               <ListItemIcon>
-                <PersonOutlineIcon fontSize="small" sx={{ color: mainColor }} /> {/* Usa color principal */}
+                <PersonOutlineIcon fontSize="small" sx={{ color: mainColor }} />
               </ListItemIcon>
               Mi Perfil
             </MenuItem>
-            <MenuItem onClick={handleClose} sx={{ py: 1.5 }}>
+            <MenuItem onClick={() => { navigate('/settings'); handleClose(); }} sx={{ py: 1.5 }}>
               <ListItemIcon>
-                <SettingsOutlinedIcon fontSize="small" sx={{ color: mainColor }} /> {/* Usa color principal */}
+                <SettingsOutlinedIcon fontSize="small" sx={{ color: mainColor }} />
               </ListItemIcon>
-              Preferencias
+              Configuración
             </MenuItem>
             <Divider sx={{ borderColor: 'rgba(0, 0, 0, 0.08)' }} />
-            <MenuItem onClick={() => { console.log("Cerrar Sesión!"); handleClose(); }} sx={{ py: 1.5 }}> {/* Placeholder para cerrar sesión */}
+            <MenuItem onClick={handleLogout} sx={{ py: 1.5 }}>
               <ListItemIcon>
-                <LogoutIcon fontSize="small" sx={{ color: mainColor }} /> {/* Usa color principal */}
+                <LogoutIcon fontSize="small" sx={{ color: mainColor }} />
               </ListItemIcon>
               Cerrar Sesión
             </MenuItem>
           </Menu>
-          {/* --- FIN SECCIÓN DE USUARIO --- */}
         </Box>
       </Toolbar>
     </AppBar>

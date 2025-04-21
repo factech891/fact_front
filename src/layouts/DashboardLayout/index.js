@@ -1,23 +1,40 @@
-import React, { useState } from 'react';
+// src/layouts/DashboardLayout/index.js
+import React from 'react';
 import { Box } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
+import { useAuth } from '../../context/AuthContext';
 
 export const DashboardLayout = ({ children }) => {
-  // Estado para controlar si el sidebar está colapsado
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { currentUser, loading } = useAuth();
+  const navigate = useNavigate();
 
-  // Empresa que ha iniciado sesión - esto podría venir de un contexto de autenticación
-  const companyInfo = {
-    name: "Transportes Express",
-    // Otros datos que podrían ser útiles
-    plan: "Premium",
-    logo: null // URL del logo si existe
-  };
+  // Redirigir al usuario al login si no está autenticado
+  React.useEffect(() => {
+    if (!loading && !currentUser) {
+      navigate('/auth/login');
+    }
+  }, [currentUser, loading, navigate]);
 
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
+  // Si está cargando, mostrar un indicador de carga
+  if (loading) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        height: '100vh',
+        justifyContent: 'center',
+        alignItems: 'center'
+      }}>
+        <p>Cargando...</p>
+      </Box>
+    );
+  }
+
+  // Si no hay usuario y no está cargando, no mostrar nada (la redirección ya está en marcha)
+  if (!currentUser && !loading) {
+    return null;
+  }
 
   return (
     <Box sx={{ 
@@ -25,12 +42,8 @@ export const DashboardLayout = ({ children }) => {
       height: '100vh',
       overflow: 'hidden'
     }}>
-      {/* Sidebar con el nombre de la empresa */}
-      <Sidebar 
-        companyName={companyInfo.name} 
-        open={sidebarOpen} 
-        onToggle={toggleSidebar} 
-      />
+      {/* Sidebar */}
+      <Sidebar />
       
       {/* Contenedor principal */}
       <Box sx={{ 
@@ -40,7 +53,7 @@ export const DashboardLayout = ({ children }) => {
         overflow: 'hidden'
       }}>
         {/* Navbar superior */}
-        <Navbar companyName={companyInfo.name} />
+        <Navbar />
         
         {/* Área de contenido */}
         <Box component="main" sx={{ 

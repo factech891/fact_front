@@ -1,4 +1,4 @@
-// src/App.js - con imports corregidos
+// src/App.js modificado
 import { Routes, Route } from 'react-router-dom';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { ThemeProvider, CssBaseline } from '@mui/material';
@@ -16,6 +16,13 @@ import Documents from './pages/documents/Documents';
 import DocumentForm from './pages/documents/DocumentForm';
 import DocumentPreview from './pages/documents/DocumentPreview';
 
+// Importamos componentes de autenticación
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+
 import theme from './theme';
 import './styles/global.css';
 
@@ -23,33 +30,51 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <DashboardLayout>
+      <AuthProvider>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          {/* Rutas de autenticación */}
+          <Route path="/auth/login" element={<Login />} />
+          <Route path="/auth/register" element={<Register />} />
+          <Route path="/auth/forgot-password" element={<ForgotPassword />} />
           
-          {/* Rutas de Facturas */}
-          <Route path="/invoices" element={<Invoices />} />
-          <Route path="/invoices/new" element={<InvoiceForm />} />
-          <Route path="/invoices/edit/:id" element={<InvoiceForm />} />
+          {/* Rutas protegidas con DashboardLayout */}
+          <Route 
+            path="/" 
+            element={
+              <ProtectedRoute>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Dashboard />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            
+            {/* Rutas de Facturas */}
+            <Route path="invoices" element={<Invoices />} />
+            <Route path="invoices/new" element={<InvoiceForm />} />
+            <Route path="invoices/edit/:id" element={<InvoiceForm />} />
+            
+            {/* Rutas de Cotizaciones */}
+            <Route path="documents" element={<Documents />} />
+            <Route path="documents/new" element={<DocumentForm />} />
+            <Route path="documents/edit/:id" element={<DocumentForm />} />
+            <Route path="documents/view/:id" element={<DocumentPreview />} />
+            
+            {/* Rutas de Clientes */}
+            <Route path="clients" element={<Clients />} />
+            <Route path="clients/new" element={<ClientForm />} />
+            <Route path="clients/edit/:id" element={<ClientForm />} />
+            
+            {/* Rutas de Productos */}
+            <Route path="products" element={<Products />} />
+            <Route path="products/new" element={<ProductForm />} />
+            <Route path="products/edit/:id" element={<ProductForm />} />
+            
+            {/* Configuración */}
+            <Route path="settings" element={<Settings />} />
+          </Route>
           
-          {/* Rutas de Cotizaciones */}
-          <Route path="/documents" element={<Documents />} />
-          <Route path="/documents/new" element={<DocumentForm />} />
-          <Route path="/documents/edit/:id" element={<DocumentForm />} />
-          <Route path="/documents/view/:id" element={<DocumentPreview />} />
-          
-          {/* Rutas de Clientes */}
-          <Route path="/clients" element={<Clients />} />
-          <Route path="/clients/new" element={<ClientForm />} />
-          <Route path="/clients/edit/:id" element={<ClientForm />} />
-          
-          {/* Rutas de Productos */}
-          <Route path="/products" element={<Products />} />
-          <Route path="/products/new" element={<ProductForm />} />
-          <Route path="/products/edit/:id" element={<ProductForm />} />
-          
-          <Route path="/settings" element={<Settings />} />
+          {/* Página no encontrada */}
           <Route path="*" element={
             <div style={{ 
               display: 'flex', 
@@ -64,7 +89,7 @@ function App() {
             </div>
           } />
         </Routes>
-      </DashboardLayout>
+      </AuthProvider>
     </ThemeProvider>
   );
 }
