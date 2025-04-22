@@ -1,46 +1,33 @@
-// src/layouts/DashboardLayout/index.js
+// src/layouts/DashboardLayout/index.js (Simplificado)
 import React from 'react';
+import { Outlet } from 'react-router-dom'; // Importar Outlet para renderizar rutas anidadas
 import { Box } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
-import { useAuth } from '../../context/AuthContext';
+// Ya no necesitamos useAuth aquí si ProtectedRoute maneja la redirección
+// import { useAuth } from '../../context/AuthContext'; 
+// Ya no necesitamos useNavigate aquí si ProtectedRoute maneja la redirección
+// import { useNavigate } from 'react-router-dom'; 
 
-export const DashboardLayout = ({ children }) => {
-  const { currentUser, loading } = useAuth();
-  const navigate = useNavigate();
+// Importamos el tema para usarlo en sx prop si es necesario
+// Asegúrate de que la ruta de importación sea correcta
+import theme from '../../theme'; 
 
-  // Redirigir al usuario al login si no está autenticado
-  React.useEffect(() => {
-    if (!loading && !currentUser) {
-      navigate('/auth/login');
-    }
-  }, [currentUser, loading, navigate]);
+export const DashboardLayout = () => {
+  // Ya no necesitamos verificar loading o currentUser aquí.
+  // ProtectedRoute se asegura de que este componente solo se renderice
+  // cuando el usuario esté autenticado y la carga inicial haya terminado.
 
-  // Si está cargando, mostrar un indicador de carga
-  if (loading) {
-    return (
-      <Box sx={{ 
-        display: 'flex', 
-        height: '100vh',
-        justifyContent: 'center',
-        alignItems: 'center'
-      }}>
-        <p>Cargando...</p>
-      </Box>
-    );
-  }
-
-  // Si no hay usuario y no está cargando, no mostrar nada (la redirección ya está en marcha)
-  if (!currentUser && !loading) {
-    return null;
-  }
+  // NOTA: Usamos <Outlet /> de react-router-dom v6 para renderizar
+  // el componente de la ruta hija coincidente (Dashboard, Invoices, etc.)
+  // Reemplaza a {children} cuando se usa con rutas anidadas definidas en App.js.
 
   return (
     <Box sx={{ 
       display: 'flex', 
       height: '100vh',
-      overflow: 'hidden'
+      overflow: 'hidden', // Evita el desbordamiento general
+      backgroundColor: theme.palette.background.default // Fondo general
     }}>
       {/* Sidebar */}
       <Sidebar />
@@ -50,19 +37,20 @@ export const DashboardLayout = ({ children }) => {
         flexGrow: 1,
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden'
+        overflow: 'hidden' // Evita que el contenedor principal desborde
       }}>
         {/* Navbar superior */}
         <Navbar />
         
-        {/* Área de contenido */}
+        {/* Área de contenido principal con scroll */}
         <Box component="main" sx={{ 
           flexGrow: 1, 
-          p: 3,
-          overflow: 'auto',
-          backgroundColor: theme => theme.palette.background.default
+          p: 3, // Padding alrededor del contenido
+          overflowY: 'auto', // Habilita el scroll vertical solo para esta área
+          // No es necesario backgroundColor aquí si ya está en el contenedor padre
         }}>
-          {children}
+          {/* Renderiza el componente de la ruta anidada actual */}
+          <Outlet /> 
         </Box>
       </Box>
     </Box>

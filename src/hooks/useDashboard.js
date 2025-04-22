@@ -1,62 +1,51 @@
-// src/hooks/useDashboard.js - Actualizado para usar zona horaria local y corregir íconos de estado
+// src/hooks/useDashboard.js (con Diagnósticos)
 import { useState, useEffect, useMemo } from 'react';
-import { useInvoices } from './useInvoices';
-import { useClients } from './useClients';
-import { useProducts } from './useProducts';
-import exchangeRateApi from '../services/exchangeRateApi';
+import { useInvoices } from './useInvoices'; // Asegúrate que la ruta sea correcta
+import { useClients } from './useClients';   // Asegúrate que la ruta sea correcta
+import { useProducts } from './useProducts'; // Asegúrate que la ruta sea correcta
+import exchangeRateApi from '../services/exchangeRateApi'; // Asegúrate que la ruta sea correcta
 
-// Función auxiliar para truncar objetos grandes
+// Función auxiliar para truncar objetos grandes (sin cambios)
 function truncateObject(obj, maxLength = 100) {
   const str = JSON.stringify(obj, null, 2);
   return str.length > maxLength ? str.substring(0, maxLength) + '...' : str;
 }
 
-// Función para normalizar IDs
+// Función para normalizar IDs (sin cambios)
 function normalizeId(id) {
   if (!id) return null;
   return typeof id === 'object' ? id.toString() : String(id);
 }
 
-// Función auxiliar para obtener rango de fechas según la selección
+// Función auxiliar para obtener rango de fechas según la selección (sin cambios)
 const getDateRangeFromSelection = (selectedRange, customDateRange = null) => {
-  // Si es personalizado y tenemos un rango, usarlo directamente
   if (selectedRange === 'custom' && customDateRange) {
     return {
       startDate: new Date(customDateRange.startDate),
       endDate: new Date(customDateRange.endDate)
     };
   }
-  
-  // Si no, calcular el rango según la selección predefinida
   const today = new Date();
   const startDate = new Date();
   const endDate = new Date();
-  
   switch (selectedRange) {
     case 'today':
-      // Hoy (desde 00:00 hasta 23:59)
       startDate.setHours(0, 0, 0, 0);
       endDate.setHours(23, 59, 59, 999);
       break;
-      
     case 'yesterday':
-      // Ayer (desde 00:00 hasta 23:59 de ayer)
       startDate.setDate(today.getDate() - 1);
       startDate.setHours(0, 0, 0, 0);
       endDate.setDate(today.getDate() - 1);
       endDate.setHours(23, 59, 59, 999);
       break;
-      
     case 'thisWeek':
-      // Esta semana (desde lunes hasta hoy)
-      const dayOfWeek = today.getDay(); // 0 = Domingo, 1 = Lunes, etc.
-      const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Ajustar para que la semana empiece en lunes
+      const dayOfWeek = today.getDay();
+      const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
       startDate.setDate(diff);
       startDate.setHours(0, 0, 0, 0);
       break;
-      
     case 'lastWeek':
-      // Semana pasada (lunes a domingo)
       const lastWeekDayOfWeek = today.getDay();
       const lastWeekDiff = today.getDate() - lastWeekDayOfWeek - 6;
       startDate.setDate(lastWeekDiff);
@@ -64,629 +53,497 @@ const getDateRangeFromSelection = (selectedRange, customDateRange = null) => {
       endDate.setDate(lastWeekDiff + 6);
       endDate.setHours(23, 59, 59, 999);
       break;
-      
     case 'thisMonth':
-      // Este mes (desde el 1 hasta hoy)
       startDate.setDate(1);
       startDate.setHours(0, 0, 0, 0);
       break;
-      
     case 'lastMonth':
-      // Mes pasado (del 1 al último día del mes anterior)
       startDate.setMonth(today.getMonth() - 1, 1);
       startDate.setHours(0, 0, 0, 0);
-      endDate.setDate(0); // Último día del mes anterior
+      endDate.setDate(0);
       endDate.setHours(23, 59, 59, 999);
       break;
-      
     case 'thisYear':
-      // Este año (desde el 1 de enero hasta hoy)
       startDate.setMonth(0, 1);
       startDate.setHours(0, 0, 0, 0);
       break;
-      
     case '1M':
-      // Últimos 30 días
       startDate.setDate(today.getDate() - 30);
       startDate.setHours(0, 0, 0, 0);
       break;
-      
     case '3M':
-      // Últimos 3 meses
       startDate.setMonth(today.getMonth() - 3);
       startDate.setHours(0, 0, 0, 0);
       break;
-      
     case '6M':
-      // Últimos 6 meses
       startDate.setMonth(today.getMonth() - 6);
       startDate.setHours(0, 0, 0, 0);
       break;
-      
     case '1Y':
-      // Último año
       startDate.setFullYear(today.getFullYear() - 1);
       startDate.setHours(0, 0, 0, 0);
       break;
-      
     default:
-      // Por defecto, mostrar este mes completo
       startDate.setDate(1);
       startDate.setHours(0, 0, 0, 0);
       endDate.setMonth(today.getMonth() + 1, 0);
       endDate.setHours(23, 59, 59, 999);
   }
-  
   return { startDate, endDate };
 };
 
 export const useDashboard = (selectedRange = 'thisMonth', customDateRange = null) => {
-  const { invoices, loading: invoicesLoading } = useInvoices();
-  const { clients, loading: clientsLoading } = useClients();
-  const { products, loading: productsLoading } = useProducts();
-  
-  const [exchangeRate, setExchangeRate] = useState(40); // Valor inicial por defecto
+  // Obtener datos crudos de los hooks correspondientes
+  const { invoices, loading: invoicesLoading, error: invoicesError } = useInvoices(); // Añadir error
+  const { clients, loading: clientsLoading, error: clientsError } = useClients();   // Añadir error
+  const { products, loading: productsLoading } = useProducts(); // No necesitamos productos aquí directamente
+
+  const [exchangeRate, setExchangeRate] = useState(null); // Inicializar a null
   const [loadingRate, setLoadingRate] = useState(true);
-  
+  const [rateError, setRateError] = useState(null);
+
   // Cargar la tasa de cambio al iniciar
   useEffect(() => {
     const loadExchangeRate = async () => {
+      setRateError(null); // Limpiar error anterior
+      setLoadingRate(true);
       try {
-        setLoadingRate(true);
         const { rate } = await exchangeRateApi.getCurrentRate();
+        console.log('Tasa de cambio cargada en useDashboard:', rate);
         setExchangeRate(rate);
       } catch (error) {
-        console.error('Error al cargar tasa de cambio:', error);
-        setExchangeRate(40); // Valor por defecto
+        console.error('Error al cargar tasa de cambio en useDashboard:', error);
+        setRateError(error.message || 'Error cargando tasa');
+        // Considerar si poner un valor por defecto o dejar null y manejarlo
+        // setExchangeRate(40);
       } finally {
         setLoadingRate(false);
       }
     };
-    
     loadExchangeRate();
   }, []);
-  
-  const loading = invoicesLoading || clientsLoading || productsLoading || loadingRate;
 
-  // Obtener el rango de fechas basado en la selección
+  // Estado de carga combinado
+  const loading = invoicesLoading || clientsLoading || loadingRate;
+  // Combinar errores (opcional, para mostrar un error general si algo falla)
+  const error = invoicesError || clientsError || rateError;
+
+  // Obtener el rango de fechas basado en la selección (sin cambios)
   const timeRange = useMemo(() => {
     return getDateRangeFromSelection(selectedRange, customDateRange);
   }, [selectedRange, customDateRange]);
 
-  // Filtrar facturas por rango de tiempo
+  // Filtrar facturas por rango de tiempo (sin cambios)
   const filteredInvoices = useMemo(() => {
-    if (!invoices.length) return invoices;
-    
+    // Solo filtrar si invoices es un array válido
+    if (!Array.isArray(invoices) || invoices.length === 0) return [];
+
     return invoices.filter(invoice => {
       const fechaStr = invoice.fecha || invoice.date;
       if (!fechaStr) return false;
-      
       const invoiceDate = new Date(fechaStr);
-      if (isNaN(invoiceDate.getTime())) return false;
-      
-      return invoiceDate >= timeRange.startDate && invoiceDate <= timeRange.endDate;
+      // Verificar que la fecha sea válida y esté dentro del rango
+      return !isNaN(invoiceDate.getTime()) &&
+             invoiceDate >= timeRange.startDate &&
+             invoiceDate <= timeRange.endDate;
     });
   }, [invoices, timeRange]);
 
-  // Función auxiliar para convertir monedas
-  const convertCurrency = (amount, fromCurrency, toCurrency) => {
-    if (fromCurrency === toCurrency) return amount;
-    
-    if (fromCurrency === 'USD' && toCurrency === 'VES') {
-      return amount * exchangeRate;
-    } else if (fromCurrency === 'VES' && toCurrency === 'USD') {
-      return amount / exchangeRate;
+  // Función auxiliar para convertir monedas (MÁS ROBUSTA)
+  const convertCurrency = (amount, fromCurrency, toCurrency, rate) => {
+    // Validar entradas
+    if (typeof amount !== 'number' || isNaN(amount) || typeof rate !== 'number' || isNaN(rate) || rate <= 0) {
+      console.warn('convertCurrency: Inputs inválidos', { amount, fromCurrency, toCurrency, rate });
+      return 0; // Devolver 0 si los inputs no son válidos
     }
-    
-    return amount; // Si no hay conversión disponible
+    if (fromCurrency === toCurrency) return amount;
+
+    if (fromCurrency === 'USD' && toCurrency === 'VES') {
+      return amount * rate;
+    } else if (fromCurrency === 'VES' && toCurrency === 'USD') {
+      return amount / rate;
+    }
+
+    console.warn('convertCurrency: Conversión no soportada', { fromCurrency, toCurrency });
+    return amount; // Devolver el monto original si la conversión no es soportada
   };
 
-  // Procesar datos para KPIs con monedas SEPARADAS Y CONSOLIDADAS
-  const kpis = useMemo(() => {
-    if (loading) return {
-      totalPorMoneda: [],
-      totalOperaciones: 0,
-      totalClientes: 0,
-      totalFacturas: 0,
-      cambioIngresos: 0,
-      cambioOperaciones: 0,
-      cambioClientes: 0,
-      cambioFacturas: 0,
-      totalConsolidadoUSD: 0,
-      totalConsolidadoVES: 0,
-      ventasAyerUSD: 0,
-      ventasMesPasadoUSD: 0
-    };
 
-    // Calcular totales por moneda (separados)
-    const totalesPorMoneda = {};
+  // --- DEBUG --- Log de datos ANTES de calcular KPIs
+  console.log('--- DEBUG useDashboard ---');
+  console.log('Invoices (originales):', invoices);
+  console.log('Filtered Invoices:', filteredInvoices);
+  console.log('Clients:', clients);
+  console.log('Exchange Rate:', exchangeRate);
+  console.log('Loading State:', loading);
+  console.log('Error State:', error);
+  console.log('-------------------------');
+
+
+  // Procesar datos para KPIs (MÁS ROBUSTO Y CON LOGS INTERNOS)
+  const kpis = useMemo(() => {
+    // Si está cargando o hay error o falta la tasa, devolver valores por defecto (0 o arrays vacíos)
+    if (loading || error || typeof exchangeRate !== 'number' || isNaN(exchangeRate)) {
+      console.log('KPIs useMemo: Devolviendo valores por defecto (loading/error/no rate)');
+      return {
+        totalPorMoneda: [], totalOperaciones: 0, totalClientes: 0, totalFacturas: 0,
+        cambioIngresos: 0, cambioOperaciones: 0, cambioClientes: 0, cambioFacturas: 0,
+        totalConsolidadoUSD: 0, totalConsolidadoVES: 0,
+        ventasAyerUSD: 0, ventasMesPasadoUSD: 0, periodoSeleccionado: selectedRange
+      };
+    }
+
+    // Asegurarse de que clients es un array
+    const validClients = Array.isArray(clients) ? clients : [];
+
+    // Calcular totales por moneda
+    const totalesPorMonedaMap = {};
     let totalConsolidadoUSD = 0;
-    
+
     filteredInvoices.forEach(invoice => {
-      const moneda = invoice.moneda || 'USD';
-      const total = parseFloat(invoice.total) || 0;
-      
-      if (!totalesPorMoneda[moneda]) {
-        totalesPorMoneda[moneda] = 0;
+      const moneda = invoice.moneda || 'USD'; // Asumir USD si no hay moneda
+      // Asegurarse que el total es un número
+      const total = typeof invoice.total === 'number' && !isNaN(invoice.total) ? invoice.total : 0;
+
+      if (!totalesPorMonedaMap[moneda]) {
+        totalesPorMonedaMap[moneda] = 0;
       }
-      
-      totalesPorMoneda[moneda] += total;
-      
+      totalesPorMonedaMap[moneda] += total;
+
       // Consolidar en USD
-      if (moneda === 'USD') {
-        totalConsolidadoUSD += total;
-      } else if (moneda === 'VES') {
-        totalConsolidadoUSD += convertCurrency(total, 'VES', 'USD');
-      }
+      totalConsolidadoUSD += convertCurrency(total, moneda, 'USD', exchangeRate);
     });
-    
+
     // Convertir a array para la visualización
-    const totalPorMoneda = Object.entries(totalesPorMoneda).map(([moneda, total]) => ({
+    const totalPorMoneda = Object.entries(totalesPorMonedaMap).map(([moneda, total]) => ({
       moneda,
-      total
+      total: Math.round(total * 100) / 100 // Redondear
     }));
-    
+
     // Calcular total consolidado en VES
-    const totalConsolidadoVES = convertCurrency(totalConsolidadoUSD, 'USD', 'VES');
-    
+    const totalConsolidadoVES = convertCurrency(totalConsolidadoUSD, 'USD', 'VES', exchangeRate);
+
+    // Calcular totales generales
     const totalFacturas = filteredInvoices.length;
-    const totalClientes = clients.length;
-    
-    // Calcular ingresos del día anterior
+    const totalClientes = validClients.length; // Usar el array validado
+
+    // --- Calcular ingresos del día anterior ---
     const hoy = new Date();
-    const ayer = new Date(hoy);
-    ayer.setDate(ayer.getDate() - 1);
-    const facturasAyer = invoices.filter(invoice => {
-      const fechaFactura = new Date(invoice.fecha || invoice.date);
-      return fechaFactura.getDate() === ayer.getDate() && 
-             fechaFactura.getMonth() === ayer.getMonth() && 
-             fechaFactura.getFullYear() === ayer.getFullYear();
+    const ayerStart = new Date(hoy);
+    ayerStart.setDate(hoy.getDate() - 1);
+    ayerStart.setHours(0, 0, 0, 0);
+    const ayerEnd = new Date(hoy);
+    ayerEnd.setDate(hoy.getDate() - 1);
+    ayerEnd.setHours(23, 59, 59, 999);
+
+    // Filtrar facturas de AYER (usando el array original 'invoices', no el filtrado por rango)
+    const facturasAyer = (Array.isArray(invoices) ? invoices : []).filter(invoice => {
+        const fechaStr = invoice.fecha || invoice.date;
+        if (!fechaStr) return false;
+        const fechaFactura = new Date(fechaStr);
+        return !isNaN(fechaFactura.getTime()) && fechaFactura >= ayerStart && fechaFactura <= ayerEnd;
     });
+
     let ventasAyerUSD = 0;
     facturasAyer.forEach(invoice => {
       const moneda = invoice.moneda || 'USD';
-      const total = parseFloat(invoice.total) || 0;
-      
-      if (moneda === 'USD') {
-        ventasAyerUSD += total;
-      } else if (moneda === 'VES') {
-        ventasAyerUSD += convertCurrency(total, 'VES', 'USD');
-      }
+      const total = typeof invoice.total === 'number' && !isNaN(invoice.total) ? invoice.total : 0;
+      ventasAyerUSD += convertCurrency(total, moneda, 'USD', exchangeRate);
     });
-    
-    // Calcular ingresos del mes anterior
-    const mesActual = new Date().getMonth();
-    const anioActual = new Date().getFullYear();
-    let mesPasado = mesActual - 1;
-    let anioPasado = anioActual;
-    if (mesPasado < 0) {
-      mesPasado = 11; // Diciembre
-      anioPasado = anioActual - 1;
-    }
-    const facturasMesPasado = invoices.filter(invoice => {
-      const fecha = new Date(invoice.fecha || invoice.date);
-      return fecha.getMonth() === mesPasado && fecha.getFullYear() === anioPasado;
+
+    // --- Calcular ingresos del mes anterior ---
+    const mesActual = hoy.getMonth();
+    const anioActual = hoy.getFullYear();
+    const primerDiaMesPasado = new Date(anioActual, mesActual - 1, 1, 0, 0, 0, 0);
+    const ultimoDiaMesPasado = new Date(anioActual, mesActual, 0, 23, 59, 59, 999); // Día 0 del mes actual es el último del anterior
+
+    // Filtrar facturas del MES PASADO (usando el array original 'invoices')
+    const facturasMesPasado = (Array.isArray(invoices) ? invoices : []).filter(invoice => {
+        const fechaStr = invoice.fecha || invoice.date;
+        if (!fechaStr) return false;
+        const fecha = new Date(fechaStr);
+        return !isNaN(fecha.getTime()) && fecha >= primerDiaMesPasado && fecha <= ultimoDiaMesPasado;
     });
+
     let ventasMesPasadoUSD = 0;
     facturasMesPasado.forEach(invoice => {
       const moneda = invoice.moneda || 'USD';
-      const total = parseFloat(invoice.total) || 0;
-      
-      if (moneda === 'USD') {
-        ventasMesPasadoUSD += total;
-      } else if (moneda === 'VES') {
-        ventasMesPasadoUSD += convertCurrency(total, 'VES', 'USD');
-      }
+      const total = typeof invoice.total === 'number' && !isNaN(invoice.total) ? invoice.total : 0;
+      ventasMesPasadoUSD += convertCurrency(total, moneda, 'USD', exchangeRate);
     });
 
-    // Calcular cambios porcentuales basados en períodos comparativos
+    // Calcular cambios porcentuales
     let cambioIngresos = 0;
-    let cambioFacturas = 0;
-    
-    // Si estamos en este mes, comparamos con el mes anterior
-    if (selectedRange === 'thisMonth' && ventasMesPasadoUSD > 0) {
-      cambioIngresos = ((totalConsolidadoUSD - ventasMesPasadoUSD) / ventasMesPasadoUSD) * 100;
-    } 
-    // Si estamos viendo hoy, comparamos con ayer
-    else if (selectedRange === 'today' && ventasAyerUSD > 0) {
-      cambioIngresos = ((totalConsolidadoUSD - ventasAyerUSD) / ventasAyerUSD) * 100;
+    let cambioFacturas = 0; // Necesitaríamos facturas del período anterior para esto
+
+    // Comparar ingresos actuales (totalConsolidadoUSD) con período anterior relevante
+    let ingresosPeriodoAnterior = 0;
+    if (selectedRange === 'thisMonth') {
+        ingresosPeriodoAnterior = ventasMesPasadoUSD;
+    } else if (selectedRange === 'today') {
+        ingresosPeriodoAnterior = ventasAyerUSD;
+    } // Añadir más lógica para otros rangos si es necesario
+
+    if (ingresosPeriodoAnterior > 0) {
+      cambioIngresos = ((totalConsolidadoUSD - ingresosPeriodoAnterior) / ingresosPeriodoAnterior) * 100;
+    } else if (totalConsolidadoUSD > 0) {
+      cambioIngresos = 100; // Si antes era 0 y ahora hay ingresos, es +100% (o infinito)
     }
-    // En otros casos, usamos valores simulados (para no dejar vacío)
-    else {
-      cambioIngresos = 5.2;
-      cambioFacturas = -2.5;
-    }
-    
-    // Cambios simulados para otros indicadores que no tenemos datos históricos
+
+    // Lógica simulada para cambios no calculados (igual que antes)
     const cambioOperaciones = 3.1;
     const cambioClientes = -0.8;
 
-    return {
+    // --- DEBUG --- Log de KPIs calculados ANTES de retornar
+    const calculatedKpis = {
       totalPorMoneda,
-      totalOperaciones: totalFacturas,
+      totalOperaciones: totalFacturas, // Usar totalFacturas calculado
       totalClientes,
       totalFacturas,
-      cambioIngresos: Math.round(cambioIngresos * 10) / 10, // Redondear a 1 decimal
+      cambioIngresos: Math.round(cambioIngresos * 10) / 10,
       cambioOperaciones,
       cambioClientes,
-      cambioFacturas,
-      totalConsolidadoUSD,
-      totalConsolidadoVES,
-      ventasAyerUSD,
-      ventasMesPasadoUSD,
+      cambioFacturas, // Aún simulado o 0 si no se calcula
+      totalConsolidadoUSD: Math.round(totalConsolidadoUSD * 100) / 100,
+      totalConsolidadoVES: Math.round(totalConsolidadoVES * 100) / 100,
+      ventasAyerUSD: Math.round(ventasAyerUSD * 100) / 100,
+      ventasMesPasadoUSD: Math.round(ventasMesPasadoUSD * 100) / 100,
       periodoSeleccionado: selectedRange
     };
-  }, [filteredInvoices, invoices, clients, loading, exchangeRate, selectedRange]);
+    console.log('KPIs calculados en useMemo:', calculatedKpis);
 
-  // Procesar datos para el gráfico de facturación mensual - SEPARADO POR MONEDA
+    return calculatedKpis;
+
+  // Dependencias del useMemo: deben incluir todo lo usado dentro
+  }, [
+      invoices, // Array original de facturas (para cálculos de ayer/mes pasado)
+      filteredInvoices, // Facturas filtradas por rango (para totales del período)
+      clients, // Array de clientes
+      loading, // Estado de carga general
+      error, // Estado de error general
+      exchangeRate, // Tasa de cambio
+      selectedRange // Rango de tiempo seleccionado
+  ]);
+
+  // ... resto de los useMemo para gráficos (facturasPorMes, facturasPorDia, etc.) ...
+  // Asegúrate de que estos también manejen 'loading', 'error' y 'exchangeRate' inválido si es necesario
+
+  // Procesar datos para el gráfico de facturación mensual
   const facturasPorMes = useMemo(() => {
-    if (loading || !filteredInvoices.length) return [];
-
+    if (loading || error || typeof exchangeRate !== 'number' || isNaN(exchangeRate) || !filteredInvoices.length) return [];
+    // ... (lógica existente, pero usando convertCurrency robusta y exchangeRate validado) ...
     const mesesMap = {};
-    
     filteredInvoices.forEach(invoice => {
       const fechaStr = invoice.fecha || invoice.date;
       if (!fechaStr) return;
-      
       const fecha = new Date(fechaStr);
       if (isNaN(fecha.getTime())) return;
-      
+
       const mes = fecha.toLocaleString('es', { month: 'short' });
       const moneda = invoice.moneda || 'USD';
-      const total = parseFloat(invoice.total) || 0;
-      
+      const total = typeof invoice.total === 'number' && !isNaN(invoice.total) ? invoice.total : 0;
+
       if (!mesesMap[mes]) {
-        mesesMap[mes] = { 
-          USD: 0, 
-          VES: 0,
-          total: 0 // Total en USD para visualización
-        };
+        mesesMap[mes] = { USD: 0, VES: 0, total: 0 };
       }
-      
-      // Agregar a la moneda correspondiente
-      mesesMap[mes][moneda] += total;
-      
-      // Actualizar el total (convertido a USD para comparación)
-      if (moneda === 'USD') {
-        mesesMap[mes].total += total;
-      } else if (moneda === 'VES') {
-        mesesMap[mes].total += convertCurrency(total, 'VES', 'USD');
-      } else {
-        mesesMap[mes].total += total; // Otras monedas como USD por defecto
-      }
+      mesesMap[mes][moneda] = (mesesMap[mes][moneda] || 0) + total; // Acumular correctamente
+      mesesMap[mes].total += convertCurrency(total, moneda, 'USD', exchangeRate);
     });
-    
-    // Convertir a array para el gráfico
     return Object.entries(mesesMap).map(([name, data]) => ({
       name,
       USD: Math.round(data.USD * 100) / 100,
       VES: Math.round(data.VES * 100) / 100,
       total: Math.round(data.total * 100) / 100
     }));
-  }, [filteredInvoices, loading, exchangeRate]);
+  }, [filteredInvoices, loading, error, exchangeRate]);
 
-  // FUNCIÓN MEJORADA: Procesar datos para el gráfico de facturación diaria
+
+  // Procesar datos para el gráfico de facturación diaria
   const facturasPorDia = useMemo(() => {
-    if (loading || !filteredInvoices.length) return [];
-    
-    // Crear un mapa para organizar facturas por día
-    const diasMap = {};
-    
-    // Contador total de facturas procesadas para verificación
-    let totalFacturasProcesadas = 0;
-    
-    // Agrupar facturas por día
-    filteredInvoices.forEach(invoice => {
-      const fechaStr = invoice.fecha || invoice.date;
-      if (!fechaStr) return;
-      
-      // Convertir la fecha a objeto Date
-      const fecha = new Date(fechaStr);
-      if (isNaN(fecha.getTime())) return;
-      
-      // Extraer el día y mes
-      const dia = fecha.getDate();
-      
-      // Mapeo de números de mes a abreviaturas en español
-      const mesesAbr = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-      const mesAbr = mesesAbr[fecha.getMonth()];
-      
-      // Crear clave para la fecha formateada como "13 mar"
-      const fechaFormateada = `${dia} ${mesAbr}`;
-      
-      // Inicializar entrada si no existe
-      if (!diasMap[fechaFormateada]) {
-        diasMap[fechaFormateada] = {
-          fecha: fecha,
-          USD: 0,
-          VES: 0,
-          total: 0,
-          facturas: 0  // Inicializar contador de facturas
-        };
-      }
-      
-      // Incrementar contador de facturas para este día
-      diasMap[fechaFormateada].facturas += 1;
-      
-      // Incrementar contador total para verificación
-      totalFacturasProcesadas += 1;
-      
-      // Acumular montos por moneda
-      const moneda = invoice.moneda || 'USD';
-      const total = parseFloat(invoice.total) || 0;
-      
-      if (moneda === 'USD') {
-        diasMap[fechaFormateada].USD += total;
-      } else if (moneda === 'VES') {
-        diasMap[fechaFormateada].VES += total;
-      }
-      
-      // Calcular total en USD (para tener un total unificado)
-      if (moneda === 'USD') {
-        diasMap[fechaFormateada].total += total;
-      } else if (moneda === 'VES') {
-        diasMap[fechaFormateada].total += convertCurrency(total, 'VES', 'USD');
-      }
-    });
-    
-    // Validación de integridad: verificar que contamos todas las facturas
-    console.log(`Total facturas procesadas: ${totalFacturasProcesadas}, Total facturas filtradas: ${filteredInvoices.length}`);
-    
-    // Convertir a array y formatear para el gráfico, asegurando que el conteo de facturas se incluye correctamente
-    const resultado = Object.entries(diasMap).map(([fechaFormateada, datos]) => ({
-      name: fechaFormateada,
-      USD: Math.round(datos.USD * 100) / 100,
-      VES: Math.round(datos.VES * 100) / 100,
-      total: Math.round(datos.total * 100) / 100,
-      // Asegurarse de que el número de facturas es un entero y no es undefined
-      facturas: parseInt(datos.facturas) || 0,
-      // Añadir fecha original para facilitar ordenación
-      fechaObj: datos.fecha
-    }));
-    
-    // Ordenar por fecha (primero por mes y luego por día)
-    return resultado.sort((a, b) => {
-      // Usar los objetos fecha completos para comparación correcta
-      return a.fechaObj - b.fechaObj;
-    });
-  }, [filteredInvoices, loading, exchangeRate]);
+    if (loading || error || typeof exchangeRate !== 'number' || isNaN(exchangeRate) || !filteredInvoices.length) return [];
+     // ... (lógica existente, pero usando convertCurrency robusta y exchangeRate validado) ...
+     const diasMap = {};
+     let totalFacturasProcesadas = 0;
+     filteredInvoices.forEach(invoice => {
+        const fechaStr = invoice.fecha || invoice.date;
+        if (!fechaStr) return;
+        const fecha = new Date(fechaStr);
+        if (isNaN(fecha.getTime())) return;
 
-  // Distribución por moneda - PORCENTAJES PRECISOS
+        const dia = fecha.getDate();
+        const mesesAbr = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+        const mesAbr = mesesAbr[fecha.getMonth()];
+        const fechaFormateada = `${dia} ${mesAbr}`;
+
+        if (!diasMap[fechaFormateada]) {
+          diasMap[fechaFormateada] = { fecha: fecha, USD: 0, VES: 0, total: 0, facturas: 0 };
+        }
+        diasMap[fechaFormateada].facturas += 1;
+        totalFacturasProcesadas += 1;
+
+        const moneda = invoice.moneda || 'USD';
+        const total = typeof invoice.total === 'number' && !isNaN(invoice.total) ? invoice.total : 0;
+
+        diasMap[fechaFormateada][moneda] = (diasMap[fechaFormateada][moneda] || 0) + total; // Acumular correctamente
+        diasMap[fechaFormateada].total += convertCurrency(total, moneda, 'USD', exchangeRate);
+     });
+     console.log(`Facturas por Día - Total procesadas: ${totalFacturasProcesadas}, Total filtradas: ${filteredInvoices.length}`);
+     const resultado = Object.entries(diasMap).map(([fechaFormateada, datos]) => ({
+        name: fechaFormateada,
+        USD: Math.round(datos.USD * 100) / 100,
+        VES: Math.round(datos.VES * 100) / 100,
+        total: Math.round(datos.total * 100) / 100,
+        facturas: parseInt(datos.facturas) || 0,
+        fechaObj: datos.fecha
+     }));
+     return resultado.sort((a, b) => a.fechaObj - b.fechaObj);
+  }, [filteredInvoices, loading, error, exchangeRate]);
+
+
+  // Distribución por moneda
   const facturasPorTipo = useMemo(() => {
-    if (loading || !filteredInvoices.length) return [];
-
+    if (loading || error || typeof exchangeRate !== 'number' || isNaN(exchangeRate) || !filteredInvoices.length) return [];
+    // ... (lógica existente, pero usando convertCurrency robusta y exchangeRate validado) ...
     const monedasMap = {};
-    
-    // Calcular totales en USD para tener una base común
-    let totalUSD = 0;
-    
+    let totalConsolidadoUSDForPercentage = 0; // Usar variable local para evitar conflictos
     filteredInvoices.forEach(invoice => {
-      const moneda = invoice.moneda || 'USD';
-      const total = parseFloat(invoice.total) || 0;
-      
-      if (!monedasMap[moneda]) {
-        monedasMap[moneda] = 0;
-      }
-      
-      monedasMap[moneda] += total;
-      
-      // Convertir a USD para calcular porcentajes
-      if (moneda === 'USD') {
-        totalUSD += total;
-      } else if (moneda === 'VES') {
-        totalUSD += convertCurrency(total, 'VES', 'USD');
-      } else {
-        totalUSD += total; // Otras monedas se tratan como USD
-      }
+        const moneda = invoice.moneda || 'USD';
+        const total = typeof invoice.total === 'number' && !isNaN(invoice.total) ? invoice.total : 0;
+        if (!monedasMap[moneda]) {
+          monedasMap[moneda] = 0;
+        }
+        monedasMap[moneda] += total;
+        totalConsolidadoUSDForPercentage += convertCurrency(total, moneda, 'USD', exchangeRate);
     });
-    
-    // Convertir a array y calcular porcentajes
     return Object.entries(monedasMap).map(([moneda, value]) => {
-      // Convertir el valor a USD para calcular el porcentaje
-      let valueInUSD = value;
-      if (moneda === 'VES') {
-        valueInUSD = convertCurrency(value, 'VES', 'USD');
-      }
-      
-      const porcentaje = totalUSD > 0 ? Math.round((valueInUSD / totalUSD) * 100) : 0;
-      
-      // Formatear nombre para visualización
-      const monedaEmojis = {
-        'USD': '💵 USD',
-        'VES': '💰 VES',
-        'EUR': '💶 EUR',
-        'BTC': '₿ BTC',
-      };
-      
-      const name = monedaEmojis[moneda] || moneda;
-      
-      return {
-        name,
-        value: porcentaje,
-        raw: value // Valor original sin formato
-      };
+        let valueInUSD = convertCurrency(value, moneda, 'USD', exchangeRate);
+        const porcentaje = totalConsolidadoUSDForPercentage > 0 ? Math.round((valueInUSD / totalConsolidadoUSDForPercentage) * 100) : 0;
+        const monedaEmojis = {'USD': '💵 USD', 'VES': '💰 VES', 'EUR': '💶 EUR', 'BTC': '₿ BTC'};
+        const name = monedaEmojis[moneda] || moneda;
+        return { name, value: porcentaje, raw: value };
     });
-  }, [filteredInvoices, loading, exchangeRate]);
+  }, [filteredInvoices, loading, error, exchangeRate]);
 
-  // Facturas por año - Con validación para evitar undefined
+
+  // Facturas por año
   const facturasPorAnio = useMemo(() => {
-    if (loading || !filteredInvoices.length) return [];
-
+    if (loading || error || typeof exchangeRate !== 'number' || isNaN(exchangeRate) || !filteredInvoices.length) return [];
+    // ... (lógica existente, pero usando convertCurrency robusta y exchangeRate validado) ...
     const aniosMap = {};
-    
-    // Asegurarse de que cada factura tenga fecha válida
     filteredInvoices.forEach(invoice => {
-      // Validar que la fecha existe y es válida
-      const fechaStr = invoice.fecha || invoice.date;
-      if (!fechaStr) return; // Saltar si no hay fecha
-      
-      const fecha = new Date(fechaStr);
-      if (isNaN(fecha.getTime())) return; // Saltar si la fecha no es válida
-      
-      const anio = fecha.getFullYear().toString();
-      const moneda = invoice.moneda || 'USD';
-      const total = parseFloat(invoice.total) || 0;
-      
-      if (!aniosMap[anio]) {
-        aniosMap[anio] = { 
-          USD: 0, 
-          VES: 0,
-          total: 0 
-        };
-      }
-      
-      // Acumular por moneda
-      if (moneda === 'USD') {
-        aniosMap[anio].USD += total;
-        aniosMap[anio].total += total;
-      } else if (moneda === 'VES') {
-        aniosMap[anio].VES += total;
-        aniosMap[anio].total += convertCurrency(total, 'VES', 'USD');
-      } else {
-        // Otras monedas (si existen) se acumulan como USD
-        aniosMap[anio].USD += total;
-        aniosMap[anio].total += total;
-      }
+        const fechaStr = invoice.fecha || invoice.date;
+        if (!fechaStr) return;
+        const fecha = new Date(fechaStr);
+        if (isNaN(fecha.getTime())) return;
+
+        const anio = fecha.getFullYear().toString();
+        const moneda = invoice.moneda || 'USD';
+        const total = typeof invoice.total === 'number' && !isNaN(invoice.total) ? invoice.total : 0;
+
+        if (!aniosMap[anio]) {
+          aniosMap[anio] = { USD: 0, VES: 0, total: 0 };
+        }
+        aniosMap[anio][moneda] = (aniosMap[anio][moneda] || 0) + total; // Acumular correctamente
+        aniosMap[anio].total += convertCurrency(total, moneda, 'USD', exchangeRate);
     });
-    
-    // Convertir a array y asegurarse de que todos los campos son números
     return Object.entries(aniosMap).map(([name, data]) => ({
       name,
       USD: Math.round((data.USD || 0) * 100) / 100,
       VES: Math.round((data.VES || 0) * 100) / 100,
       total: Math.round((data.total || 0) * 100) / 100
     }));
-  }, [filteredInvoices, loading, exchangeRate]);
+  }, [filteredInvoices, loading, error, exchangeRate]);
 
+
+  // Facturas recientes
   const facturasRecientes = useMemo(() => {
-    if (loading || !filteredInvoices.length) return [];
+    // Usar filteredInvoices para mostrar recientes del período seleccionado
+    if (loading || error || !filteredInvoices.length) return [];
+    // Asegurarse que clients es un array
+    const validClients = Array.isArray(clients) ? clients : [];
 
     return filteredInvoices
       .sort((a, b) => new Date(b.fecha || b.date) - new Date(a.fecha || a.date))
       .slice(0, 5)
       .map(invoice => {
-        // Obtener número de factura
-        const numeroFactura = invoice.number || invoice.numeroFactura || invoice.numero || 
-                        `INV-${invoice._id ? invoice._id.substring(0, 4) : Math.floor(Math.random() * 9000 + 1000)}`;
-        
-        // Obtener nombre del cliente usando los datos populados
+        const numeroFactura = invoice.number || invoice.numeroFactura || invoice.numero || `INV-${invoice._id ? invoice._id.substring(0, 4) : ''}`;
         let clienteNombre = 'Cliente desconocido';
-        
-        // Verificar si el cliente está populado como objeto
-        if (invoice.client && typeof invoice.client === 'object') {
-          clienteNombre = invoice.client.name || invoice.client.nombre || clienteNombre;
-        } 
-        // Verificar nombres alternativos de propiedades
-        else if (invoice.cliente && typeof invoice.cliente === 'object') {
-          clienteNombre = invoice.cliente.name || invoice.cliente.nombre || clienteNombre;
+        const clientIdRef = invoice.client?._id || invoice.client || invoice.cliente; // Unificar referencia a cliente
+
+        if (clientIdRef) {
+            // Si el cliente está populado en la factura
+            if (invoice.client && typeof invoice.client === 'object') {
+                clienteNombre = invoice.client.name || invoice.client.nombre || clienteNombre;
+            } else if (invoice.cliente && typeof invoice.cliente === 'object') { // Campo alternativo
+                 clienteNombre = invoice.cliente.name || invoice.cliente.nombre || clienteNombre;
+            } else {
+                // Buscar en la lista de clientes si no está populado
+                const clienteEncontrado = validClients.find(c => normalizeId(c._id) === normalizeId(clientIdRef));
+                if (clienteEncontrado) {
+                    clienteNombre = clienteEncontrado.nombre || clienteEncontrado.name || clienteNombre;
+                }
+            }
         }
-        // Si tenemos un ID de cliente pero no está populado, buscarlo en el array de clientes
-        else if (invoice.client || invoice.cliente || invoice.clientId) {
-          const clientId = invoice.client || invoice.cliente || invoice.clientId;
-          const cliente = clients.find(c => normalizeId(c._id) === normalizeId(clientId));
-          if (cliente) {
-            clienteNombre = cliente.nombre || cliente.name || clienteNombre;
-          }
-        }
-        
-        // Emoji según estado
-        let estadoEmoji = '';
-        const estado = invoice.status || invoice.estado || 'borrador';
-        
-        switch (estado.toLowerCase()) {
-          case 'paid':
-          case 'pagada':
-            estadoEmoji = '✅ ';
-            break;
-          case 'pending':
-          case 'pendiente':
-            estadoEmoji = '⏳ ';
-            break;
-          case 'issued':
-          case 'emitida':
-            estadoEmoji = '📨 ';
-            break;
-          case 'draft':
-          case 'borrador':
-            estadoEmoji = '📝 ';
-            break;
-          case 'cancelled':
-          case 'cancelada':
-            estadoEmoji = '❌ ';
-            break;
-          default:
-            estadoEmoji = '📄 ';
-        }
-        
-        // Traducir estado
-        const estadoTraducido = {
-          'draft': 'Borrador',
-          'issued': 'Emitida',
-          'paid': 'Pagada',
-          'cancelled': 'Cancelada',
-          'pending': 'Pendiente',
-          'borrador': 'Borrador',
-          'emitida': 'Emitida',
-          'pagada': 'Pagada',
-          'cancelada': 'Cancelada',
-          'pendiente': 'Pendiente'
-        }[estado.toLowerCase()] || 'Borrador';
-        
+
+        const estado = (invoice.status || invoice.estado || 'draft').toLowerCase();
+        const estadoEmojis = {'paid': '✅ ', 'pagada': '✅ ', 'pending': '⏳ ', 'pendiente': '⏳ ', 'issued': '📨 ', 'emitida': '📨 ', 'draft': '📝 ', 'borrador': '📝 ', 'cancelled': '❌ ', 'cancelada': '❌ '};
+        const estadoTraducido = {'draft': 'Borrador', 'issued': 'Emitida', 'paid': 'Pagada', 'cancelled': 'Cancelada', 'pending': 'Pendiente', 'borrador': 'Borrador', 'emitida': 'Emitida', 'pagada': 'Pagada', 'cancelada': 'Cancelada', 'pendiente': 'Pendiente'};
+        const estadoEmoji = estadoEmojis[estado] || '📄 ';
+        const estadoFinal = estadoTraducido[estado] || 'Borrador';
+
         return {
           id: numeroFactura,
           cliente: `👤 ${clienteNombre}`,
           fecha: new Date(invoice.fecha || invoice.date).toLocaleDateString('es-ES'),
-          total: parseFloat(invoice.total) || 0,
+          total: typeof invoice.total === 'number' && !isNaN(invoice.total) ? invoice.total : 0,
           moneda: invoice.moneda || 'USD',
-          estado: `${estadoEmoji}${estadoTraducido}`
+          estado: `${estadoEmoji}${estadoFinal}`
         };
       });
-  }, [filteredInvoices, clients, loading]);
+  }, [filteredInvoices, clients, loading, error]); // Incluir clients y error
 
-  // Clientes recientes permanece igual
+
+  // Clientes recientes
   const clientesRecientes = useMemo(() => {
-    if (loading || !clients.length) return [];
+    // Usar la lista completa de clientes, no los filtrados por factura
+    if (loading || error || !Array.isArray(clients) || clients.length === 0) return [];
+    const validClients = clients; // Ya sabemos que es un array
 
-    return clients
+    return validClients
+      // Ordenar por fecha de creación o ID si no hay fecha (asumiendo IDs más nuevos son recientes)
+      .sort((a, b) => (new Date(b.createdAt || 0) - new Date(a.createdAt || 0)) || (b._id > a._id ? -1 : 1))
       .slice(0, 5)
       .map(client => {
-        const nombreCliente = client.nombre || client.name;
-        
-        // Contar facturas relacionadas directamente desde las facturas disponibles
-        const clienteFacturas = filteredInvoices.filter(invoice => {
-          // Verificar por ID si el cliente está como objeto o como referencia
-          if (invoice.client && typeof invoice.client === 'object') {
-            return normalizeId(invoice.client._id) === normalizeId(client._id);
-          } 
-          // Verificar por referencia directa
-          return normalizeId(invoice.client) === normalizeId(client._id) || 
-                normalizeId(invoice.cliente) === normalizeId(client._id) || 
-                normalizeId(invoice.clientId) === normalizeId(client._id);
+        const nombreCliente = client.nombre || client.name || 'Sin Nombre';
+        // Contar facturas del cliente usando el array original 'invoices'
+        const clienteFacturasCount = (Array.isArray(invoices) ? invoices : []).filter(invoice => {
+            const clientIdRef = invoice.client?._id || invoice.client || invoice.cliente;
+            return normalizeId(clientIdRef) === normalizeId(client._id);
         }).length;
-        
-        // Emoji según número de facturas
-        let facturaEmoji = '';
-        if (clienteFacturas > 10) facturaEmoji = '🔥 ';
-        else if (clienteFacturas > 5) facturaEmoji = '⭐ ';
-        else if (clienteFacturas > 0) facturaEmoji = '📄 ';
-        else facturaEmoji = '📭 ';
-        
-        // Extraer email y documento correctamente
+
+        let facturaEmoji = '📭 ';
+        if (clienteFacturasCount > 10) facturaEmoji = '🔥 ';
+        else if (clienteFacturasCount > 5) facturaEmoji = '⭐ ';
+        else if (clienteFacturasCount > 0) facturaEmoji = '📄 ';
+
         const email = client.email || client.correo || '';
         const documento = client.rif || client.RIF || client.documento || '';
-        
+
         return {
           id: client._id,
           nombre: `👤 ${nombreCliente}`,
           email: email,
           documento: documento,
-          facturas: `${facturaEmoji}${clienteFacturas}`
+          facturas: `${facturaEmoji}${clienteFacturasCount}` // Mostrar conteo numérico
         };
       });
-  }, [clients, filteredInvoices, loading]);
+  }, [clients, invoices, loading, error]); // Incluir invoices y error
 
+
+  // Devolver todos los datos procesados
   return {
     loading,
+    error, // Devolver el estado de error combinado
     kpis,
     facturasPorMes,
     facturasPorDia,
@@ -695,7 +552,7 @@ export const useDashboard = (selectedRange = 'thisMonth', customDateRange = null
     facturasRecientes,
     clientesRecientes,
     exchangeRate,
-    timeRange,
-    filteredInvoices
+    timeRange, // Rango de fechas calculado
+    filteredInvoices // Facturas filtradas (útil para otros componentes si es necesario)
   };
 };
