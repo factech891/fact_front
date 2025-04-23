@@ -1,4 +1,4 @@
-// src/App.js modificado
+// src/App.js
 import { Routes, Route } from 'react-router-dom';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { ThemeProvider, CssBaseline } from '@mui/material';
@@ -15,6 +15,10 @@ import Settings from './pages/settings/Settings';
 import Documents from './pages/documents/Documents';
 import DocumentForm from './pages/documents/DocumentForm';
 import DocumentPreview from './pages/documents/DocumentPreview';
+
+// Importamos los componentes del módulo de usuarios
+import UserManagement from './pages/users/UserManagement';
+import UserForm from './pages/users/UserForm';
 
 // Importamos componentes de autenticación
 import Login from './pages/auth/Login';
@@ -38,8 +42,8 @@ function App() {
           <Route path="/auth/forgot-password" element={<ForgotPassword />} />
           
           {/* Rutas protegidas con DashboardLayout */}
-          <Route 
-            path="/" 
+          <Route
+            path="/"
             element={
               <ProtectedRoute>
                 <DashboardLayout />
@@ -70,16 +74,21 @@ function App() {
             <Route path="products/new" element={<ProductForm />} />
             <Route path="products/edit/:id" element={<ProductForm />} />
             
+            {/* Rutas de Usuarios */}
+            <Route path="users" element={<UserManagement />} />
+            <Route path="users/new" element={<UserForm />} />
+            <Route path="users/edit/:id" element={<UserForm />} />
+            
             {/* Configuración */}
             <Route path="settings" element={<Settings />} />
           </Route>
           
           {/* Página no encontrada */}
           <Route path="*" element={
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              alignItems: 'center', 
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
               height: '100vh',
               flexDirection: 'column',
               gap: '1rem'
