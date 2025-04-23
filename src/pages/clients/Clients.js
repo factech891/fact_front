@@ -67,7 +67,25 @@ const Clients = () => {
   const handleSave = async (client) => {
     try {
       console.log("Cliente enviado para guardar:", client);
-      await saveClient(client);
+      
+      // Verificar existencia de API
+      if (!saveClient) {
+        throw new Error("La función saveClient no está disponible");
+      }
+      
+      // Asegurar que tenemos todos los campos necesarios
+      const preparedClient = {
+        ...client,
+        // Asegurar valores por defecto para campos críticos
+        telefono: client.telefono || '',
+        direccion: client.direccion || '',
+        tipoPersona: client.tipoPersona || 'natural',
+        tipoCliente: client.tipoCliente || 'regular'
+      };
+      
+      const savedClient = await saveClient(preparedClient);
+      console.log("Cliente guardado correctamente:", savedClient);
+      
       setOpenForm(false);
       setSelectedClient(null);
       setAlert({
@@ -75,7 +93,12 @@ const Clients = () => {
         message: client._id ? 'Cliente actualizado exitosamente' : 'Cliente creado exitosamente',
         severity: 'success'
       });
-      if (fetchClients) fetchClients();
+      
+      // Asegurarse de actualizar la lista de clientes
+      if (fetchClients) {
+        console.log("Actualizando lista de clientes...");
+        await fetchClients();
+      }
     } catch (error) {
       console.error('Error saving client:', error);
       setAlert({
@@ -102,7 +125,12 @@ const Clients = () => {
       try {
         await deleteClient(clientIdToDelete);
         setAlert({ open: true, message: 'Cliente eliminado exitosamente', severity: 'success' });
-         if (fetchClients) fetchClients();
+        
+        // Asegurarse de actualizar la lista de clientes
+        if (fetchClients) {
+          console.log("Actualizando lista de clientes después de eliminar...");
+          await fetchClients();
+        }
       } catch (error) {
         console.error('Error deleting client:', error);
         setAlert({ open: true, message: error.message || 'No se pudo eliminar el cliente', severity: 'error' });
