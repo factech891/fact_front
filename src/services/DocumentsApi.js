@@ -1,5 +1,8 @@
-// src/services/DocumentsApi.js
-const API_BASE_URL = 'http://localhost:5002/api';
+// src/services/DocumentsApi.js (Corregido para incluir token)
+
+// Importar las funciones necesarias desde api.js
+// Asegúrate que la ruta a api.js sea correcta
+import { API_BASE_URL, handleResponse, getAuthHeaders } from './api';
 
 /**
  * Obtiene la lista de documentos desde el backend.
@@ -7,13 +10,16 @@ const API_BASE_URL = 'http://localhost:5002/api';
  */
 export const getDocuments = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/documents`);
-    if (!response.ok) {
-      throw new Error(`Error al obtener los documentos: ${response.status}`);
-    }
-    return response.json();
+    // Usar getAuthHeaders para incluir el token
+    const response = await fetch(`${API_BASE_URL}/documents`, {
+      method: 'GET', // Especificar método es buena práctica
+      headers: getAuthHeaders()
+    });
+    // Usar handleResponse para manejo de errores y JSON
+    return handleResponse(response);
   } catch (error) {
     console.error('Error al obtener los documentos:', error);
+    // Re-lanzar el error para que el hook lo capture
     throw error;
   }
 };
@@ -25,11 +31,12 @@ export const getDocuments = async () => {
  */
 export const getPendingDocuments = async (limit = 5) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/documents/pending?limit=${limit}`);
-    if (!response.ok) {
-      throw new Error(`Error al obtener documentos pendientes: ${response.status}`);
-    }
-    return response.json();
+    // Usar getAuthHeaders para incluir el token
+    const response = await fetch(`${API_BASE_URL}/documents/pending?limit=${limit}`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(response);
   } catch (error) {
     console.error('Error al obtener documentos pendientes:', error);
     throw error;
@@ -43,11 +50,12 @@ export const getPendingDocuments = async (limit = 5) => {
  */
 export const getDocument = async (id) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/documents/${id}`);
-    if (!response.ok) {
-      throw new Error(`Error al obtener el documento: ${response.status}`);
-    }
-    return response.json();
+    // Usar getAuthHeaders para incluir el token
+    const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(response);
   } catch (error) {
     console.error(`Error al obtener documento ${id}:`, error);
     throw error;
@@ -61,18 +69,14 @@ export const getDocument = async (id) => {
  */
 export const createDocument = async (documentData) => {
   try {
+    // Usar getAuthHeaders para incluir el token y Content-Type
     const response = await fetch(`${API_BASE_URL}/documents`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(), // Ya incluye Content-Type: application/json
       body: JSON.stringify(documentData),
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `Error HTTP: ${response.status}`);
-    }
-
-    return response.json();
+    // Usar handleResponse que ya maneja errores y JSON
+    return handleResponse(response);
   } catch (error) {
     console.error('Error al crear documento:', error);
     throw error;
@@ -87,18 +91,14 @@ export const createDocument = async (documentData) => {
  */
 export const updateDocument = async (id, documentData) => {
   try {
+    // Usar getAuthHeaders para incluir el token y Content-Type
     const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(), // Ya incluye Content-Type: application/json
       body: JSON.stringify(documentData),
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `Error HTTP: ${response.status}`);
-    }
-
-    return response.json();
+    // Usar handleResponse que ya maneja errores y JSON
+    return handleResponse(response);
   } catch (error) {
     console.error(`Error al actualizar documento ${id}:`, error);
     throw error;
@@ -112,15 +112,13 @@ export const updateDocument = async (id, documentData) => {
  */
 export const deleteDocument = async (id) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/documents/${id}`, { 
-      method: 'DELETE'
+    // Usar getAuthHeaders para incluir el token
+    const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders() // Solo necesita Authorization
     });
-
-    if (!response.ok && response.status !== 204) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`);
-    }
-
-    return response.status === 204 ? {} : response.json();
+    // Usar handleResponse que ya maneja errores y respuestas 204
+    return handleResponse(response);
   } catch (error) {
     console.error(`Error al eliminar documento ${id}:`, error);
     throw error;
@@ -135,18 +133,14 @@ export const deleteDocument = async (id) => {
  */
 export const convertToInvoice = async (id, invoiceData = {}) => {
   try {
+    // Usar getAuthHeaders para incluir el token y Content-Type
     const response = await fetch(`${API_BASE_URL}/documents/${id}/convert-to-invoice`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(), // Ya incluye Content-Type: application/json
       body: JSON.stringify(invoiceData),
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `Error HTTP: ${response.status}`);
-    }
-
-    return response.json();
+    // Usar handleResponse que ya maneja errores y JSON
+    return handleResponse(response);
   } catch (error) {
     console.error(`Error al convertir documento ${id} a factura:`, error);
     throw error;
