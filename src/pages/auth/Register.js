@@ -1,251 +1,295 @@
-// src/pages/auth/Register.js - Versión limpia sin logs de depuración
 import React, { useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
-  Container, Box, Typography, TextField, Button,
-  Link, Paper, Grid, CircularProgress, Alert, Stepper, Step, StepLabel
+  Box, Typography, TextField, Button,
+  Link, Paper, Grid, CircularProgress, Alert, Stepper, Step, StepLabel,
+  useTheme, InputAdornment, styled // Import styled
 } from '@mui/material';
+// Importa los iconos necesarios
+import EmailIcon from '@mui/icons-material/Email';
+import LockIcon from '@mui/icons-material/Lock';
+import PersonIcon from '@mui/icons-material/Person'; // Icono para nombres
+import BusinessIcon from '@mui/icons-material/Business'; // Icono para empresa
+import BadgeIcon from '@mui/icons-material/Badge'; // Icono para RIF/ID
+import PhoneIcon from '@mui/icons-material/Phone'; // Icono para teléfono
+import HomeIcon from '@mui/icons-material/Home'; // Icono para dirección/ciudad/estado
+
 import { useAuth } from '../../context/AuthContext'; // Asegúrate que la ruta sea correcta
+
+// URL de la imagen de fondo SVG (la misma que en Login)
+const BACKGROUND_IMAGE_URL = 'https://pub-c37b7a23aa9c49239d088e3e0a3ba275.r2.dev/q.svg';
+
+// --- Componente de Texto con Gradiente (igual que en Login) ---
+const GradientText = styled(Typography)(({ theme }) => ({ 
+  fontWeight: 700,
+  fontSize: '2.5rem', 
+  background: 'linear-gradient(135deg, #4338ca 0%, #38bdf8 100%)', 
+  backgroundClip: 'text',
+  WebkitBackgroundClip: 'text', 
+  color: 'transparent',
+  WebkitTextFillColor: 'transparent', 
+  display: 'inline-block',
+  marginBottom: theme.spacing(3), 
+  textShadow: '1px 1px 2px rgba(0, 0, 0, 0.3)', 
+}));
 
 // Pasos del registro
 const steps = ['Información de la Empresa', 'Información del Usuario'];
 
 const Register = () => {
+  // --- Estados ---
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(''); // Mantenemos el estado de error para el usuario
+  const [error, setError] = useState(''); 
+  const [companyData, setCompanyData] = useState({ name: '', rif: '', address: '', city: '', state: '', phone: '', email: '' }); // Initialize state
+  const [userData, setUserData] = useState({ firstName: '', lastName: '', email: '', password: '', confirmPassword: '' }); // Initialize state
 
-  // Datos de la empresa
-  const [companyData, setCompanyData] = useState({
-    name: '',
-    rif: '',
-    address: '',
-    city: '',
-    state: '',
-    phone: '',
-    email: ''
-  });
-
-  // Datos del usuario administrador
-  const [userData, setUserData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  });
-
-  const { register } = useAuth(); // Volvemos a usar la función del contexto
+  // --- Hooks ---
+  const { register } = useAuth(); 
   const navigate = useNavigate();
+  const theme = useTheme(); // Hook para acceder al tema
 
+  // --- Handlers (Implementaciones básicas - reemplaza con tu lógica real) ---
   const handleCompanyChange = (e) => {
-    const { name, value } = e.target;
-    setCompanyData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+      const { name, value } = e.target;
+      setCompanyData(prev => ({ ...prev, [name]: value }));
   };
-
   const handleUserChange = (e) => {
-    const { name, value } = e.target;
-    setUserData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+      const { name, value } = e.target;
+      setUserData(prev => ({ ...prev, [name]: value }));
   };
-
-  const validateStep = () => {
-    setError(''); // Limpiar error al validar
-    if (activeStep === 0) {
-      // Validar datos de la empresa
-      const { name, rif, email } = companyData;
-      if (!name || !rif || !email) {
-        setError('Por favor complete Nombre, RIF y Correo Electrónico de la Empresa');
-        return false;
+  const validateStep = () => { 
+      // Añade tu lógica de validación aquí
+      console.log("Validating step:", activeStep);
+      // Ejemplo simple:
+      if (activeStep === 0 && (!companyData.name || !companyData.rif || !companyData.email)) {
+          setError("Nombre, RIF y Email de empresa son requeridos.");
+          return false;
       }
-    } else if (activeStep === 1) {
-      // Validar datos del usuario
-      const { firstName, lastName, email, password, confirmPassword } = userData;
-      if (!firstName || !lastName || !email || !password) {
-        setError('Por favor complete Nombre, Apellido, Correo Electrónico y Contraseña del usuario');
-        return false;
+      if (activeStep === 1 && (!userData.firstName || !userData.lastName || !userData.email || !userData.password || !userData.confirmPassword)) {
+          setError("Todos los campos de usuario son requeridos.");
+          return false;
       }
-      if (password !== confirmPassword) {
-        setError('Las contraseñas no coinciden');
-        return false;
+       if (activeStep === 1 && userData.password !== userData.confirmPassword) {
+          setError("Las contraseñas no coinciden.");
+          return false;
       }
-    }
-    return true;
+      setError(''); // Clear error if validation passes
+      return true; 
   };
-
-  const handleNext = () => {
-    if (validateStep()) {
-      setActiveStep((prevActiveStep) => prevActiveStep + 1);
-    }
+  const handleNext = () => { 
+      if (validateStep()) {
+          setActiveStep((prev) => prev + 1); 
+      }
   };
-
-  const handleBack = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep - 1);
-    setError(''); // Limpiar error al retroceder
+  const handleBack = () => { 
+      setActiveStep((prev) => prev - 1); 
+      setError(''); // Clear error on going back
   };
+  const handleSubmit = async (e) => { 
+      e.preventDefault();
+      if (!validateStep()) return;
 
-  // handleSubmit ahora usa la función 'register' del AuthContext
-  const handleSubmit = async (e) => {
-    e.preventDefault(); // Prevenir envío normal del formulario
-
-    // Validar el último paso antes de enviar
-    if (!validateStep()) {
-      return;
-    }
-
-    try {
-      setError(''); // Limpiar errores previos
       setLoading(true);
-
-      // Preparar los datos en el formato esperado por el contexto/API
-      const registrationData = {
-        company: {
-          name: companyData.name,
-          rif: companyData.rif,
-          address: companyData.address || '',
-          city: companyData.city || '',
-          state: companyData.state || '',
-          phone: companyData.phone || '',
-          email: companyData.email
-        },
-        user: {
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          email: userData.email,
-          password: userData.password
-          // El nombre completo se puede construir en el backend o aquí si es necesario
-          // nombre: `${userData.firstName} ${userData.lastName}`
-        }
-      };
-
-      // Llamar a la función register del contexto
-      await register(registrationData);
-
-      // Si register no lanza error, la autenticación fue exitosa
-      // El AuthContext se encargará de actualizar el estado y el token
-      // Redirigir al dashboard (o a donde corresponda)
-      navigate('/dashboard', { replace: true });
-
-    } catch (error) {
-      // Capturar errores lanzados por la función register del contexto
-      console.error('Error en el registro (handleSubmit):', error);
-      // Mostrar el mensaje de error al usuario
-      setError(error.message || 'Error al registrar la cuenta. Intente nuevamente.');
-    } finally {
-      setLoading(false);
-    }
+      setError('');
+      try {
+          const registrationData = { company: companyData, user: userData };
+          console.log("Submitting registration:", registrationData); // Log para debug
+          await register(registrationData); // Llama a la función del contexto
+          navigate('/dashboard', { replace: true });
+      } catch (err) {
+          console.error("Registration failed:", err);
+          setError(err.message || 'Error en el registro.');
+      } finally {
+          setLoading(false);
+      }
   };
 
+  // --- Renderizado ---
   return (
-    <Container component="main" maxWidth="md">
-      <Box
-        sx={{
-          marginTop: 8,
+    // Contenedor principal con fondo
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column', // Cambiado a columna para manejar el copyright abajo
+        alignItems: 'center', // Centra horizontalmente el Paper y el Copyright
+        justifyContent: 'center', // Centra verticalmente si el contenido es corto
+        minHeight: '100vh', 
+        backgroundImage: `url(${BACKGROUND_IMAGE_URL})`,
+        backgroundSize: 'cover', 
+        backgroundPosition: 'center', 
+        backgroundRepeat: 'no-repeat', 
+        py: 4, // Ajustamos padding vertical general
+        px: 2, 
+      }}
+    >
+      {/* Contenedor del formulario centrado y semi-transparente */}
+      <Paper 
+        elevation={8} 
+        sx={{ 
+          p: { xs: 3, sm: 4 }, 
+          maxWidth: '700px', 
+          width: '100%', 
+          backgroundColor: 'rgba(30, 30, 30, 0.85)', 
+          backdropFilter: 'blur(5px)', 
+          borderRadius: theme.shape.borderRadius * 1.5, 
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
-          mb: 4
+          alignItems: 'center', 
+          // Aumentamos margen inferior para dar espacio al copyright
+          mb: 4, // Margen inferior aumentado
         }}
       >
-        <Paper elevation={3} sx={{ padding: 4, width: '100%' }}>
-          <Box sx={{ mb: 3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <img src="/img/logo.png" alt="FactTech Logo" style={{ height: 60, marginBottom: 16 }} />
-            <Typography component="h1" variant="h5">
-              Registro de Empresa
-            </Typography>
-          </Box>
+        {/* Título con gradiente */}
+        <GradientText component="h1">
+          FactTech
+        </GradientText>
+        
+        {/* Subtítulo opcional */}
+        <Typography variant="h6" align="center" sx={{ mb: 3, color: theme.palette.text.secondary }}>
+           Registro de Nueva Cuenta
+        </Typography>
 
-          {/* Solo mostramos el error final al usuario */}
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {/* Alerta de error */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2, width: '100%', backgroundColor: 'rgba(30, 30, 30, 0.85)' }}>
+            {error}
+          </Alert>
+        )}
 
-          {/* El Alert de debugInfo se ha eliminado */}
-
-          <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-            {steps.map((label) => (
-              <Step key={label}>
-                <StepLabel>{label}</StepLabel>
-              </Step>
-            ))}
-          </Stepper>
-
-          <Box component="form" onSubmit={handleSubmit} noValidate>
-            {activeStep === 0 ? (
-              // Formulario de datos de la empresa
-              <Grid container spacing={2}>
-                {/* Campos de la empresa... sin cambios */}
-                <Grid item xs={12}>
-                  <TextField required fullWidth id="name" label="Nombre de la Empresa" name="name" value={companyData.name} onChange={handleCompanyChange} />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField required fullWidth id="rif" label="RIF / Identificación Fiscal" name="rif" value={companyData.rif} onChange={handleCompanyChange} />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField required fullWidth id="email" label="Correo Electrónico de la Empresa" name="email" type="email" value={companyData.email} onChange={handleCompanyChange} />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField fullWidth id="address" label="Dirección" name="address" value={companyData.address} onChange={handleCompanyChange} />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField fullWidth id="city" label="Ciudad" name="city" value={companyData.city} onChange={handleCompanyChange} />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField fullWidth id="state" label="Estado/Provincia" name="state" value={companyData.state} onChange={handleCompanyChange} />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField fullWidth id="phone" label="Teléfono" name="phone" value={companyData.phone} onChange={handleCompanyChange} />
-                </Grid>
-              </Grid>
-            ) : (
-              // Formulario de datos del usuario administrador
-              <Grid container spacing={2}>
-                 {/* Campos del usuario... sin cambios */}
-                <Grid item xs={12} sm={6}>
-                  <TextField required fullWidth id="firstName" label="Nombre" name="firstName" value={userData.firstName} onChange={handleUserChange} />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField required fullWidth id="lastName" label="Apellido" name="lastName" value={userData.lastName} onChange={handleUserChange} />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField required fullWidth id="email" label="Correo Electrónico" name="email" type="email" value={userData.email} onChange={handleUserChange} />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField required fullWidth id="password" label="Contraseña" name="password" type="password" value={userData.password} onChange={handleUserChange} />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField required fullWidth id="confirmPassword" label="Confirmar Contraseña" name="confirmPassword" type="password" value={userData.confirmPassword} onChange={handleUserChange} />
-                </Grid>
-              </Grid>
-            )}
-
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
-              <Button disabled={activeStep === 0} onClick={handleBack} variant="outlined" type="button">
-                Atrás
-              </Button>
-              <Button
-                type={activeStep === steps.length - 1 ? 'submit' : 'button'}
-                variant="contained"
-                disabled={loading}
-                onClick={activeStep === steps.length - 1 ? undefined : handleNext}
+        {/* Stepper (Indicador de pasos) */}
+        <Stepper activeStep={activeStep} sx={{ mb: 4, width: '100%' }}>
+          {steps.map((label, index) => ( // Added index for key/logic
+            <Step key={label}>
+              <StepLabel 
+                 StepIconProps={{
+                    // Corrected logic for active/completed color
+                    style: { color: activeStep === index ? theme.palette.primary.main : (activeStep > index ? theme.palette.success.main : theme.palette.text.disabled) } 
+                 }}
+                 sx={{ 
+                    '& .MuiStepLabel-label': { 
+                        color: activeStep >= index ? theme.palette.text.primary : theme.palette.text.secondary,
+                        '&.Mui-active': { fontWeight: 'bold' },
+                        '&.Mui-completed': { fontWeight: 'normal'}
+                    } 
+                }}
               >
-                {loading ? <CircularProgress size={24} /> :
-                  (activeStep === steps.length - 1 ? 'Registrar' : 'Siguiente')}
-              </Button>
-            </Box>
-          </Box>
+                {label}
+              </StepLabel>
+            </Step>
+          ))}
+        </Stepper>
 
-          <Box sx={{ mt: 2, textAlign: 'center' }}>
-            <Link component={RouterLink} to="/auth/login" variant="body2">
-              ¿Ya tienes una cuenta? Inicia sesión
-            </Link>
+        {/* Formulario */}
+        <Box component="form" onSubmit={handleSubmit} noValidate sx={{ width: '100%' }}>
+          {activeStep === 0 ? (
+            // --- PASO 1: DATOS EMPRESA ---
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField required fullWidth id="name" label="Nombre de la Empresa" name="name" value={companyData.name} onChange={handleCompanyChange} InputProps={{ startAdornment: (<InputAdornment position="start"><BusinessIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField required fullWidth id="rif" label="RIF / Identificación Fiscal" name="rif" value={companyData.rif} onChange={handleCompanyChange} InputProps={{ startAdornment: (<InputAdornment position="start"><BadgeIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField required fullWidth id="email-company" label="Correo Electrónico de la Empresa" name="email" type="email" value={companyData.email} onChange={handleCompanyChange} InputProps={{ startAdornment: (<InputAdornment position="start"><EmailIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField fullWidth id="address" label="Dirección" name="address" value={companyData.address} onChange={handleCompanyChange} InputProps={{ startAdornment: (<InputAdornment position="start"><HomeIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField fullWidth id="city" label="Ciudad" name="city" value={companyData.city} onChange={handleCompanyChange} InputProps={{ startAdornment: (<InputAdornment position="start"><HomeIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField fullWidth id="state" label="Estado/Provincia" name="state" value={companyData.state} onChange={handleCompanyChange} InputProps={{ startAdornment: (<InputAdornment position="start"><HomeIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField fullWidth id="phone" label="Teléfono" name="phone" value={companyData.phone} onChange={handleCompanyChange} InputProps={{ startAdornment: (<InputAdornment position="start"><PhoneIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
+              </Grid>
+            </Grid>
+          ) : (
+            // --- PASO 2: DATOS USUARIO ---
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField required fullWidth id="firstName" label="Nombre" name="firstName" value={userData.firstName} onChange={handleUserChange} InputProps={{ startAdornment: (<InputAdornment position="start"><PersonIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField required fullWidth id="lastName" label="Apellido" name="lastName" value={userData.lastName} onChange={handleUserChange} InputProps={{ startAdornment: (<InputAdornment position="start"><PersonIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField required fullWidth id="email-user" label="Correo Electrónico del Usuario" name="email" type="email" value={userData.email} onChange={handleUserChange} InputProps={{ startAdornment: (<InputAdornment position="start"><EmailIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField required fullWidth id="password" label="Contraseña" name="password" type="password" value={userData.password} onChange={handleUserChange} InputProps={{ startAdornment: (<InputAdornment position="start"><LockIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField required fullWidth id="confirmPassword" label="Confirmar Contraseña" name="confirmPassword" type="password" value={userData.confirmPassword} onChange={handleUserChange} InputProps={{ startAdornment: (<InputAdornment position="start"><LockIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
+              </Grid>
+            </Grid>
+          )}
+
+          {/* Botones de navegación del Stepper */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
+            <Button 
+              disabled={activeStep === 0 || loading} 
+              onClick={handleBack} 
+              variant="outlined" 
+              type="button"
+              sx={{ borderColor: theme.palette.text.secondary, color: theme.palette.text.secondary }}
+            >
+              Atrás
+            </Button>
+            <Button
+              type={activeStep === steps.length - 1 ? 'submit' : 'button'}
+              variant="contained"
+              disabled={loading}
+              onClick={activeStep === steps.length - 1 ? undefined : handleNext}
+              sx={{
+                background: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+                color: theme.palette.primary.contrastText,
+                transition: 'opacity 0.3s ease',
+                '&:hover': { opacity: 0.9 },
+                '&.Mui-disabled': {
+                  background: theme.palette.action.disabledBackground,
+                  color: theme.palette.action.disabled,
+                  cursor: 'not-allowed',
+                  pointerEvents: 'auto',
+                }
+              }}
+            >
+              {loading ? <CircularProgress size={24} color="inherit" /> :
+                (activeStep === steps.length - 1 ? 'Registrar Cuenta' : 'Siguiente')}
+            </Button>
           </Box>
-        </Paper>
-      </Box>
-    </Container>
+        </Box>
+
+        {/* Enlace para ir a Login */}
+        <Box sx={{ mt: 4, textAlign: 'center' }}>
+          <Link component={RouterLink} to="/auth/login" variant="body2">
+            ¿Ya tienes una cuenta? Inicia sesión
+          </Link>
+        </Box>
+      </Paper>
+
+      {/* Copyright al final de la página - Ahora posicionado normalmente */}
+      <Typography 
+         variant="body2" 
+         align="center" 
+         sx={{ 
+            // Quitamos position absolute y related styles
+            // position: 'absolute', 
+            // bottom: theme.spacing(2), 
+            // left: 0, 
+            // right: 0, 
+            width: '100%', // Ocupa el ancho para centrarse bien
+            color: theme.palette.text.secondary, 
+            mt: 'auto', // Empuja hacia abajo si hay espacio extra
+            pt: 2, // Padding top para separar del contenido si está cerca
+         }}
+      >
+        &copy; {new Date().getFullYear()} FactTech. Todos los derechos reservados.
+      </Typography>
+    </Box>
   );
 };
 
