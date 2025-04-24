@@ -1,4 +1,4 @@
-// src/services/AuthApi.js (actualizado según controlador de autenticación)
+// src/services/AuthApi.js (actualizado con método updateProfile)
 import { API_BASE_URL, handleResponse } from './api';
 
 export const authApi = {
@@ -84,6 +84,23 @@ export const authApi = {
         'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({ currentPassword, newPassword })
+    });
+    return handleResponse(response);
+  },
+  
+  // Nuevo método para actualizar el perfil
+  updateProfile: async (profileData, token) => {
+    if (!token) {
+      throw new Error('No hay token de autenticación');
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/users/profile`, {
+      method: 'PUT',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(profileData)
     });
     return handleResponse(response);
   }

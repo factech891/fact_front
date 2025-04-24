@@ -1,4 +1,4 @@
-// src/App.js
+// src/App.js (actualizado con la nueva ruta)
 import { Routes, Route } from 'react-router-dom';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { ThemeProvider, CssBaseline } from '@mui/material';
@@ -10,6 +10,7 @@ import { ClientForm } from './pages/clients/ClientForm';
 import Products from './pages/products/Products';
 import { ProductForm } from './pages/products/ProductForm';
 import Settings from './pages/settings/Settings';
+import ProfilePage from './pages/settings/ProfilePage'; // Nueva importación
 
 // Importamos los componentes del módulo de documentos
 import Documents from './pages/documents/Documents';
@@ -81,6 +82,7 @@ function App() {
             
             {/* Configuración */}
             <Route path="settings" element={<Settings />} />
+            <Route path="settings/profile" element={<ProfilePage />} />
           </Route>
           
           {/* Página no encontrada */}
