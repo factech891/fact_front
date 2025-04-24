@@ -1,4 +1,4 @@
-// src/App.js (actualizado con la nueva ruta)
+// src/App.js (actualizado con protección de rutas para facturadores)
 import { Routes, Route } from 'react-router-dom';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { ThemeProvider, CssBaseline } from '@mui/material';
@@ -31,6 +31,21 @@ import ProtectedRoute from './components/ProtectedRoute';
 import theme from './theme';
 import './styles/global.css';
 
+// Componente para la página no autorizada
+const Unauthorized = () => (
+  <div style={{
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100vh',
+    flexDirection: 'column',
+    gap: '1rem'
+  }}>
+    <h1>Acceso no autorizado</h1>
+    <p>No tienes permisos para acceder a esta página.</p>
+  </div>
+);
+
 function App() {
   return (
     <ThemeProvider theme={theme}>
@@ -42,6 +57,9 @@ function App() {
           <Route path="/auth/register" element={<Register />} />
           <Route path="/auth/forgot-password" element={<ForgotPassword />} />
           
+          {/* Ruta de acceso no autorizado */}
+          <Route path="/unauthorized" element={<Unauthorized />} />
+          
           {/* Rutas protegidas con DashboardLayout */}
           <Route
             path="/"
@@ -51,8 +69,17 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Dashboard />} />
-            <Route path="dashboard" element={<Dashboard />} />
+            {/* Dashboard - protegido contra facturadores mediante ProtectedRoute */}
+            <Route index element={
+              <ProtectedRoute requiredRoles={['admin', 'gerente', 'manager', 'visor']}>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="dashboard" element={
+              <ProtectedRoute requiredRoles={['admin', 'gerente', 'manager', 'visor']}>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
             
             {/* Rutas de Facturas */}
             <Route path="invoices" element={<Invoices />} />
@@ -75,12 +102,12 @@ function App() {
             <Route path="products/new" element={<ProductForm />} />
             <Route path="products/edit/:id" element={<ProductForm />} />
             
-            {/* Rutas de Usuarios */}
+            {/* Rutas de Usuarios - solo para admin y gerente (protegido en Sidebar) */}
             <Route path="users" element={<UserManagement />} />
             <Route path="users/new" element={<UserForm />} />
             <Route path="users/edit/:id" element={<UserForm />} />
             
-            {/* Configuración */}
+            {/* Configuración - solo para admin y gerente (protegido en Sidebar) */}
             <Route path="settings" element={<Settings />} />
             <Route path="settings/profile" element={<ProfilePage />} />
           </Route>

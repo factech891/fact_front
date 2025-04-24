@@ -28,8 +28,7 @@ const Sidebar = () => {
   const { company, loading: companyLoading } = useCompany();
 
   // Obtenemos el usuario actual y la función de logout del contexto de autenticación
-  // *** Asegúrate que hasRole está disponible en tu AuthContext ***
-  const { user: currentUser, logout, hasRole } = useAuth();
+  const { currentUser, logout } = useAuth();
 
   // Usamos el nombre real o un valor por defecto/carga
   const companyName = company?.nombre || "Mi Empresa";
@@ -61,54 +60,52 @@ const Sidebar = () => {
       text: 'Dashboard',
       icon: ( <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span role="img" aria-label="home" style={{ fontSize: '20px' }}>🏠</span></Box> ),
       path: '/',
-      requiredRoles: [] // Sin restricción
+      // No mostrar dashboard a facturadores
+      hidden: currentUser?.role === 'facturador'
     },
     {
       id: 'invoices',
       text: 'Facturas',
       icon: ( <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span role="img" aria-label="invoice" style={{ fontSize: '20px' }}>📄</span></Box> ),
       path: '/invoices',
-      // Permitir a admin, manager y facturador
-      requiredRoles: ['admin', 'manager', 'facturador']
+      hidden: false
     },
     {
       id: 'documents',
       text: 'Cotizaciones',
       icon: ( <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span role="img" aria-label="quotes" style={{ fontSize: '20px' }}>📋</span></Box> ),
       path: '/documents',
-      // Permitir a admin, manager y facturador
-      requiredRoles: ['admin', 'manager', 'facturador']
+      hidden: false
     },
     {
       id: 'clients',
       text: 'Clientes',
       icon: ( <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span role="img" aria-label="clients" style={{ fontSize: '20px' }}>👥</span></Box> ),
       path: '/clients',
-       // Permitir a admin, manager y facturador
-      requiredRoles: ['admin', 'manager', 'facturador']
+      hidden: false
     },
     {
       id: 'products',
       text: 'Productos',
       icon: ( <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span role="img" aria-label="products" style={{ fontSize: '20px' }}>📦</span></Box> ),
       path: '/products',
-       // Permitir a admin, manager y facturador
-      requiredRoles: ['admin', 'manager', 'facturador']
+      hidden: false
     },
     {
       id: 'users',
       text: 'Usuarios',
       icon: ( <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span role="img" aria-label="users" style={{ fontSize: '20px' }}>👤</span></Box> ),
       path: '/users',
-      requiredRoles: ['admin'] // Solo para administradores
+      // Solo mostrar a admin y gerente
+      hidden: !['admin', 'gerente'].includes(currentUser?.role)
     },
     {
       id: 'settings',
       text: 'Configuración',
       icon: ( <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span role="img" aria-label="settings" style={{ fontSize: '20px' }}>⚙️</span></Box> ),
       path: '/settings',
-      // *** CAMBIO: Restringido solo a administradores ***
-      requiredRoles: ['admin']
+      // Solo mostrar a admin y gerente
+      hidden: !['admin', 'gerente'].includes(currentUser?.role)
     },
     // Puedes añadir aquí otros items si es necesario
   ];
@@ -166,16 +163,8 @@ const Sidebar = () => {
     borderRight: '1px solid #e0e0e0', // Borde derecho sutil
   };
 
-  // Filtrar elementos del menú según los roles del usuario
-  const filteredMenuItems = menuItems.filter(item => {
-    // Si el item no tiene requiredRoles o está vacío, es visible para todos
-    if (!item.requiredRoles || item.requiredRoles.length === 0) {
-      return true;
-    }
-    // Si tiene requiredRoles, verificar si el usuario tiene al menos uno de ellos
-    // Asegurarse que hasRole existe y es una función antes de llamarla
-    return typeof hasRole === 'function' && item.requiredRoles.some(role => hasRole(role));
-  });
+  // Filtrar elementos del menú que no deben ocultarse
+  const filteredMenuItems = menuItems.filter(item => !item.hidden);
 
   return (
     <Drawer

@@ -1,4 +1,4 @@
-// src/context/AuthContext.js (actualizado)
+// src/context/AuthContext.js (actualizado con función hasRole mejorada)
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { authApi } from '../services/AuthApi';
 import { useNavigate } from 'react-router-dom';
@@ -163,8 +163,32 @@ export const AuthProvider = ({ children }) => {
 
   // Verificar si el usuario tiene un rol específico
   const hasRole = (role) => {
-    if (!currentUser || !currentUser.role) return false;
-    return currentUser.role === role;
+    if (!currentUser) return false;
+    
+    // Si el usuario tiene propiedad 'roles' como array
+    if (currentUser.roles && Array.isArray(currentUser.roles)) {
+      return currentUser.roles.includes(role);
+    }
+    
+    // Si el usuario tiene propiedad 'role' como string
+    if (currentUser.role) {
+      return currentUser.role === role;
+    }
+    
+    return false;
+  };
+
+  // Obtener página inicial según rol
+  const getHomePageByRole = () => {
+    if (!currentUser) return '/auth/login';
+    
+    // Si es facturador, va directo a facturas
+    if (hasRole('facturador')) {
+      return '/invoices';
+    }
+    
+    // Para el resto de roles, mostrar dashboard
+    return '/';
   };
 
   // Proporcionar el contexto
@@ -181,7 +205,8 @@ export const AuthProvider = ({ children }) => {
     forgotPassword,
     resetPassword,
     changePassword,
-    hasRole
+    hasRole,
+    getHomePageByRole
   };
 
   return (
