@@ -1,4 +1,4 @@
-// src/pages/users/UserManagement.js - eliminando la importación duplicada
+// src/pages/users/UserManagement.js
 import React, { useState, useEffect } from 'react';
 import { 
   Box, 
@@ -12,7 +12,9 @@ import {
   DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogActions
+  DialogActions,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import { useUsers } from '../../hooks/useUsers';
 import { useAuth } from '../../context/AuthContext';
@@ -27,8 +29,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import UserForm from './UserForm'; // Importamos el componente de formulario
 
 const UserManagement = () => {
-  const { users, loading, error, deleteUser, updateUser, createUser, addDummyData } = useUsers();
-  const { hasRole } = useAuth();
+  const { users, loading, error, deleteUser, updateUser, createUser } = useUsers();
+  const { hasRole, user: currentUser } = useAuth();
   
   // Estados
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,6 +38,8 @@ const UserManagement = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [openForm, setOpenForm] = useState(false);
   const [userToEdit, setUserToEdit] = useState(null);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [openAlert, setOpenAlert] = useState(false);
   
   // Asegurarnos de que users es un array
   const safeUsers = Array.isArray(users) ? users : [];
@@ -46,13 +50,28 @@ const UserManagement = () => {
     user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.role?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Identificar al administrador principal (primer admin creado)
+  const findMainAdmin = () => {
+    if (!Array.isArray(safeUsers) || safeUsers.length === 0) return null;
+    
+    // Filtrar solo usuarios admin
+    const adminUsers = safeUsers.filter(user => user.role === 'admin');
+    
+    if (adminUsers.length === 0) return null;
+    
+    // Ordenar por fecha de creación (usando _id como aproximación si no tenemos createdAt)
+    // En MongoDB, _id contiene timestamp de creación
+    adminUsers.sort((a, b) => {
+      if (a.createdAt && b.createdAt) return new Date(a.createdAt) - new Date(b.createdAt);
+      return a._id?.localeCompare(b._id);
+    });
+    
+    // Retornar el primer admin
+    return adminUsers[0];
+  };
   
-  // Cargar datos de muestra en desarrollo
-  useEffect(() => {
-    if (!loading && safeUsers.length === 0 && process.env.NODE_ENV === 'development') {
-      addDummyData();
-    }
-  }, [loading, safeUsers, addDummyData]);
+  const mainAdmin = findMainAdmin();
   
   // Funciones de manejo
   const handleCreateUser = () => {
@@ -71,20 +90,48 @@ const UserManagement = () => {
   };
   
   const handleSaveUser = async (userData) => {
-    if (userData._id) {
-      // Editar usuario existente
-      return updateUser(userData._id, userData);
-    } else {
-      // Crear nuevo usuario
-      return createUser(userData);
+    try {
+      console.log("Guardando usuario:", userData); // Para depuración
+      
+      // Asegurarnos de que estamos enviando 'nombre' y no 'name'
+      const formattedData = { ...userData };
+      if (formattedData.name && !formattedData.nombre) {
+        formattedData.nombre = formattedData.name;
+        delete formattedData.name;
+      }
+      
+      let result;
+      if (userData._id) {
+        // Editar usuario existente
+        result = await updateUser(userData._id, formattedData);
+      } else {
+        // Crear nuevo usuario
+        result = await createUser(formattedData);
+      }
+      
+      return result;
+    } catch (error) {
+      console.error("Error al guardar usuario:", error);
+      setAlertMessage('Error al guardar usuario: ' + error.message);
+      setOpenAlert(true);
+      throw error;
     }
   };
   
   const toggleUserStatus = async (userId, currentStatus) => {
     try {
+      // Verificar si es el usuario actual intentando desactivarse a sí mismo
+      if (userId === currentUser?._id && currentStatus === true) {
+        setAlertMessage('No puedes desactivar tu propio usuario. Esto podría bloquear tu acceso al sistema.');
+        setOpenAlert(true);
+        return;
+      }
+      
       await updateUser(userId, { active: !currentStatus });
     } catch (error) {
       console.error("Error al cambiar estado del usuario:", error);
+      setAlertMessage('Error al cambiar el estado del usuario: ' + error.message);
+      setOpenAlert(true);
     }
   };
   
@@ -99,11 +146,29 @@ const UserManagement = () => {
       setOpenDialog(false);
     } catch (error) {
       console.error("Error al eliminar usuario:", error);
+      setAlertMessage('Error al eliminar usuario: ' + error.message);
+      setOpenAlert(true);
     }
   };
   
   const handleDeleteCancel = () => {
     setOpenDialog(false);
+  };
+
+  const handleCloseAlert = () => {
+    setOpenAlert(false);
+  };
+
+  // Verificar si un usuario es el administrador principal
+  const isMainAdmin = (user) => {
+    if (!mainAdmin || !user) return false;
+    return mainAdmin._id === user._id;
+  };
+  
+  // Verificar si un usuario es el usuario actual
+  const isCurrentUser = (user) => {
+    if (!currentUser || !user) return false;
+    return currentUser._id === user._id;
   };
   
   // Estilo para botones de acción principal
@@ -133,6 +198,20 @@ const UserManagement = () => {
       backgroundImage: 'linear-gradient(to right, #919191 0%, #b7b7b7 100%)',
       color: 'rgba(255, 255, 255, 0.6)',
     }
+  };
+  
+  // Estilo para Switch con el mismo gradiente
+  const switchStyle = {
+    '& .MuiSwitch-switchBase.Mui-checked': {
+      color: '#4facfe',
+      '&:hover': {
+        backgroundColor: 'rgba(79, 172, 254, 0.08)',
+      },
+    },
+    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+      backgroundColor: '#4facfe',
+      backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+    },
   };
   
   // Verificación de permisos
@@ -267,7 +346,7 @@ const UserManagement = () => {
                   borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
                   backgroundColor: 'transparent'
                 }}>
-                  <td style={{ padding: '12px 16px', color: 'white' }}>{user.name}</td>
+                  <td style={{ padding: '12px 16px', color: 'white' }}>{user.name || user.nombre}</td>
                   <td style={{ padding: '12px 16px', color: 'white' }}>{user.email}</td>
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ 
@@ -284,46 +363,63 @@ const UserManagement = () => {
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <Switch
-                        checked={user.active}
-                        onChange={() => toggleUserStatus(user._id, user.active)}
-                        sx={{
-                          '& .MuiSwitch-switchBase.Mui-checked': {
-                            color: '#4facfe',
-                            '&:hover': {
-                              backgroundColor: 'rgba(79, 172, 254, 0.08)',
-                            },
-                          },
-                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                            backgroundColor: '#4facfe',
-                          },
-                        }}
-                      />
-                      <Typography variant="body2" style={{ opacity: 0.8 }}>
-                        {user.active ? 'Activo' : 'Inactivo'}
-                      </Typography>
+                      {isMainAdmin(user) ? (
+                        // Para el admin principal, no mostrar switch y mostrar siempre "Activo"
+                        <Typography variant="body2" style={{ opacity: 0.8, marginLeft: '12px' }}>
+                          Activo (Admin principal)
+                        </Typography>
+                      ) : isCurrentUser(user) ? (
+                        // Para el usuario actual, mostrar switch pero con advertencia
+                        <>
+                          <Switch
+                            checked={user.active}
+                            onChange={() => toggleUserStatus(user._id, user.active)}
+                            sx={switchStyle}
+                            disabled={user.active} // Si está activo, deshabilitamos el switch
+                          />
+                          <Typography variant="body2" style={{ opacity: 0.8 }}>
+                            {user.active ? 'Activo (Tu usuario)' : 'Inactivo'}
+                          </Typography>
+                        </>
+                      ) : (
+                        // Para los demás usuarios, mostrar el switch normal
+                        <>
+                          <Switch
+                            checked={user.active}
+                            onChange={() => toggleUserStatus(user._id, user.active)}
+                            sx={switchStyle}
+                          />
+                          <Typography variant="body2" style={{ opacity: 0.8 }}>
+                            {user.active ? 'Activo' : 'Inactivo'}
+                          </Typography>
+                        </>
+                      )}
                     </div>
                   </td>
                   <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                     {canManageUsers && (
                       <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
-                        {/* Icono Editar */}
-                        <IconButton
-                          onClick={() => handleEditUser(user)}
-                          size="small"
-                          sx={{ color: 'white' }}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
+                        {/* Icono Editar - NO mostrar para admin principal */}
+                        {!isMainAdmin(user) && (
+                          <IconButton
+                            onClick={() => handleEditUser(user)}
+                            size="small"
+                            sx={{ color: 'white' }}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        )}
                         
-                        {/* Icono Eliminar */}
-                        <IconButton
-                          onClick={() => handleDeleteClick(user)}
-                          size="small"
-                          sx={{ color: 'white' }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
+                        {/* Icono Eliminar - solo mostrar si NO es el admin principal ni el usuario actual */}
+                        {!isMainAdmin(user) && !isCurrentUser(user) && (
+                          <IconButton
+                            onClick={() => handleDeleteClick(user)}
+                            size="small"
+                            sx={{ color: 'white' }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        )}
                       </div>
                     )}
                   </td>
@@ -376,7 +472,7 @@ const UserManagement = () => {
         
         <DialogContent sx={{ mt: 2 }}>
           <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-            ¿Estás seguro de que deseas eliminar al usuario {selectedUser?.name}? Esta acción no se puede deshacer.
+            ¿Estás seguro de que deseas eliminar al usuario {selectedUser?.name || selectedUser?.nombre}? Esta acción no se puede deshacer.
           </DialogContentText>
         </DialogContent>
         
@@ -406,6 +502,29 @@ const UserManagement = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Alerta para mensajes de error o advertencia */}
+      <Snackbar 
+        open={openAlert} 
+        autoHideDuration={6000} 
+        onClose={handleCloseAlert}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseAlert} 
+          severity="warning" 
+          sx={{ 
+            width: '100%', 
+            backgroundColor: '#2a2a2a', 
+            color: 'white',
+            '& .MuiAlert-icon': {
+              color: '#ff9800'
+            }
+          }}
+        >
+          {alertMessage}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };

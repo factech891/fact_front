@@ -115,6 +115,56 @@ export const usersApi = {
       console.error(`Error assigning role to user with ID ${id}:`, error);
       throw error;
     }
+  },
+
+  // Activar/desactivar usuario (método específico)
+  toggleUserActive: async (id, active) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/${id}`, {
+        method: 'PUT',
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ active })
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error(`Error toggling user status with ID ${id}:`, error);
+      throw error;
+    }
+  },
+
+  // Método para restablecer contraseña (admin)
+  resetUserPassword: async (id) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/${id}/reset-password`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error(`Error resetting password for user with ID ${id}:`, error);
+      throw error;
+    }
+  },
+
+  // Método para actualizar perfil (usuario actual)
+  updateProfile: async (userData) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/profile`, {
+        method: 'PUT',
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(userData)
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      throw error;
+    }
   }
 };
 
@@ -126,3 +176,6 @@ export const updateUserApi = usersApi.updateUser;
 export const deleteUserApi = usersApi.deleteUser;
 export const changePasswordApi = usersApi.changePassword;
 export const assignRoleApi = usersApi.assignRole;
+export const toggleUserActiveApi = usersApi.toggleUserActive;
+export const resetUserPasswordApi = usersApi.resetUserPassword;
+export const updateProfileApi = usersApi.updateProfile;
