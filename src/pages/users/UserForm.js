@@ -1,285 +1,259 @@
-// src/pages/users/UserForm.js (versión modal/diálogo)
+// src/pages/users/UserForm.js
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField, 
-  Button, 
-  FormControl, 
-  InputLabel, 
-  Select, 
-  MenuItem, 
-  Switch, 
+  TextField,
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Switch,
   Typography,
   FormHelperText,
   Grid,
   IconButton,
-  Box
+  Box,
+  CircularProgress // Para indicar carga en botón
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import { useUsers } from '../../hooks/useUsers';
+// Quitado useUsers ya que las funciones vienen por props
 
-const UserForm = ({ open, onClose, user, onSave }) => {
-  // Estado inicial del formulario
+const UserForm = ({ open, onClose, user, onSave, isSubmitting }) => { // Recibir isSubmitting
+  // Estado inicial del formulario con nuevo rol por defecto
   const initialState = {
     name: '',
     email: '',
     password: '',
-    role: 'user',
+    // *** CAMBIO: Rol por defecto a 'facturador' ***
+    role: 'facturador',
     active: true
   };
-  
+
   const [formData, setFormData] = useState(initialState);
   const [formErrors, setFormErrors] = useState({});
-  const [saving, setSaving] = useState(false);
+  // const [saving, setSaving] = useState(false); // Usaremos isSubmitting de props
   const [submitError, setSubmitError] = useState(null);
-  
-  // Estilo para botones de acción principal (gradiente azul)
+
+  // Estilo para botones de acción principal (sin cambios)
   const actionButtonStyle = {
-    borderRadius: '50px',
-    color: 'white',
-    fontWeight: 600,
-    padding: '8px 22px',
-    textTransform: 'none',
+    borderRadius: '50px', color: 'white', fontWeight: 600, padding: '8px 22px', textTransform: 'none',
     backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
-    boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)',
-    transition: 'all 0.2s ease-in-out',
-    border: 'none',
-    backgroundColor: 'transparent',
-    fontSize: '14px',
-    '&:hover': {
-      transform: 'translateY(-2px)',
-      boxShadow: '0 6px 20px rgba(79, 172, 254, 0.6)',
-      backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
-      backgroundColor: 'transparent',
-    },
-    '&:active': {
-      transform: 'translateY(0)',
-      boxShadow: '0 2px 10px rgba(79, 172, 254, 0.4)',
-    },
-    '&.Mui-disabled': {
-      backgroundImage: 'linear-gradient(to right, #919191 0%, #b7b7b7 100%)',
-      color: 'rgba(255, 255, 255, 0.6)',
-    }
+    boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)', transition: 'all 0.2s ease-in-out', border: 'none',
+    backgroundColor: 'transparent', fontSize: '14px',
+    '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 6px 20px rgba(79, 172, 254, 0.6)', backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)', backgroundColor: 'transparent' },
+    '&:active': { transform: 'translateY(0)', boxShadow: '0 2px 10px rgba(79, 172, 254, 0.4)' },
+    '&.Mui-disabled': { backgroundImage: 'linear-gradient(to right, #919191 0%, #b7b7b7 100%)', color: 'rgba(255, 255, 255, 0.6)', cursor: 'not-allowed' }
   };
-  
-  // Estilo para el botón cancelar
+
+  // Estilo para el botón cancelar (sin cambios)
   const cancelButtonStyle = {
-    borderRadius: '50px',
-    padding: '8px 22px',
-    textTransform: 'none',
-    border: '1px solid rgba(255, 255, 255, 0.3)',
-    color: 'white',
-    fontSize: '14px',
-    fontWeight: 600,
-    backgroundColor: 'transparent',
-    '&:hover': {
-      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-      borderColor: 'rgba(255, 255, 255, 0.5)',
-    }
+    borderRadius: '50px', padding: '8px 22px', textTransform: 'none', border: '1px solid rgba(255, 255, 255, 0.3)',
+    color: 'white', fontSize: '14px', fontWeight: 600, backgroundColor: 'transparent',
+    '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.08)', borderColor: 'rgba(255, 255, 255, 0.5)' },
+    '&.Mui-disabled': { borderColor: 'rgba(255, 255, 255, 0.1)', color: 'rgba(255, 255, 255, 0.3)', cursor: 'not-allowed' }
   };
-  
-  // Cargar datos del usuario en modo edición
+
+  // Cargar datos del usuario en modo edición o resetear
   useEffect(() => {
     if (open) {
-      setSubmitError(null);
+      setSubmitError(null); // Limpiar error de envío anterior
       if (user) {
         setFormData({
-          name: user.name || '',
+          // Usar 'nombre' si existe, si no 'name'
+          name: user.nombre || user.name || '',
           email: user.email || '',
-          role: user.role || 'user',
+           // Asegurarse que el rol exista en las nuevas opciones, si no, poner uno por defecto
+          role: ['manager', 'facturador', 'visor'].includes(user.role) ? user.role : 'facturador',
           active: user.active !== undefined ? user.active : true,
-          // No incluir password en modo edición
+          password: '' // Siempre limpiar campo de contraseña al abrir
         });
       } else {
-        setFormData(initialState);
+        setFormData(initialState); // Resetear para nuevo usuario
       }
-      setFormErrors({});
+      setFormErrors({}); // Limpiar errores de validación
     }
-  }, [user, open]);
-  
+  }, [user, open]); // Depender de user y open
+
   // Manejo de cambios en el formulario
   const handleChange = (e) => {
-    const { name, value, checked } = e.target;
-    // Para el switch de active, usamos checked
-    const newValue = name === 'active' ? checked : value;
-    
-    setFormData({
-      ...formData,
+    const { name, value, type, checked } = e.target;
+    const newValue = type === 'checkbox' ? checked : value; // Manejar Switch
+
+    setFormData(prev => ({
+      ...prev,
       [name]: newValue
-    });
-    
-    // Limpiar errores al cambiar un campo
+    }));
+
+    // Limpiar error específico al cambiar el campo
     if (formErrors[name]) {
-      setFormErrors({
-        ...formErrors,
+      setFormErrors(prev => ({
+        ...prev,
         [name]: null
-      });
+      }));
+    }
+    // Limpiar error general de submit al empezar a corregir
+    if (submitError) {
+        setSubmitError(null);
     }
   };
-  
+
   // Validación del formulario
   const validateForm = () => {
     const errors = {};
-    setSubmitError(null);
-    
-    if (!formData.name.trim()) {
-      errors.name = 'El nombre es obligatorio';
-    }
-    
+    setSubmitError(null); // Limpiar error de submit previo
+
+    if (!formData.name.trim()) errors.name = 'El nombre es obligatorio';
     if (!formData.email.trim()) {
       errors.email = 'El email es obligatorio';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = 'Email inválido';
+      errors.email = 'Formato de email inválido';
     }
-    
+
+    // La contraseña solo es obligatoria al crear (user es null)
     if (!user && !formData.password) {
       errors.password = 'La contraseña es obligatoria para nuevos usuarios';
-    } else if (!user && formData.password && formData.password.length < 6) {
+    } else if (formData.password && formData.password.length < 6) {
+      // Validar longitud si se ingresó contraseña (nueva o cambio)
       errors.password = 'La contraseña debe tener al menos 6 caracteres';
     }
-    
+
+    // Validar que el rol sea uno de los permitidos
+    if (!['manager', 'facturador', 'visor'].includes(formData.role)) {
+        errors.role = 'Selecciona un rol válido';
+    }
+
+
     setFormErrors(errors);
-    return Object.keys(errors).length === 0;
+    return Object.keys(errors).length === 0; // Devuelve true si no hay errores
   };
-  
+
   // Envío del formulario
   const handleSave = async () => {
-    if (validateForm()) {
-      setSaving(true);
-      setSubmitError(null);
+    if (!validateForm()) {
+      return; // Detener si la validación falla
+    }
 
-      const userData = { ...formData };
-      
-      // Si estamos editando y no se cambió la contraseña, eliminarla del objeto
-      if (user && !formData.password) {
-        delete userData.password;
-      }
+    // setSaving(true); // Usar isSubmitting de props
+    setSubmitError(null); // Limpiar error antes de intentar
 
-      if (user?._id) {
-        userData._id = user._id;
-      }
+    // Crear el objeto de datos a enviar
+    // Usar 'nombre' consistentemente si la API lo espera
+    const userData = {
+        nombre: formData.name, // Enviar como 'nombre'
+        email: formData.email,
+        role: formData.role,
+        active: formData.active,
+    };
 
-      try {
-        await onSave(userData);
-        handleClose();
-      } catch (error) {
-        console.error('Error saving user:', error);
-        setSubmitError(error?.message || 'Error al guardar. Intente de nuevo.');
-      } finally {
-        setSaving(false);
-      }
+    // Añadir _id si estamos editando
+    if (user?._id) {
+      userData._id = user._id;
+    }
+
+    // Añadir contraseña solo si se proporcionó (nueva o cambio)
+    if (formData.password) {
+      userData.password = formData.password;
+    }
+
+    try {
+      await onSave(userData); // Llamar a la función onSave pasada por props
+      // El cierre del modal y el fetchUsers se manejan en UserManagement
+      // handleClose(); // No cerrar aquí, se cierra en UserManagement si onSave tiene éxito
+    } catch (error) {
+      console.error('Error saving user from form:', error);
+      // El error ya se muestra en UserManagement, pero podemos poner uno genérico aquí si falla la propagación
+      setSubmitError(error?.message || 'Error al guardar. Verifica los datos e intenta de nuevo.');
+    } finally {
+      // setSaving(false); // Controlado por UserManagement
     }
   };
-  
-  // Resetear formulario
+
+  // Resetear formulario (solo campos, no cierra)
   const resetForm = () => {
-    setFormData(initialState);
+    if (isSubmitting) return; // No permitir si está enviando
+    setFormData(user ? { // Si es edición, resetear a los valores originales del usuario
+        name: user.nombre || user.name || '',
+        email: user.email || '',
+        role: ['manager', 'facturador', 'visor'].includes(user.role) ? user.role : 'facturador',
+        active: user.active !== undefined ? user.active : true,
+        password: ''
+    } : initialState); // Si es creación, resetear a initial state
     setFormErrors({});
     setSubmitError(null);
   };
-  
-  // Cerrar diálogo
+
+  // Cerrar diálogo (controlado por UserManagement)
   const handleClose = () => {
-    if (saving) return;
+    if (isSubmitting) return; // No permitir cerrar si está enviando
     onClose();
   };
-  
-  // Estilos para campos de texto oscuros
+
+  // Estilos para inputs (sin cambios)
   const inputStyles = {
     '& .MuiOutlinedInput-root': {
-      color: 'white',
-      '& fieldset': {
-        borderColor: 'rgba(255, 255, 255, 0.2)',
-      },
-      '&:hover fieldset': {
-        borderColor: 'rgba(255, 255, 255, 0.3)',
-      },
-      '&.Mui-focused fieldset': {
-        borderColor: '#4facfe',
-      },
-      '& input, & textarea': { color: 'white' }
+      color: 'white', '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+      '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+      '&.Mui-focused fieldset': { borderColor: '#4facfe' },
+      '& input, & textarea': { color: 'white' },
+      '&.Mui-disabled': { backgroundColor: 'rgba(255, 255, 255, 0.05)' } // Estilo para deshabilitado
     },
-    '& .MuiInputLabel-root': {
-      color: 'rgba(255, 255, 255, 0.7)',
-      '&.Mui-focused': {
-        color: '#4facfe',
-      }
-    },
-    '& .MuiFormHelperText-root': {
-      color: 'rgba(255, 255, 255, 0.5)',
-      '&.Mui-error': {
-        color: '#f44336',
-      }
-    }
+    '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)', '&.Mui-focused': { color: '#4facfe' }, '&.Mui-disabled': { color: 'rgba(255, 255, 255, 0.3)' } },
+    '& .MuiFormHelperText-root': { color: 'rgba(255, 255, 255, 0.5)', '&.Mui-error': { color: '#f44336' } }
   };
-  
-  // Estilo específico para Select
   const selectStyles = {
     ...inputStyles,
     '& .MuiSelect-select': { color: 'white' },
     '& .MuiSvgIcon-root': { color: 'rgba(255, 255, 255, 0.7)' },
+    '&.Mui-disabled .MuiSvgIcon-root': { color: 'rgba(255, 255, 255, 0.3)' }
   };
-  
+
   return (
     <Dialog
       open={open}
       onClose={handleClose}
-      maxWidth="md"
+      maxWidth="sm" // Reducido un poco el ancho
       fullWidth
-      disableEscapeKeyDown={saving}
-      PaperProps={{ 
-        sx: { 
-          bgcolor: '#1e1e1e', 
-          backgroundImage: 'none', 
-          border: '1px solid rgba(255, 255, 255, 0.1)' 
-        } 
-      }}
+      disableEscapeKeyDown={isSubmitting} // Usar isSubmitting
+      PaperProps={{ sx: { bgcolor: '#1e1e1e', backgroundImage: 'none', border: '1px solid rgba(255, 255, 255, 0.1)' } }}
     >
-      <DialogTitle
-        sx={{ 
-          backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
-          color: 'white', 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          py: 1.5, 
-          px: 2 
-        }}
-      >
+      <DialogTitle sx={{ backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5, px: 2 }}>
         {user ? 'Editar Usuario' : 'Crear Usuario'}
-        <IconButton onClick={handleClose} sx={{ color: 'white' }} disabled={saving}>
+        <IconButton onClick={handleClose} sx={{ color: 'white' }} disabled={isSubmitting}>
           <CloseIcon />
         </IconButton>
       </DialogTitle>
 
       <DialogContent sx={{ p: 3, bgcolor: '#1e1e1e', color: 'white' }}>
+        {/* Mostrar error de submit general si existe */}
         {submitError && (
-          <Box sx={{ mb: 2, mt: 1, color: '#f44336' }}>
+          <Alert severity="error" sx={{ mb: 2, bgcolor: 'rgba(244, 67, 54, 0.1)', color: '#f44336' }}>
             {submitError}
-          </Box>
+          </Alert>
         )}
 
-        <Box sx={{ mt: 1 }}>
+        <Box component="form" noValidate sx={{ mt: 1 }}>
           <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}> {/* Nombre ocupa todo el ancho */}
               <TextField
                 fullWidth
                 label="Nombre"
-                name="name"
+                name="name" // Mantener name aquí para el estado, se convierte a 'nombre' al guardar
                 value={formData.name}
                 onChange={handleChange}
                 error={Boolean(formErrors.name)}
                 helperText={formErrors.name}
                 required
-                disabled={saving}
+                disabled={isSubmitting}
                 sx={inputStyles}
+                autoFocus // Enfocar el primer campo al abrir
               />
             </Grid>
-            
-            <Grid item xs={12} sm={6}>
+
+            <Grid item xs={12}> {/* Email ocupa todo el ancho */}
               <TextField
                 fullWidth
                 label="Email"
@@ -290,65 +264,81 @@ const UserForm = ({ open, onClose, user, onSave }) => {
                 error={Boolean(formErrors.email)}
                 helperText={formErrors.email}
                 required
-                disabled={saving}
+                disabled={isSubmitting}
                 sx={inputStyles}
               />
             </Grid>
-            
-            <Grid item xs={12} sm={6}>
+
+            <Grid item xs={12} sm={6}> {/* Rol a la izquierda */}
               <FormControl fullWidth error={Boolean(formErrors.role)} sx={selectStyles}>
-                <InputLabel>Rol</InputLabel>
+                <InputLabel id="role-select-label">Rol</InputLabel>
                 <Select
+                  labelId="role-select-label"
                   name="role"
                   value={formData.role}
                   onChange={handleChange}
                   label="Rol"
-                  disabled={saving}
+                  disabled={isSubmitting}
+                  MenuProps={{ // Estilo del menú desplegable
+                      PaperProps: {
+                          sx: {
+                              bgcolor: '#2a2a2a',
+                              color: 'white',
+                              border: '1px solid rgba(255, 255, 255, 0.2)',
+                              '& .MuiMenuItem-root': {
+                                  '&:hover': {
+                                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                                  },
+                                  '&.Mui-selected': { // Estilo del item seleccionado
+                                      backgroundColor: 'rgba(79, 172, 254, 0.15)',
+                                      '&:hover': {
+                                           backgroundColor: 'rgba(79, 172, 254, 0.25)',
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  }}
                 >
-                  <MenuItem value="admin">Administrador</MenuItem>
+                  {/* *** CAMBIO: Nuevos roles *** */}
                   <MenuItem value="manager">Gerente</MenuItem>
-                  <MenuItem value="user">Usuario</MenuItem>
+                  <MenuItem value="facturador">Facturador</MenuItem>
+                  <MenuItem value="visor">Visor</MenuItem>
                 </Select>
                 {formErrors.role && <FormHelperText>{formErrors.role}</FormHelperText>}
               </FormControl>
             </Grid>
-            
-            <Grid item xs={12} sm={6}>
+
+            <Grid item xs={12} sm={6}> {/* Contraseña a la derecha */}
               <TextField
                 fullWidth
-                label={user ? 'Nueva Contraseña (dejar en blanco para no cambiar)' : 'Contraseña'}
+                label={user ? 'Nueva Contraseña' : 'Contraseña'}
                 name="password"
                 type="password"
-                value={formData.password || ''}
+                value={formData.password}
                 onChange={handleChange}
                 error={Boolean(formErrors.password)}
-                helperText={formErrors.password}
-                required={!user}
-                disabled={saving}
+                helperText={user ? formErrors.password || 'Dejar en blanco para no cambiar' : formErrors.password}
+                required={!user} // Obligatorio solo al crear
+                disabled={isSubmitting}
                 sx={inputStyles}
               />
             </Grid>
-            
-            <Grid item xs={12} sx={{ mt: 2 }}>
+
+            <Grid item xs={12} sx={{ mt: 1 }}> {/* Switch de estado */}
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <Switch
                   checked={formData.active}
                   onChange={handleChange}
                   name="active"
-                  disabled={saving}
+                  disabled={isSubmitting}
                   sx={{
-                    '& .MuiSwitch-switchBase.Mui-checked': {
-                      color: '#4facfe',
-                      '&:hover': {
-                        backgroundColor: 'rgba(79, 172, 254, 0.08)',
-                      },
-                    },
-                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                      backgroundColor: '#4facfe',
-                    },
+                    '& .MuiSwitch-switchBase.Mui-checked': { color: '#4facfe', '&:hover': { backgroundColor: 'rgba(79, 172, 254, 0.08)' } },
+                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#4facfe' },
+                    '&.Mui-disabled': { opacity: 0.5 }
                   }}
                 />
-                <Typography>
+                <Typography sx={{ opacity: isSubmitting ? 0.5 : 1 }}>
                   Usuario {formData.active ? 'Activo' : 'Inactivo'}
                 </Typography>
               </Box>
@@ -357,29 +347,25 @@ const UserForm = ({ open, onClose, user, onSave }) => {
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ 
-        p: 2, 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        bgcolor: '#2a2a2a', 
-        borderTop: '1px solid rgba(255, 255, 255, 0.1)' 
-      }}>
+      <DialogActions sx={{ p: 2, display: 'flex', justifyContent: 'space-between', bgcolor: '#2a2a2a', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+        {/* Botón Limpiar */}
         <Button
           variant="outlined"
-          color="inherit"
           onClick={resetForm}
-          disabled={saving}
+          disabled={isSubmitting}
           sx={cancelButtonStyle}
         >
           Limpiar
         </Button>
+        {/* Botón Guardar/Crear */}
         <Button
           variant="contained"
           onClick={handleSave}
-          disabled={saving}
+          disabled={isSubmitting}
           sx={actionButtonStyle}
+          startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : null} // Ícono de carga
         >
-          {saving ? (user ? 'GUARDANDO...' : 'CREANDO...') : (user ? 'GUARDAR CAMBIOS' : 'CREAR')}
+          {isSubmitting ? (user ? 'GUARDANDO...' : 'CREANDO...') : (user ? 'GUARDAR CAMBIOS' : 'CREAR USUARIO')}
         </Button>
       </DialogActions>
     </Dialog>
