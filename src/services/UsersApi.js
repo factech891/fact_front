@@ -12,7 +12,7 @@ export const usersApi = {
       });
       return handleResponse(response);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('Error al obtener usuarios');
       throw error;
     }
   },
@@ -26,7 +26,7 @@ export const usersApi = {
       });
       return handleResponse(response);
     } catch (error) {
-      console.error(`Error fetching user with ID ${id}:`, error);
+      console.error(`Error al obtener usuario con ID ${id}`);
       throw error;
     }
   },
@@ -34,17 +34,28 @@ export const usersApi = {
   // Crear un nuevo usuario
   createUser: async (userData) => {
     try {
+      // Asegurarse de que estamos usando 'nombre' en lugar de 'name'
+      const userDataToSend = { ...userData };
+      if (userDataToSend.name && !userDataToSend.nombre) {
+        userDataToSend.nombre = userDataToSend.name;
+        delete userDataToSend.name;
+      }
+      
+      // Nunca loguear información sensible
+      const { password, ...safeUserData } = userDataToSend;
+      console.log('Creando nuevo usuario...'); // Sin datos sensibles
+
       const response = await fetch(`${API_BASE_URL}/users`, {
         method: 'POST',
         headers: {
           ...getAuthHeaders(),
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(userData)
+        body: JSON.stringify(userDataToSend)
       });
       return handleResponse(response);
     } catch (error) {
-      console.error('Error creating user:', error);
+      console.error('Error al crear usuario');
       throw error;
     }
   },
@@ -52,17 +63,28 @@ export const usersApi = {
   // Actualizar un usuario existente
   updateUser: async (id, userData) => {
     try {
+      // Asegurarse de que estamos usando 'nombre' en lugar de 'name'
+      const userDataToSend = { ...userData };
+      if (userDataToSend.name && !userDataToSend.nombre) {
+        userDataToSend.nombre = userDataToSend.name;
+        delete userDataToSend.name;
+      }
+      
+      // Nunca loguear información sensible
+      const { password, ...safeUserData } = userDataToSend;
+      console.log('Actualizando usuario...'); // Sin datos sensibles
+
       const response = await fetch(`${API_BASE_URL}/users/${id}`, {
         method: 'PUT',
         headers: {
           ...getAuthHeaders(),
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(userData)
+        body: JSON.stringify(userDataToSend)
       });
       return handleResponse(response);
     } catch (error) {
-      console.error(`Error updating user with ID ${id}:`, error);
+      console.error(`Error al actualizar usuario con ID ${id}`);
       throw error;
     }
   },
@@ -76,7 +98,7 @@ export const usersApi = {
       });
       return handleResponse(response);
     } catch (error) {
-      console.error(`Error deleting user with ID ${id}:`, error);
+      console.error(`Error al eliminar usuario con ID ${id}`);
       throw error;
     }
   },
@@ -84,6 +106,9 @@ export const usersApi = {
   // Cambiar contraseña de usuario
   changePassword: async (id, passwordData) => {
     try {
+      // Nunca loguear datos de contraseñas
+      console.log('Cambiando contraseña de usuario...'); // Sin datos sensibles
+      
       const response = await fetch(`${API_BASE_URL}/users/${id}/change-password`, {
         method: 'POST',
         headers: {
@@ -94,7 +119,7 @@ export const usersApi = {
       });
       return handleResponse(response);
     } catch (error) {
-      console.error(`Error changing password for user with ID ${id}:`, error);
+      console.error(`Error al cambiar contraseña del usuario con ID ${id}`);
       throw error;
     }
   },
@@ -112,7 +137,7 @@ export const usersApi = {
       });
       return handleResponse(response);
     } catch (error) {
-      console.error(`Error assigning role to user with ID ${id}:`, error);
+      console.error(`Error al asignar rol al usuario con ID ${id}`);
       throw error;
     }
   },
@@ -130,7 +155,7 @@ export const usersApi = {
       });
       return handleResponse(response);
     } catch (error) {
-      console.error(`Error toggling user status with ID ${id}:`, error);
+      console.error(`Error al cambiar estado del usuario con ID ${id}`);
       throw error;
     }
   },
@@ -144,7 +169,7 @@ export const usersApi = {
       });
       return handleResponse(response);
     } catch (error) {
-      console.error(`Error resetting password for user with ID ${id}:`, error);
+      console.error(`Error al restablecer contraseña para usuario con ID ${id}`);
       throw error;
     }
   },
@@ -152,6 +177,10 @@ export const usersApi = {
   // Método para actualizar perfil (usuario actual)
   updateProfile: async (userData) => {
     try {
+      // Asegurarse de nunca loguear datos sensibles
+      const { password, ...safeUserData } = userData;
+      console.log('Actualizando perfil de usuario...'); // Sin datos sensibles
+      
       const response = await fetch(`${API_BASE_URL}/users/profile`, {
         method: 'PUT',
         headers: {
@@ -162,7 +191,7 @@ export const usersApi = {
       });
       return handleResponse(response);
     } catch (error) {
-      console.error('Error updating user profile:', error);
+      console.error('Error al actualizar perfil de usuario');
       throw error;
     }
   }

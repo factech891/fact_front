@@ -27,13 +27,13 @@ export const useUsers = () => {
         setUsers(response.users);
       } else {
         // Si no tiene la estructura esperada, usar un array vacío
-        console.error('Respuesta del API no tiene el formato esperado:', response);
+        console.error('Respuesta del API no tiene el formato esperado');
         setUsers([]);
       }
       setError(null);
     } catch (err) {
       setError(err);
-      console.error('Error fetching users:', err);
+      console.error('Error al obtener usuarios');
       setUsers([]); // En caso de error, establecer un array vacío
     } finally {
       setLoading(false);
@@ -57,7 +57,7 @@ export const useUsers = () => {
       }
     } catch (err) {
       setError(err);
-      console.error('Error fetching user:', err);
+      console.error('Error al obtener usuario');
       throw err;
     } finally {
       setLoading(false);
@@ -67,6 +67,9 @@ export const useUsers = () => {
   const createUser = async (userData) => {
     try {
       setLoading(true);
+      // No hacer log de datos sensibles
+      console.log('Iniciando creación de usuario...');
+      
       const response = await createUserApi(userData);
       
       // Verificar si la respuesta tiene la estructura esperada
@@ -78,7 +81,7 @@ export const useUsers = () => {
       }
     } catch (err) {
       setError(err);
-      console.error('Error creating user:', err);
+      console.error('Error al crear usuario');
       throw err;
     } finally {
       setLoading(false);
@@ -88,6 +91,9 @@ export const useUsers = () => {
   const updateUser = async (id, userData) => {
     try {
       setLoading(true);
+      // No hacer log de datos sensibles
+      console.log('Iniciando actualización de usuario...');
+      
       const response = await updateUserApi(id, userData);
       
       // Verificar si la respuesta tiene la estructura esperada
@@ -101,7 +107,7 @@ export const useUsers = () => {
       }
     } catch (err) {
       setError(err);
-      console.error('Error updating user:', err);
+      console.error('Error al actualizar usuario');
       throw err;
     } finally {
       setLoading(false);
@@ -122,7 +128,7 @@ export const useUsers = () => {
       }
     } catch (err) {
       setError(err);
-      console.error('Error deleting user:', err);
+      console.error('Error al eliminar usuario');
       throw err;
     } finally {
       setLoading(false);
@@ -145,7 +151,7 @@ export const useUsers = () => {
       }
     } catch (err) {
       setError(err);
-      console.error('Error toggling user status:', err);
+      console.error('Error al cambiar estado del usuario');
       throw err;
     } finally {
       setLoading(false);
@@ -165,7 +171,7 @@ export const useUsers = () => {
       }
     } catch (err) {
       setError(err);
-      console.error('Error resetting password:', err);
+      console.error('Error al restablecer contraseña');
       throw err;
     } finally {
       setLoading(false);
@@ -175,6 +181,9 @@ export const useUsers = () => {
   const updateUserProfile = async (userData) => {
     try {
       setLoading(true);
+      // No hacer log de datos sensibles
+      console.log('Iniciando actualización de perfil...');
+      
       const response = await updateProfileApi(userData);
       
       // Verificar si la respuesta tiene la estructura esperada
@@ -185,39 +194,11 @@ export const useUsers = () => {
       }
     } catch (err) {
       setError(err);
-      console.error('Error updating profile:', err);
+      console.error('Error al actualizar perfil');
       throw err;
     } finally {
       setLoading(false);
     }
-  };
-  
-  // Para desarrollo, podemos añadir datos de muestra si no hay backend
-  const addDummyData = () => {
-    const dummyUsers = [
-      {
-        _id: '1',
-        name: 'Admin Usuario',
-        email: 'admin@facttech.com',
-        role: 'admin',
-        active: true
-      },
-      {
-        _id: '2',
-        name: 'Gerente Ejemplo',
-        email: 'gerente@facttech.com',
-        role: 'manager',
-        active: true
-      },
-      {
-        _id: '3',
-        name: 'Usuario Normal',
-        email: 'usuario@facttech.com',
-        role: 'user',
-        active: false
-      }
-    ];
-    setUsers(dummyUsers);
   };
   
   return {
@@ -231,7 +212,6 @@ export const useUsers = () => {
     deleteUser,
     toggleUserStatus,
     resetPassword,
-    updateUserProfile,
-    addDummyData // Exportamos esta función para usarla en desarrollo
+    updateUserProfile
   };
 };
