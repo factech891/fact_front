@@ -151,6 +151,24 @@ const ProfilePage = () => {
   // Gradiente para botones (igual que en otros componentes)
   const buttonGradient = 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)';
   
+  // Función para obtener el rol del usuario en formato legible
+  const getUserRoleDisplay = () => {
+    if (!currentUser || !currentUser.role) return 'Usuario';
+    
+    switch(currentUser.role) {
+      case 'admin':
+        return 'Administrador';
+      case 'gerente':
+        return 'Gerente';
+      case 'facturador':
+        return 'Facturador';
+      case 'visor':
+        return 'Visor';
+      default:
+        return currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
+    }
+  };
+  
   return (
     <Box sx={{ 
       padding: '24px', 
@@ -158,9 +176,7 @@ const ProfilePage = () => {
       color: 'white',
       minHeight: 'calc(100vh - 64px)'
     }}>
-      <Typography variant="h5" fontWeight="500" mb={4}>
-        Mi Perfil
-      </Typography>
+      {/* Título eliminado para evitar duplicación con la barra de navegación */}
       
       <Grid container spacing={3}>
         {/* Sección de información de perfil */}
@@ -228,8 +244,7 @@ const ProfilePage = () => {
                   {profileData.nombre || "Usuario"}
                 </Typography>
                 <Typography variant="body2" color="rgba(255,255,255,0.6)">
-                  {currentUser?.role === 'admin' ? 'Administrador' : 
-                   currentUser?.role === 'facturador' ? 'Facturador' : 'Visor'}
+                  {getUserRoleDisplay()}
                 </Typography>
               </Box>
             </Box>
