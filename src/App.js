@@ -1,4 +1,4 @@
-// src/App.js (actualizado con protección de rutas para facturadores)
+// src/App.js (actualizado para visor)
 import { Routes, Route } from 'react-router-dom';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { ThemeProvider, CssBaseline } from '@mui/material';
@@ -10,7 +10,7 @@ import { ClientForm } from './pages/clients/ClientForm';
 import Products from './pages/products/Products';
 import { ProductForm } from './pages/products/ProductForm';
 import Settings from './pages/settings/Settings';
-import ProfilePage from './pages/settings/ProfilePage'; // Nueva importación
+import ProfilePage from './pages/settings/ProfilePage';
 
 // Importamos los componentes del módulo de documentos
 import Documents from './pages/documents/Documents';
@@ -39,7 +39,9 @@ const Unauthorized = () => (
     alignItems: 'center',
     height: '100vh',
     flexDirection: 'column',
-    gap: '1rem'
+    gap: '1rem',
+    backgroundColor: '#121212',
+    color: 'white'
   }}>
     <h1>Acceso no autorizado</h1>
     <p>No tienes permisos para acceder a esta página.</p>
@@ -69,46 +71,96 @@ function App() {
               </ProtectedRoute>
             }
           >
-            {/* Dashboard - protegido contra facturadores mediante ProtectedRoute */}
+            {/* Dashboard - accesible para todos excepto facturadores */}
             <Route index element={
-              <ProtectedRoute requiredRoles={['admin', 'gerente', 'manager', 'visor']}>
+              <ProtectedRoute requiredRoles={['admin', 'gerente', 'visor']}>
                 <Dashboard />
               </ProtectedRoute>
             } />
             <Route path="dashboard" element={
-              <ProtectedRoute requiredRoles={['admin', 'gerente', 'manager', 'visor']}>
+              <ProtectedRoute requiredRoles={['admin', 'gerente', 'visor']}>
                 <Dashboard />
               </ProtectedRoute>
             } />
             
             {/* Rutas de Facturas */}
             <Route path="invoices" element={<Invoices />} />
-            <Route path="invoices/new" element={<InvoiceForm />} />
-            <Route path="invoices/edit/:id" element={<InvoiceForm />} />
+            <Route path="invoices/new" element={
+              <ProtectedRoute>
+                <InvoiceForm />
+              </ProtectedRoute>
+            } />
+            <Route path="invoices/edit/:id" element={
+              <ProtectedRoute>
+                <InvoiceForm />
+              </ProtectedRoute>
+            } />
             
             {/* Rutas de Cotizaciones */}
             <Route path="documents" element={<Documents />} />
-            <Route path="documents/new" element={<DocumentForm />} />
-            <Route path="documents/edit/:id" element={<DocumentForm />} />
+            <Route path="documents/new" element={
+              <ProtectedRoute>
+                <DocumentForm />
+              </ProtectedRoute>
+            } />
+            <Route path="documents/edit/:id" element={
+              <ProtectedRoute>
+                <DocumentForm />
+              </ProtectedRoute>
+            } />
             <Route path="documents/view/:id" element={<DocumentPreview />} />
             
             {/* Rutas de Clientes */}
             <Route path="clients" element={<Clients />} />
-            <Route path="clients/new" element={<ClientForm />} />
-            <Route path="clients/edit/:id" element={<ClientForm />} />
+            <Route path="clients/new" element={
+              <ProtectedRoute>
+                <ClientForm />
+              </ProtectedRoute>
+            } />
+            <Route path="clients/edit/:id" element={
+              <ProtectedRoute>
+                <ClientForm />
+              </ProtectedRoute>
+            } />
             
             {/* Rutas de Productos */}
             <Route path="products" element={<Products />} />
-            <Route path="products/new" element={<ProductForm />} />
-            <Route path="products/edit/:id" element={<ProductForm />} />
+            <Route path="products/new" element={
+              <ProtectedRoute>
+                <ProductForm />
+              </ProtectedRoute>
+            } />
+            <Route path="products/edit/:id" element={
+              <ProtectedRoute>
+                <ProductForm />
+              </ProtectedRoute>
+            } />
             
-            {/* Rutas de Usuarios - solo para admin y gerente (protegido en Sidebar) */}
-            <Route path="users" element={<UserManagement />} />
-            <Route path="users/new" element={<UserForm />} />
-            <Route path="users/edit/:id" element={<UserForm />} />
+            {/* Rutas de Usuarios - solo para admin y gerente */}
+            <Route path="users" element={
+              <ProtectedRoute requiredRoles={['admin', 'gerente']}>
+                <UserManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="users/new" element={
+              <ProtectedRoute requiredRoles={['admin', 'gerente']}>
+                <UserForm />
+              </ProtectedRoute>
+            } />
+            <Route path="users/edit/:id" element={
+              <ProtectedRoute requiredRoles={['admin', 'gerente']}>
+                <UserForm />
+              </ProtectedRoute>
+            } />
             
-            {/* Configuración - solo para admin y gerente (protegido en Sidebar) */}
-            <Route path="settings" element={<Settings />} />
+            {/* Configuración general - solo para admin y gerente */}
+            <Route path="settings" element={
+              <ProtectedRoute requiredRoles={['admin', 'gerente']}>
+                <Settings />
+              </ProtectedRoute>
+            } />
+            
+            {/* Perfil - accesible para todos los usuarios */}
             <Route path="settings/profile" element={<ProfilePage />} />
           </Route>
           
@@ -120,7 +172,9 @@ function App() {
               alignItems: 'center',
               height: '100vh',
               flexDirection: 'column',
-              gap: '1rem'
+              gap: '1rem',
+              backgroundColor: '#121212',
+              color: 'white'
             }}>
               <h1>Página no encontrada</h1>
               <p>La página que estás buscando no existe.</p>

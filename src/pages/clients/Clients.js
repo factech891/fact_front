@@ -1,4 +1,4 @@
-// src/pages/clients/Clients.js
+// src/pages/clients/Clients.js (CORREGIDO)
 import { useState } from 'react';
 import {
     Box,
@@ -13,17 +13,21 @@ import {
     DialogContentText,
     DialogTitle,
     IconButton,
-    Paper
+    Paper,
+    Grid
 } from '@mui/material';
 import {
     Add as AddIcon,
     Close as CloseIcon,
     DeleteForever as DeleteIcon,
-    Cancel as CancelIcon
+    Cancel as CancelIcon,
+    Info as InfoIcon
 } from '@mui/icons-material';
 import { ClientTable } from './ClientTable';
 import { ClientForm } from './ClientForm';
 import useClients from '../../hooks/useClients';
+import { useRoleAccess } from '../../hooks/useRoleAccess'; // Importamos el hook
+import ActionButton from '../../components/ActionButton'; // Importamos el componente ActionButton
 
 const Clients = () => {
   // Estilo para botones de acción principal
@@ -54,6 +58,9 @@ const Clients = () => {
       color: 'rgba(255, 255, 255, 0.6)',
     }
   };
+
+  // Usar nuestro hook de control de acceso
+  const { userRole } = useRoleAccess();
 
   const [openForm, setOpenForm] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
@@ -166,18 +173,23 @@ const Clients = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box sx={{ mb: 4, display: 'flex', alignItems: 'center' }}>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'flex-end' }}>
+        {/* Reemplazamos el botón normal por ActionButton, manteniendo alineación a la derecha */}
+        <ActionButton
+          type="create"
           onClick={() => {
             setSelectedClient(null);
             setOpenForm(true);
           }}
-          sx={{ ...actionButtonStyle, marginLeft: 'auto' }}
+          tooltipTitle="Crear nuevo cliente"
+          buttonProps={{
+            variant: "contained",
+            startIcon: <AddIcon />,
+            sx: { ...actionButtonStyle }
+          }}
         >
           NUEVO CLIENTE
-        </Button>
+        </ActionButton>
       </Box>
 
        <Paper elevation={1} sx={{ mb: 3, borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.1)', bgcolor: '#1e1e1e' }}>
@@ -185,6 +197,7 @@ const Clients = () => {
             clients={clients}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            isVisor={userRole === 'visor'} // Pasamos la prop para informar si es visor
           />
        </Paper>
 
@@ -253,6 +266,15 @@ const Clients = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Mensaje para usuarios con rol visor */}
+      {userRole === 'visor' && (
+        <Box sx={{ mt: 3, p: 2, bgcolor: 'rgba(33, 150, 243, 0.1)', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
+          <InfoIcon sx={{ color: '#2196f3', mr: 1 }} />
+          <Typography color="#2196f3">
+            Modo de solo lectura: Como Visor, puedes ver todos los datos pero no puedes crear, editar o eliminar registros.
+          </Typography>
+        </Box>
+      )}
     </Box>
   );
 };

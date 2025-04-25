@@ -19,11 +19,14 @@ import {
   Add as AddIcon,
   Close as CloseIcon,
   DeleteForever as DeleteIcon,
-  Cancel as CancelIcon
+  Cancel as CancelIcon,
+  Info as InfoIcon
 } from '@mui/icons-material';
 import { ProductTable } from './ProductTable';
 import { ProductForm } from './ProductForm';
 import { useProducts } from '../../hooks/useProducts';
+import { useRoleAccess } from '../../hooks/useRoleAccess'; // Importamos el hook
+import ActionButton from '../../components/ActionButton'; // Importamos el componente ActionButton
 
 const Products = () => {
   // Estilo para botones de acción principal
@@ -54,6 +57,9 @@ const Products = () => {
       color: 'rgba(255, 255, 255, 0.6)',
     }
   };
+
+  // Usar nuestro hook de control de acceso
+  const { userRole } = useRoleAccess();
 
   const [openForm, setOpenForm] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -150,17 +156,22 @@ const Products = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ mb: 4, display: 'flex', alignItems: 'center' }}>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
+        {/* Reemplazamos el botón normal por ActionButton */}
+        <ActionButton
+          type="create"
           onClick={() => {
              setSelectedProduct(null);
              setOpenForm(true);
             }}
-          sx={{ ...actionButtonStyle, marginLeft: 'auto' }}
+          tooltipTitle="Crear nuevo producto"
+          buttonProps={{
+            variant: "contained",
+            startIcon: <AddIcon />,
+            sx: { ...actionButtonStyle, marginLeft: 'auto' }
+          }}
         >
           NUEVO PRODUCTO
-        </Button>
+        </ActionButton>
       </Box>
 
       <Paper elevation={1} sx={{ mb: 3, borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.1)', bgcolor: '#1e1e1e' }}>
@@ -169,6 +180,7 @@ const Products = () => {
           onEdit={handleEdit}
           onDelete={handleDelete}
           loading={loading}
+          isVisor={userRole === 'visor'} // Pasamos la prop para informar si es visor
         />
       </Paper>
 
@@ -255,6 +267,16 @@ const Products = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Mensaje para usuarios con rol visor */}
+      {userRole === 'visor' && (
+        <Box sx={{ mt: 3, p: 2, bgcolor: 'rgba(33, 150, 243, 0.1)', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
+          <InfoIcon sx={{ color: '#2196f3', mr: 1 }} />
+          <Typography color="#2196f3">
+            Modo de solo lectura: Como Visor, puedes ver todos los datos pero no puedes crear, editar o eliminar registros.
+          </Typography>
+        </Box>
+      )}
     </Box>
   );
 };

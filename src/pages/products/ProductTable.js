@@ -1,8 +1,7 @@
-// src/pages/products/ProductTable.js - REFACTORIZADO CON <Table> ESTÁNDAR Y BÚSQUEDA
+// src/pages/products/ProductTable.js - ACTUALIZADO CON CONTROL DE ACCESO PARA VISORES
 import React, { useState, useMemo } from 'react';
 import {
   Box,
-  IconButton,
   Tooltip,
   TextField,
   InputAdornment,
@@ -13,15 +12,15 @@ import {
   TableHead,
   TableRow,
   TablePagination,
-  Paper, // Usamos Paper
-  CircularProgress // Para el estado de carga opcional
+  Paper,
+  CircularProgress
 } from '@mui/material';
 import {
   Edit,
   Delete,
   Search as SearchIcon
 } from '@mui/icons-material';
-// Quitamos import de DataGrid y Card
+import ActionButton from '../../components/ActionButton'; // Importamos ActionButton
 
 // Helper para formatear moneda (existente en tu código)
 const formatCurrency = (value, currencySymbol = 'Bs.') => {
@@ -30,26 +29,40 @@ const formatCurrency = (value, currencySymbol = 'Bs.') => {
   return `${currencySymbol} ${number.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
-// Componente interno para acciones
-const ProductActions = ({ product, onEdit, onDelete }) => (
+// Componente interno para acciones (actualizado)
+const ProductActions = ({ product, onEdit, onDelete, isVisor = false }) => (
   <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-     <Tooltip title="Editar">
-       {/* Quitamos color="primary" */}
-       <IconButton onClick={() => onEdit && onEdit(product)} size="small">
-         <Edit fontSize="inherit" />
-       </IconButton>
-     </Tooltip>
-     <Tooltip title="Eliminar">
-       {/* Quitamos color="error" */}
-       <IconButton onClick={() => onDelete && onDelete(product._id)} size="small">
-         <Delete fontSize="inherit" />
-       </IconButton>
-     </Tooltip>
+     {/* Reemplazamos IconButton por ActionButton */}
+     <ActionButton
+       type="edit"
+       onClick={() => onEdit && onEdit(product)}
+       tooltipTitle="Editar producto"
+       isIconButton
+       buttonProps={{
+         size: "small"
+       }}
+       showDisabled={isVisor} // Mostrar deshabilitado para visores
+     >
+       <Edit fontSize="inherit" />
+     </ActionButton>
+     
+     <ActionButton
+       type="delete"
+       onClick={() => onDelete && onDelete(product._id)}
+       tooltipTitle="Eliminar producto"
+       isIconButton
+       buttonProps={{
+         size: "small"
+       }}
+       showDisabled={isVisor} // Mostrar deshabilitado para visores
+     >
+       <Delete fontSize="inherit" />
+     </ActionButton>
   </Box>
 );
 
 // Exportación consistente (nombrada en este caso)
-export const ProductTable = ({ products = [], onEdit, onDelete, loading }) => {
+export const ProductTable = ({ products = [], onEdit, onDelete, loading, isVisor = false }) => {
   // Estado para búsqueda y paginación
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
@@ -132,7 +145,13 @@ export const ProductTable = ({ products = [], onEdit, onDelete, loading }) => {
                     <TableCell align="right" sx={{ borderBottomColor: 'rgba(255, 255, 255, 0.1)' }}>{formatCurrency(product.precio)}</TableCell>
                     <TableCell align="right" sx={{ borderBottomColor: 'rgba(255, 255, 255, 0.1)' }}>{product.stock ?? 0}</TableCell>
                     <TableCell align="right" sx={{ borderBottomColor: 'rgba(255, 255, 255, 0.1)' }}>
-                       <ProductActions product={product} onEdit={onEdit} onDelete={onDelete} />
+                       {/* Pasamos isVisor a ProductActions */}
+                       <ProductActions 
+                         product={product} 
+                         onEdit={onEdit} 
+                         onDelete={onDelete} 
+                         isVisor={isVisor}
+                       />
                     </TableCell>
                   </TableRow>
                 ))
@@ -162,4 +181,3 @@ export const ProductTable = ({ products = [], onEdit, onDelete, loading }) => {
     </Box>
   );
 };
-

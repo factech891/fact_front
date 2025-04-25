@@ -1,8 +1,7 @@
-// src/pages/clients/ClientTable.js - REFACTORIZADO CON <Table> ESTÁNDAR Y BÚSQUEDA
+// src/pages/clients/ClientTable.js (CORREGIDO)
 import React, { useState, useMemo } from 'react';
 import {
   Box,
-  IconButton,
   Tooltip,
   TextField,
   InputAdornment,
@@ -13,35 +12,51 @@ import {
   TableHead,
   TableRow,
   TablePagination,
-  Paper // Usamos Paper en lugar de Card
+  Paper
 } from '@mui/material';
 import {
   Edit,
   Delete,
   Search as SearchIcon
 } from '@mui/icons-material';
-// Quitamos import de DataGrid y Card
+import ActionButton from '../../components/ActionButton'; // Importamos ActionButton
 
-// Componente interno para acciones (opcional)
-const ClientActions = ({ client, onEdit, onDelete }) => (
+// Componente interno para acciones (actualizado)
+const ClientActions = ({ client, onEdit, onDelete, isVisor = false }) => (
   <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-     <Tooltip title="Editar">
-       {/* Quitamos color="primary" */}
-       <IconButton onClick={() => onEdit && onEdit(client)} size="small">
-         <Edit fontSize="inherit" />
-       </IconButton>
-     </Tooltip>
-     <Tooltip title="Eliminar">
-        {/* Quitamos color="error" */}
-       <IconButton onClick={() => onDelete && onDelete(client._id)} size="small">
-         <Delete fontSize="inherit" />
-       </IconButton>
-     </Tooltip>
+     {/* Reemplazamos IconButton por ActionButton para editar */}
+     <ActionButton
+       type="edit"
+       onClick={() => onEdit && onEdit(client)}
+       tooltipTitle="Editar cliente"
+       isIconButton
+       buttonProps={{
+         size: "small",
+         sx: { mr: 1 }
+       }}
+       showDisabled={isVisor} // Mostrar deshabilitado para visores
+     >
+       <Edit fontSize="inherit" />
+     </ActionButton>
+     
+     {/* Reemplazamos IconButton por ActionButton para eliminar */}
+     <ActionButton
+       type="delete"
+       onClick={() => onDelete && onDelete(client._id)}
+       tooltipTitle="Eliminar cliente"
+       isIconButton
+       buttonProps={{
+         size: "small"
+       }}
+       showDisabled={isVisor} // Mostrar deshabilitado para visores
+     >
+       <Delete fontSize="inherit" />
+     </ActionButton>
   </Box>
 );
 
 // Asegúrate que la exportación coincida con cómo la importas en Clients.js
-export const ClientTable = ({ clients = [], onEdit, onDelete }) => {
+export const ClientTable = ({ clients = [], onEdit, onDelete, isVisor = false }) => {
   // Estado para búsqueda y paginación
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
@@ -123,7 +138,13 @@ export const ClientTable = ({ clients = [], onEdit, onDelete }) => {
                     <TableCell sx={{ borderBottomColor: 'rgba(255, 255, 255, 0.1)' }}>{client.telefono || '—'}</TableCell>
                     <TableCell sx={{ borderBottomColor: 'rgba(255, 255, 255, 0.1)' }}>{client.direccion || '—'}</TableCell>
                     <TableCell align="right" sx={{ borderBottomColor: 'rgba(255, 255, 255, 0.1)' }}>
-                       <ClientActions client={client} onEdit={onEdit} onDelete={onDelete} />
+                       {/* Pasamos isVisor a ClientActions */}
+                       <ClientActions 
+                         client={client} 
+                         onEdit={onEdit} 
+                         onDelete={onDelete} 
+                         isVisor={isVisor}
+                       />
                     </TableCell>
                   </TableRow>
                 ))
@@ -153,4 +174,3 @@ export const ClientTable = ({ clients = [], onEdit, onDelete }) => {
     </Box>
   );
 };
-
