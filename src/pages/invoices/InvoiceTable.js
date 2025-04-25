@@ -1,9 +1,9 @@
-// src/pages/invoices/InvoiceTable.js (CORREGIDO - Usa InvoiceActions Importado)
+// src/pages/invoices/InvoiceTable.js (CORREGIDO - Ancho Fijo Columna Acciones)
 import React, { useState, useMemo } from 'react';
 import {
   Box,
-  IconButton, // IconButton puede ser necesario si InvoiceActions lo usa internamente o para otros botones
-  Tooltip,    // Tooltip puede ser necesario
+  IconButton,
+  Tooltip,
   Chip,
   TextField,
   InputAdornment,
@@ -19,26 +19,12 @@ import {
   MenuItem
 } from '@mui/material';
 import {
-  // Edit, Delete, Visibility, FileDownload, // Ya no se importan aquí directamente
   Search as SearchIcon
 } from '@mui/icons-material';
-// Importar el componente InvoiceActions CORRECTO (el que tiene permisos)
-// VERIFICA ESTA RUTA: Debe apuntar a src/pages/invoices/components/InvoiceActions.js
-import InvoiceActions from './components/InvoiceActions';
+// Importar el componente InvoiceActions CORRECTO
+import InvoiceActions from './components/InvoiceActions'; // VERIFICA RUTA
 
-// ============================================================
-// ===== ¡IMPORTANTE! ASEGÚRATE DE BORRAR ESTA DEFINICIÓN =====
-// const InvoiceActions = ({ invoice, onPreview, onDownload, onEdit, onDelete }) => {
-//   return (
-//     <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-//       <Tooltip title="Previsualizar"><IconButton onClick={() => onPreview && onPreview(invoice)} size="small"><Visibility fontSize="inherit" /></IconButton></Tooltip>
-//       <Tooltip title="Descargar PDF"><IconButton onClick={() => onDownload && onDownload(invoice)} size="small"><FileDownload fontSize="inherit" /></IconButton></Tooltip>
-//       <Tooltip title="Editar"><IconButton onClick={() => onEdit && onEdit(invoice)} size="small"><Edit fontSize="inherit" /></IconButton></Tooltip>
-//       <Tooltip title="Eliminar"><IconButton onClick={() => onDelete && onDelete(invoice._id)} size="small"><Delete fontSize="inherit" /></IconButton></Tooltip>
-//     </Box>
-//   );
-// };
-// ============================================================
+// Asegúrate de que la definición local de InvoiceActions esté eliminada
 
 export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDownload, onStatusChange }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -97,7 +83,6 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
          <TextField fullWidth size="small" variant="outlined" placeholder="Buscar por Nº Factura, Cliente o Estado..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} InputProps={{ startAdornment: ( <InputAdornment position="start"><SearchIcon color="action" /></InputAdornment> ), sx: { bgcolor: '#2a2a2a', borderRadius: '8px', color: 'rgba(255, 255, 255, 0.8)', '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.1)', }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.3)', }, '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main', }, '& .MuiInputAdornment-root .MuiSvgIcon-root': { color: 'rgba(255, 255, 255, 0.5)', } } }} />
       </Box>
 
-      {/* Tabla (sin cambios en estructura, solo en la celda de acciones) */}
       <TableContainer component={Paper} variant="outlined" sx={{ borderColor: 'rgba(255, 255, 255, 0.1)', bgcolor: '#1e1e1e' }}>
         <Table size="small">
           <TableHead>
@@ -107,7 +92,8 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
               <TableCell>Cliente</TableCell>
               <TableCell>Total</TableCell>
               <TableCell>Estado</TableCell>
-              <TableCell align="right">Acciones</TableCell>
+              {/* CORREGIDO: Añadir width fijo */}
+              <TableCell align="right" sx={{ paddingRight: 2, width: '120px' }}>Acciones</TableCell>
             </TableRow>
           </TableHead>
           <TableBody sx={{ '& .MuiTableCell-body': { color: 'rgba(255, 255, 255, 0.8)' } }}>
@@ -133,8 +119,15 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
                          }}
                       />
                     </TableCell>
-                    <TableCell align="right" sx={{ borderBottomColor: 'rgba(255, 255, 255, 0.1)' }}>
-                      {/* USAR EL InvoiceActions IMPORTADO (el que tiene permisos) */}
+                    {/* CORREGIDO: Añadir width fijo */}
+                    <TableCell
+                      align="right"
+                      sx={{
+                        borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+                        paddingRight: 2, // Mantener padding a la derecha
+                        width: '120px' // Aplicar el mismo ancho fijo
+                      }}
+                    >
                       <InvoiceActions
                         invoice={invoice}
                         onPreview={onPreview}

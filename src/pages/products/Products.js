@@ -1,4 +1,4 @@
-// src/pages/products/Products.js
+// src/pages/products/Products.js (CORREGIDO - Layout Botón Nuevo)
 import { useState } from 'react';
 import {
   Box,
@@ -25,11 +25,11 @@ import {
 import { ProductTable } from './ProductTable';
 import { ProductForm } from './ProductForm';
 import { useProducts } from '../../hooks/useProducts';
-import { useRoleAccess } from '../../hooks/useRoleAccess'; // Importamos el hook
-import ActionButton from '../../components/ActionButton'; // Importamos el componente ActionButton
+import { useRoleAccess } from '../../hooks/useRoleAccess';
+import ActionButton from '../../components/ActionButton'; // VERIFICA RUTA
 
 const Products = () => {
-  // Estilo para botones de acción principal
+  // Estilo para botones de acción principal (sin cambios)
   const actionButtonStyle = {
     borderRadius: '50px',
     color: 'white',
@@ -58,12 +58,10 @@ const Products = () => {
     }
   };
 
-  // Usar nuestro hook de control de acceso
-  const { userRole } = useRoleAccess();
-
+  const { userRole, canCreate } = useRoleAccess(); // Obtener canCreate también
   const [openForm, setOpenForm] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const { products, loading, error, saveProduct, deleteProduct } = useProducts();
+  const { products, loading, error, saveProduct, deleteProduct, fetchProducts } = useProducts(); // Añadir fetchProducts
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
   const [productIdToDelete, setProductIdToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -74,17 +72,18 @@ const Products = () => {
       await saveProduct(product);
       setOpenForm(false);
       setSelectedProduct(null);
-      setSnackbar({ 
-        open: true, 
-        message: product._id ? 'Producto actualizado exitosamente' : 'Producto creado exitosamente', 
-        severity: 'success' 
+      setSnackbar({
+        open: true,
+        message: product._id ? 'Producto actualizado exitosamente' : 'Producto creado exitosamente',
+        severity: 'success'
       });
+      // fetchProducts(); // Refrescar si el hook no lo hace
     } catch (error) {
       console.error('Error saving product:', error);
-      setSnackbar({ 
-        open: true, 
-        message: error.message || 'No se pudo guardar el producto', 
-        severity: 'error' 
+      setSnackbar({
+        open: true,
+        message: error.message || 'No se pudo guardar el producto',
+        severity: 'error'
       });
     }
   };
@@ -104,22 +103,25 @@ const Products = () => {
       setDeleting(true);
       try {
         await deleteProduct(productIdToDelete);
-        setSnackbar({ 
-          open: true, 
-          message: 'Producto eliminado exitosamente', 
-          severity: 'success' 
+        setSnackbar({
+          open: true,
+          message: 'Producto eliminado exitosamente',
+          severity: 'success'
         });
+        // fetchProducts(); // Refrescar si el hook no lo hace
       } catch (error) {
         console.error('Error deleting product:', error);
-        setSnackbar({ 
-          open: true, 
-          message: error.message || 'No se pudo eliminar el producto', 
-          severity: 'error' 
+        setSnackbar({
+          open: true,
+          message: error.message || 'No se pudo eliminar el producto',
+          severity: 'error'
         });
       } finally {
         setDeleting(false);
         setOpenConfirmDialog(false);
         setProductIdToDelete(null);
+        // Asegurar refresco
+        if (typeof fetchProducts === 'function') fetchProducts();
       }
     }
   };
@@ -139,14 +141,12 @@ const Products = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
-  // Indicador de carga más robusto
+  // Carga y Error (sin cambios)
   if (loading && !products?.length) return (
     <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
         <CircularProgress />
     </Box>
   );
-
-  // Manejo de error
   if (error && !products?.length) return (
       <Typography color="error" variant="h6" sx={{ textAlign: 'center', my: 4 }}>
           Error al cargar productos: {typeof error === 'string' ? error : error?.message || 'Error desconocido'}
@@ -155,32 +155,37 @@ const Products = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box sx={{ mb: 4, display: 'flex', alignItems: 'center' }}>
-        {/* Reemplazamos el botón normal por ActionButton */}
-        <ActionButton
-          type="create"
-          onClick={() => {
-             setSelectedProduct(null);
-             setOpenForm(true);
-            }}
-          tooltipTitle="Crear nuevo producto"
-          buttonProps={{
-            variant: "contained",
-            startIcon: <AddIcon />,
-            sx: { ...actionButtonStyle, marginLeft: 'auto' }
-          }}
-        >
-          NUEVO PRODUCTO
-        </ActionButton>
+      {/* Contenedor del botón "NUEVO PRODUCTO" */}
+      {/* CORREGIDO: Usar justifyContent: 'flex-end' para alinear a la derecha */}
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+        {/* Usar ActionButton para controlar visibilidad */}
+        {canCreate() && ( // Solo mostrar si puede crear
+            <ActionButton
+              type="create" // No necesita onClick aquí si se maneja en buttonProps
+              tooltipTitle="Crear nuevo producto"
+              buttonProps={{
+                variant: "contained",
+                startIcon: <AddIcon />,
+                sx: { ...actionButtonStyle }, // Quitamos marginLeft: 'auto'
+                onClick: () => { // onClick va dentro de buttonProps
+                  setSelectedProduct(null);
+                  setOpenForm(true);
+                }
+              }}
+            >
+              NUEVO PRODUCTO
+            </ActionButton>
+        )}
       </Box>
 
+      {/* Resto del componente (Paper, ProductTable, etc. sin cambios) */}
       <Paper elevation={1} sx={{ mb: 3, borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.1)', bgcolor: '#1e1e1e' }}>
         <ProductTable
           products={products || []}
           onEdit={handleEdit}
           onDelete={handleDelete}
           loading={loading}
-          isVisor={userRole === 'visor'} // Pasamos la prop para informar si es visor
+          isVisor={userRole === 'visor'}
         />
       </Paper>
 
@@ -201,15 +206,7 @@ const Products = () => {
       >
         <DialogTitle
           id="confirm-delete-dialog-title"
-          sx={{
-            bgcolor: 'primary.main',
-            color: 'white',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            py: 1.5,
-            px: 2
-          }}
+          sx={{ bgcolor: 'primary.main', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5, px: 2 }}
         >
           Confirmar Eliminación
           <IconButton onClick={handleCloseConfirmDialog} sx={{ color: 'white' }} disabled={deleting}>
@@ -221,27 +218,13 @@ const Products = () => {
             ¿Está seguro de que desea eliminar este producto? Esta acción no se puede deshacer.
           </DialogContentText>
         </DialogContent>
-        <DialogActions sx={{
-            p: 2,
-            display: 'flex',
-            justifyContent: 'space-between',
-            bgcolor: '#2a2a2a',
-            borderTop: '1px solid rgba(255, 255, 255, 0.1)'
-          }}
-        >
+        <DialogActions sx={{ p: 2, display: 'flex', justifyContent: 'space-between', bgcolor: '#2a2a2a', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
           <Button
             variant="outlined"
             onClick={handleCloseConfirmDialog}
             startIcon={<CancelIcon />}
             disabled={deleting}
-            sx={{
-              color: 'rgba(255, 255, 255, 0.7)',
-              borderColor: 'rgba(255, 255, 255, 0.3)',
-              '&:hover': {
-                borderColor: 'rgba(255, 255, 255, 0.5)',
-                bgcolor: 'rgba(255, 255, 255, 0.05)'
-              }
-            }}
+            sx={{ color: 'rgba(255, 255, 255, 0.7)', borderColor: 'rgba(255, 255, 255, 0.3)', '&:hover': { borderColor: 'rgba(255, 255, 255, 0.5)', bgcolor: 'rgba(255, 255, 255, 0.05)' } }}
           >
             Cancelar
           </Button>
@@ -268,7 +251,6 @@ const Products = () => {
         </Alert>
       </Snackbar>
 
-      {/* Mensaje para usuarios con rol visor */}
       {userRole === 'visor' && (
         <Box sx={{ mt: 3, p: 2, bgcolor: 'rgba(33, 150, 243, 0.1)', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
           <InfoIcon sx={{ color: '#2196f3', mr: 1 }} />
