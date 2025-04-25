@@ -1,4 +1,4 @@
-// src/components/InvoiceActions.js (CORREGIDO)
+// src/pages/invoices/components/InvoiceActions.js (CORREGIDO - Quitar color prop)
 import React from 'react';
 import { IconButton, Tooltip, Box } from '@mui/material';
 import {
@@ -7,19 +7,13 @@ import {
   Delete,
   FileDownload
 } from '@mui/icons-material';
-// Importar el hook de acceso por rol y el componente ActionButton
-import { useRoleAccess } from '../hooks/useRoleAccess'; // Ajusta la ruta si es necesario (ej. ../hooks/useRoleAccess)
-import ActionButton from './ActionButton'; // Ajusta la ruta si es necesario (ej. ./ActionButton)
+// Importar hook y componente con rutas ajustadas
+import { useRoleAccess } from '../../../hooks/useRoleAccess'; // VERIFICA ESTA RUTA
+import ActionButton from '../../../components/ActionButton'; // VERIFICA ESTA RUTA
 
 /**
  * Componente para mostrar acciones comunes de facturas (ver, editar, eliminar, descargar)
- * con control de acceso basado en roles.
- * @param {object} invoice - Datos de la factura
- * @param {function} onPreview - Función para previsualizar la factura
- * @param {function} onEdit - Función para editar la factura
- * @param {function} onDelete - Función para eliminar la factura
- * @param {function} onDownload - Función para descargar la factura como PDF
- * @param {object} props - Props adicionales (ej. sx para estilos)
+ * con control de acceso basado en roles y estilo de íconos blanco.
  */
 export const InvoiceActions = ({
   invoice,
@@ -32,73 +26,65 @@ export const InvoiceActions = ({
   // Obtener funciones de permiso del hook
   const { canEdit, canDelete } = useRoleAccess();
 
-  // Determinar si alguna acción de edición o borrado está disponible
-  // (para decidir si mostrar el componente en absoluto, aunque ActionButton maneja la visibilidad individual)
-  // Esto es opcional, podrías simplemente dejar que ActionButton oculte los botones individualmente.
-  // const hasAnyAction = onPreview || onDownload || (onEdit && canEdit()) || (onDelete && canDelete());
-  // if (!hasAnyAction) return null; // Opcional: Ocultar todo el Box si no hay acciones visibles
-
   return (
     <Box sx={{ display: 'flex', gap: '4px', ...props.sx }}>
-      {/* Botón Ver: Asumimos que todos los que ven la tabla pueden previsualizar */}
+      {/* Botón Ver (ya debería ser blanco por defecto) */}
       {onPreview && (
         <Tooltip title="Previsualizar">
           <IconButton
             onClick={() => onPreview(invoice)}
-            color="info"
+            // color="info" // Quitar color si queremos blanco por defecto
             size="small"
           >
-            <Visibility fontSize="small" />
+            <Visibility fontSize="inherit" />
           </IconButton>
         </Tooltip>
       )}
 
-      {/* Botón Descargar PDF: Asumimos que todos los que ven la tabla pueden descargar */}
+      {/* Botón Descargar PDF (ya debería ser blanco por defecto) */}
       {onDownload && (
         <Tooltip title="Descargar PDF">
           <IconButton
             onClick={() => onDownload(invoice)}
-            color="secondary"
+            // color="secondary" // Quitar color si queremos blanco por defecto
             size="small"
           >
-            <FileDownload fontSize="small" />
+            <FileDownload fontSize="inherit" />
           </IconButton>
         </Tooltip>
       )}
 
-      {/* Botón Editar: Usar ActionButton para control de permisos */}
-      {onEdit && ( // Solo intentar renderizar si se proporcionó onEdit
+      {/* Botón Editar: Usar ActionButton SIN pasarle color */}
+      {onEdit && (
         <ActionButton
           type="edit" // Verifica canEdit()
           onClick={() => onEdit(invoice)}
           tooltipTitle="Editar Factura"
           isIconButton={true}
-          showDisabled={true} // Mostrar deshabilitado si no tiene permiso
+          showDisabled={true}
           buttonProps={{
-            color: 'primary',
+            // color: 'primary', // QUITAMOS la prop color
             size: 'small',
-            // Podrías añadir disabled={algunaCondicionDeFactura} si fuera necesario
           }}
         >
-          <Edit fontSize="small" />
+          <Edit fontSize="inherit" /> {/* Ícono directo */}
         </ActionButton>
       )}
 
-      {/* Botón Eliminar: Usar ActionButton para control de permisos */}
-      {onDelete && ( // Solo intentar renderizar si se proporcionó onDelete
+      {/* Botón Eliminar: Usar ActionButton SIN pasarle color */}
+      {onDelete && (
         <ActionButton
           type="delete" // Verifica canDelete()
           onClick={() => onDelete(invoice._id)}
           tooltipTitle="Eliminar Factura"
           isIconButton={true}
-          showDisabled={true} // Mostrar deshabilitado si no tiene permiso
+          showDisabled={true}
           buttonProps={{
-            color: 'error',
+            // color: 'error', // QUITAMOS la prop color
             size: 'small',
-             // Podrías añadir disabled={algunaCondicionDeFactura} si fuera necesario
           }}
         >
-          <Delete fontSize="small" />
+           <Delete fontSize="inherit" /> {/* Ícono directo */}
         </ActionButton>
       )}
     </Box>

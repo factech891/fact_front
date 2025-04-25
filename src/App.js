@@ -73,12 +73,12 @@ function App() {
           >
             {/* Dashboard - accesible para todos excepto facturadores */}
             <Route index element={
-              <ProtectedRoute requiredRoles={['admin', 'gerente', 'visor']}>
+              <ProtectedRoute requiredRoles={['admin', 'manager', 'visor']}>
                 <Dashboard />
               </ProtectedRoute>
             } />
             <Route path="dashboard" element={
-              <ProtectedRoute requiredRoles={['admin', 'gerente', 'visor']}>
+              <ProtectedRoute requiredRoles={['admin', 'manager', 'visor']}>
                 <Dashboard />
               </ProtectedRoute>
             } />
