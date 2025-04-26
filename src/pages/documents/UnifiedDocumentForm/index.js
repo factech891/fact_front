@@ -1,3 +1,5 @@
+// src/pages/documents/UnifiedDocumentForm/index.js
+// (Importaciones y otras funciones como estaban)
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -11,12 +13,14 @@ import {
   IconButton,
   Divider,
   CircularProgress,
-  Paper
+  Paper,
+  Alert // Importar Alert para mostrar advertencias
 } from '@mui/material';
 import {
   Close as CloseIcon,
   Save as SaveIcon,
-  RestartAlt as ResetIcon
+  RestartAlt as ResetIcon,
+  WarningAmberRounded as WarningIcon // Icono para advertencia
 } from '@mui/icons-material';
 
 import DocumentTypeSection from './DocumentTypeSection';
@@ -32,34 +36,24 @@ import {
   DOCUMENT_TYPE_NAMES
 } from '../constants/documentTypes';
 
-// Función auxiliar para formatear fechas en zona horaria local, versión robusta
+// Función auxiliar para formatear fechas (sin cambios)
 const formatLocalDate = (dateInput) => {
-  // Protección para valores nulos o indefinidos
   if (!dateInput) {
     return new Date().toISOString().split('T')[0];
   }
-  
-  // Si es un string, extraemos solo la parte YYYY-MM-DD sin conversiones
   if (typeof dateInput === 'string') {
-    // Primero verificamos si tiene formato "T"
     if (dateInput.includes('T')) {
       return dateInput.split('T')[0];
     }
-    // Si no tiene "T", verificamos si tiene guiones (formato YYYY-MM-DD)
     if (dateInput.includes('-')) {
-      // Aseguramos de devolver solo la parte YYYY-MM-DD
       return dateInput.split(' ')[0];
     }
-    // Si llega aquí, formato desconocido, usamos la fecha actual
     console.warn('Formato de fecha desconocido:', dateInput);
     return new Date().toISOString().split('T')[0];
   }
-  
-  // Para objetos Date, usamos toISOString() que es más confiable
   try {
     const date = new Date(dateInput);
     if (isNaN(date.getTime())) {
-      // Fecha inválida
       console.warn('Fecha inválida:', dateInput);
       return new Date().toISOString().split('T')[0];
     }
@@ -76,10 +70,10 @@ const UnifiedDocumentForm = ({
   initialData = null,
   onSave,
   clients = [],
-  products = [],
+  products = [], // Lista completa de productos/servicios disponibles
   isInvoice = false
 }) => {
-  // Estilo para botones de acción principal
+  // Estilo para botones de acción principal (sin cambios)
   const actionButtonStyle = {
     borderRadius: '50px',
     color: 'white',
@@ -109,6 +103,8 @@ const UnifiedDocumentForm = ({
   };
 
   const [saving, setSaving] = useState(false);
+  // --- NUEVO: Estado para advertencias de productos no encontrados ---
+  const [productWarnings, setProductWarnings] = useState([]);
 
   const calculateExpiryDate = (docType) => {
     if (isInvoice || docType !== DOCUMENT_TYPES.QUOTE) return null;
@@ -120,7 +116,7 @@ const UnifiedDocumentForm = ({
   const getInitialFormState = () => ({
     type: isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE,
     documentType: isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE,
-    documentNumber: '', // Dejamos vacío, backend lo generará si es necesario
+    documentNumber: '',
     date: formatLocalDate(new Date()),
     expiryDate: calculateExpiryDate(isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE),
     status: isInvoice ? 'DRAFT' : DOCUMENT_STATUS.DRAFT,
@@ -141,90 +137,129 @@ const UnifiedDocumentForm = ({
   });
 
   const [formData, setFormData] = useState(getInitialFormState());
-  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [selectedProducts, setSelectedProducts] = useState([]); // Estado para el Autocomplete
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
+    // Limpiar advertencias al abrir/cambiar datos
+    setProductWarnings([]);
+
     if (open) {
       if (initialData) {
         console.log('Cargando initialData:', initialData);
-        const documentProducts = (initialData.items || []).map(item => {
-          const fullProduct = products.find(p => p._id === (item.product?._id || item.product));
-          return {
-            _id: fullProduct?._id || item.product,
-            codigo: fullProduct?.codigo || item.codigo || '',
-            nombre: fullProduct?.nombre || item.descripcion || '',
-            precio: item.price || fullProduct?.precio || 0
-          };
-        });
-        setSelectedProducts(documentProducts);
+        console.log('Lista de productos disponibles:', products); // Log para verificar lista
 
-        // Extraer las fechas de manera segura
+        // --- MODIFICACIÓN: Lógica mejorada para mapear productos para Autocomplete ---
+        const warnings = [];
+        const documentProductsForAutocomplete = (initialData.items || [])
+          .map(item => {
+            const productId = item.product?._id || item.product;
+            // Buscar el producto COMPLETO en la lista 'products' que viene como prop
+            const fullProduct = products.find(p => p._id === productId);
+
+            if (fullProduct) {
+              // Si se encuentra, devolver el objeto completo
+              return fullProduct;
+            } else {
+              // Si no se encuentra, registrar una advertencia y crear un objeto básico
+              console.warn(`Producto con ID ${productId} (desc: ${item.descripcion}) no encontrado en la lista general.`);
+              warnings.push(`El producto "${item.descripcion || productId}" no se encontró en la lista actual y podría no mostrarse correctamente.`);
+              // Devolver un objeto mínimo para que la tabla funcione, pero Autocomplete no lo mostrará
+              return null; // Devolver null para filtrarlo después
+            }
+          })
+          .filter(p => p !== null); // Filtrar los que no se encontraron
+
+        if (warnings.length > 0) {
+            setProductWarnings(warnings);
+        }
+
+        console.log('Productos mapeados para Autocomplete:', documentProductsForAutocomplete);
+        setSelectedProducts(documentProductsForAutocomplete); // Establecer estado para Autocomplete
+        // --- FIN MODIFICACIÓN ---
+
+
+        // --- Lógica para mapear items para la tabla (más robusta) ---
+        const loadedItems = (initialData.items || []).map(item => {
+             const productId = item.product?._id || item.product;
+             const fullProduct = products.find(p => p._id === productId);
+             return {
+                product: productId, // ID del producto
+                codigo: fullProduct?.codigo || item.codigo || 'N/A', // Código del producto
+                descripcion: fullProduct?.nombre || item.descripcion || 'Producto Desconocido', // Nombre/Descripción
+                quantity: item.quantity || 1, // Cantidad
+                price: item.price ?? fullProduct?.precio ?? 0, // Precio (usar ?? para permitir 0)
+                taxExempt: item.taxExempt || false, // Exento de impuestos
+                // Calcular subtotal basado en los datos cargados
+                subtotal: (item.quantity || 1) * (item.price ?? fullProduct?.precio ?? 0)
+             };
+        });
+        console.log('Items mapeados para la tabla:', loadedItems);
+        // --- FIN LÓGICA ITEMS ---
+
+        // Cargar resto de datos del formulario
         let dateValue = initialData.date;
-        // Esta es una protección adicional para asegurar que la fecha no se modifique
         if (dateValue && typeof dateValue === 'string' && dateValue.includes('T')) {
           dateValue = dateValue.split('T')[0];
         }
-
         let expiryDateValue = initialData.expiryDate;
         if (expiryDateValue && typeof expiryDateValue === 'string' && expiryDateValue.includes('T')) {
           expiryDateValue = expiryDateValue.split('T')[0];
         }
 
+        // Calcular totales basados en los items cargados
+        const totals = calculateTotals(loadedItems);
+
         const loadedData = {
-          ...getInitialFormState(),
-          ...initialData,
+          ...getInitialFormState(), // Empezar con estado inicial por defecto
+          ...initialData, // Sobrescribir con datos iniciales
+          // Asegurar campos clave
           type: initialData.type || (isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE),
           documentType: initialData.documentType || initialData.type || (isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE),
-          documentNumber: initialData.documentNumber || initialData.number || '', // Usamos lo que venga del backend
-          // Usando directamente las fechas extrayendo la parte YYYY-MM-DD sin pasar por formatLocalDate
+          documentNumber: initialData.documentNumber || initialData.number || '',
           date: dateValue || formatLocalDate(new Date()),
           expiryDate: expiryDateValue || calculateExpiryDate(initialData.type),
-          status: isInvoice ? (initialData.status || 'DRAFT').toUpperCase() : initialData.status || DOCUMENT_STATUS.DRAFT,
-          client: initialData.client || null,
+          status: (isInvoice ? (initialData.status || 'DRAFT') : initialData.status || DOCUMENT_STATUS.DRAFT).toUpperCase(),
+          // Asegurar que el cliente sea el objeto completo si está disponible
+          client: clients.find(c => c._id === (initialData.client?._id || initialData.client)) || initialData.client || null,
           currency: initialData.currency || initialData.moneda || 'VES',
           moneda: initialData.moneda || initialData.currency || 'VES',
           paymentTerms: initialData.paymentTerms || initialData.condicionesPago || 'Contado',
           condicionesPago: initialData.condicionesPago || initialData.paymentTerms || 'Contado',
           creditDays: initialData.creditDays || initialData.diasCredito || 0,
           diasCredito: initialData.diasCredito || initialData.creditDays || 0,
-          items: (initialData.items || []).map(item => ({
-            product: item.product?._id || item.product,
-            codigo: item.codigo || '',
-            descripcion: item.descripcion || '',
-            quantity: item.quantity || 1,
-            price: item.price || 0,
-            taxExempt: item.taxExempt || false,
-            subtotal: (item.quantity || 0) * (item.price || 0)
-          })),
-          subtotal: initialData.subtotal || 0,
-          tax: initialData.tax || initialData.taxAmount || 0,
-          taxAmount: initialData.tax || initialData.taxAmount || 0,
-          total: initialData.total || 0,
+          items: loadedItems, // Usar los items procesados
+          // Usar los totales recalculados
+          subtotal: totals.subtotal,
+          tax: totals.taxAmount,
+          taxAmount: totals.taxAmount,
+          total: totals.total,
           notes: initialData.notes || '',
           terms: initialData.terms || ''
         };
-        
-        // Log adicional para verificar
-        console.log(`Fecha original: ${initialData.date}, Fecha procesada: ${loadedData.date}`);
-        
+
+        console.log('Datos finales cargados en formData:', loadedData);
         setFormData(loadedData);
+
       } else {
-        resetForm();
+        resetForm(); // Si no hay initialData, resetear el formulario
       }
     }
-  }, [open, initialData, products, isInvoice]);
+  }, [open, initialData, products, clients, isInvoice]); // Añadir clients a las dependencias
 
   const resetForm = () => {
     setFormData(getInitialFormState());
     setSelectedProducts([]);
     setErrors({});
+    setProductWarnings([]); // Limpiar advertencias al resetear
   };
 
+  // handleFieldChange (sin cambios)
   const handleFieldChange = (field, value) => {
     setFormData(prev => {
       const updated = { ...prev, [field]: value };
-      if (field === 'currency') updated.moneda = value;
+      // ... (resto de la lógica sin cambios) ...
+       if (field === 'currency') updated.moneda = value;
       if (field === 'moneda') updated.currency = value;
       if (field === 'paymentTerms') updated.condicionesPago = value;
       if (field === 'condicionesPago') updated.paymentTerms = value;
@@ -243,23 +278,29 @@ const UnifiedDocumentForm = ({
     });
   };
 
-  const handleProductSelect = (event, values) => {
+  // handleProductSelect (actualiza items y totales)
+   const handleProductSelect = (event, values) => {
     const safeValues = values || [];
-    const newItems = safeValues.map(product => ({
-      product: product._id,
-      codigo: product.codigo || '',
-      descripcion: product.nombre || '',
-      quantity: 1,
-      price: product.precio || 0,
-      taxExempt: product.isExempt || false,
-      subtotal: product.precio || 0
-    }));
+    // Mapear los productos seleccionados en el Autocomplete a la estructura de items
+    const newItems = safeValues.map(product => {
+      // Buscar si este producto ya estaba en la lista de items para mantener su cantidad
+      const existingItem = formData.items.find(item => item.product === product._id);
+      return {
+        product: product._id,
+        codigo: product.codigo || '',
+        descripcion: product.nombre || '',
+        quantity: existingItem?.quantity || 1, // Mantener cantidad si ya existía, sino 1
+        price: product.precio || 0,
+        taxExempt: product.isExempt || false, // Asumiendo que viene de 'products'
+        subtotal: (existingItem?.quantity || 1) * (product.precio || 0) // Recalcular subtotal
+      };
+    });
 
-    setSelectedProducts(safeValues);
-    const totals = calculateTotals(newItems);
+    setSelectedProducts(safeValues); // Actualizar estado para Autocomplete
+    const totals = calculateTotals(newItems); // Recalcular totales generales
     setFormData(prev => ({
       ...prev,
-      items: newItems,
+      items: newItems, // Actualizar la lista de items en el formulario
       subtotal: totals.subtotal,
       tax: totals.taxAmount,
       taxAmount: totals.taxAmount,
@@ -267,6 +308,8 @@ const UnifiedDocumentForm = ({
     }));
   };
 
+
+  // handleItemChange (sin cambios)
   const handleItemChange = (index, field, value) => {
     const updatedItems = [...formData.items];
     const item = { ...updatedItems[index] };
@@ -286,9 +329,9 @@ const UnifiedDocumentForm = ({
     }));
   };
 
+  // handleSubmit (sin cambios por ahora, se modificará para validar stock antes de guardar)
   const handleSubmit = () => {
     const updatedErrors = validateForm(formData, isInvoice);
-    // Quitamos la validación manual de documentNumber
     setErrors(updatedErrors);
 
     if (Object.keys(updatedErrors).length === 0) {
@@ -298,9 +341,9 @@ const UnifiedDocumentForm = ({
         _id: initialData?._id,
         type: formData.type,
         documentType: formData.documentType,
-        number: formData.documentNumber || undefined, // Enviamos undefined si está vacío
-        documentNumber: formData.documentNumber || undefined, // Backend lo generará si es necesario
-        date: formData.date, // Enviamos la fecha tal cual, sin manipulación adicional
+        number: formData.documentNumber || undefined,
+        documentNumber: formData.documentNumber || undefined,
+        date: formData.date,
         expiryDate: formData.expiryDate,
         status: statusToSend,
         client: formData.client?._id || formData.client,
@@ -336,37 +379,52 @@ const UnifiedDocumentForm = ({
         .finally(() => {
           setSaving(false);
         });
+    } else {
+        console.log("Errores de validación:", updatedErrors);
     }
   };
 
   const getDocumentTitle = () => {
     const action = initialData ? 'Editar' : 'Nuevo';
-    return isInvoice 
+    return isInvoice
       ? `${action} Factura`
       : `${action} ${DOCUMENT_TYPE_NAMES[formData.type] || 'Documento'}`;
   };
 
+  // renderTotalsBar (sin cambios)
   const renderTotalsBar = () => {
     if (formData.items.length === 0) return null;
+    // Calcular totales basados en formData.items actual
+    const totals = calculateTotals(formData.items);
     return (
       <Box sx={{ width: '100%', mb: 2, bgcolor: '#2a2a2a', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
         <Grid container alignItems="center" sx={{ p: 2 }}>
           <Grid item xs={12} sm={4} sx={{ textAlign: { xs: 'left', sm: 'center' }, mb: { xs: 1, sm: 0 } }}>
             <Typography variant="subtitle2" color="text.secondary">Subtotal:</Typography>
-            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Bs. {formData.subtotal.toFixed(2)}</Typography>
+            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{getCurrencySymbol()} {totals.subtotal.toFixed(2)}</Typography>
           </Grid>
           <Grid item xs={12} sm={4} sx={{ textAlign: { xs: 'left', sm: 'center' }, mb: { xs: 1, sm: 0 } }}>
             <Typography variant="subtitle2" color="text.secondary">IVA (16%):</Typography>
-            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>Bs. {formData.tax.toFixed(2)}</Typography>
+            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{getCurrencySymbol()} {totals.taxAmount.toFixed(2)}</Typography>
           </Grid>
           <Grid item xs={12} sm={4} sx={{ textAlign: { xs: 'left', sm: 'center' } }}>
             <Typography variant="subtitle2" color="text.secondary">Total:</Typography>
-            <Typography variant="h6" color="primary.main" sx={{ fontWeight: 'bold' }}>Bs. {formData.total.toFixed(2)}</Typography>
+            <Typography variant="h6" color="primary.main" sx={{ fontWeight: 'bold' }}>{getCurrencySymbol()} {totals.total.toFixed(2)}</Typography>
           </Grid>
         </Grid>
       </Box>
     );
   };
+
+  // Obtener símbolo de moneda
+  const getCurrencySymbol = () => {
+    switch (formData.currency) {
+      case 'USD': return '$';
+      case 'EUR': return '€';
+      case 'VES': default: return 'Bs.';
+    }
+  };
+
 
   return (
     <Dialog
@@ -377,12 +435,12 @@ const UnifiedDocumentForm = ({
       disableEscapeKeyDown={saving}
       PaperProps={{ sx: { bgcolor: '#1e1e1e', backgroundImage: 'none' } }}
     >
-      <DialogTitle sx={{ 
+      <DialogTitle sx={{
         backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
-        color: 'white', 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center' 
+        color: 'white',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
       }}>
         {getDocumentTitle()}
         <IconButton onClick={onClose} sx={{ color: 'white' }} disabled={saving}>
@@ -390,13 +448,25 @@ const UnifiedDocumentForm = ({
         </IconButton>
       </DialogTitle>
 
+      {/* --- NUEVO: Mostrar advertencias de productos --- */}
+      {productWarnings.length > 0 && (
+          <Box sx={{ p: 2, pt: 0 }}>
+              {productWarnings.map((warning, index) => (
+                  <Alert severity="warning" key={index} icon={<WarningIcon fontSize="inherit" />} sx={{ mb: 1 }}>
+                      {warning}
+                  </Alert>
+              ))}
+          </Box>
+      )}
+
       {renderTotalsBar()}
 
       <DialogContent sx={{ p: 2, bgcolor: '#1e1e1e', color: 'white' }}>
         {errors.submit && (
-          <Typography color="error" sx={{ mb: 2 }}>{errors.submit}</Typography>
+          <Alert severity="error" sx={{ mb: 2 }}>{errors.submit}</Alert>
         )}
         <Grid container spacing={2}>
+          {/* DocumentTypeSection */}
           <Grid item xs={12}>
             <Paper elevation={3} sx={{ p: 2, mb: 2, bgcolor: 'rgba(45, 45, 45, 0.7)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
               <DocumentTypeSection
@@ -407,28 +477,31 @@ const UnifiedDocumentForm = ({
               />
             </Paper>
           </Grid>
+          {/* ClientSection */}
           <Grid item xs={12}>
             <Paper elevation={3} sx={{ p: 2, mb: 2, bgcolor: 'rgba(45, 45, 45, 0.7)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
               <ClientSection
                 formData={formData}
-                clients={clients}
+                clients={clients} // Pasar lista completa de clientes
                 errors={errors}
                 onFieldChange={handleFieldChange}
               />
             </Paper>
           </Grid>
+          {/* ItemsSection */}
           <Grid item xs={12}>
             <Paper elevation={3} sx={{ p: 2, mb: 2, bgcolor: 'rgba(45, 45, 45, 0.7)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
               <ItemsSection
                 formData={formData}
-                selectedProducts={selectedProducts}
-                products={products}
+                selectedProducts={selectedProducts} // Los productos seleccionados para el Autocomplete
+                products={products} // La lista completa de productos/servicios disponibles
                 errors={errors}
-                onProductSelect={handleProductSelect}
-                onItemChange={handleItemChange}
+                onProductSelect={handleProductSelect} // Función para manejar selección en Autocomplete
+                onItemChange={handleItemChange} // Función para manejar cambios en la tabla
               />
             </Paper>
           </Grid>
+          {/* NotesSection */}
           <Grid item xs={12}>
             <Paper elevation={3} sx={{ p: 2, mb: 2, bgcolor: 'rgba(45, 45, 45, 0.7)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
               <NotesSection
