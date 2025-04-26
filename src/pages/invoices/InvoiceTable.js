@@ -1,5 +1,5 @@
-// src/pages/invoices/InvoiceTable.js - VERSIÓN MEJORADA CON ESTILO NEGRO
-import React, { useState, useMemo } from 'react';
+// src/pages/invoices/InvoiceTable.js - VERSIÓN MEJORADA CON ESTILO NEGRO Y CONTROL DE ROL
+import React, { useState, useMemo, useContext } from 'react'; // Importar useContext
 import {
   Box,
   IconButton,
@@ -23,8 +23,9 @@ import {
   Search as SearchIcon
 } from '@mui/icons-material';
 import InvoiceActions from './components/InvoiceActions';
+import AuthContext from '../../context/AuthContext'; // Asegúrate que la ruta sea correcta
 
-// Componentes estilizados para el tema oscuro
+// Componentes estilizados para el tema oscuro (sin cambios)
 const StyledTableHead = styled(TableHead)(({ theme }) => ({
   '& .MuiTableCell-head': {
     background: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
@@ -102,6 +103,12 @@ const StyledTablePagination = styled(TablePagination)(({ theme }) => ({
 }));
 
 export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDownload, onStatusChange }) => {
+  // --- MODIFICACIÓN: Obtener hasRole del contexto ---
+  const { hasRole } = useContext(AuthContext);
+  // Determinar si el usuario actual es visor
+  const isViewer = hasRole('visor');
+  // --- FIN MODIFICACIÓN ---
+
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -109,47 +116,47 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
   const [selectedInvoice, setSelectedInvoice] = useState(null);
 
   // Funciones auxiliares (sin cambios)
-  const getStatusLabel = (status) => { 
-    switch (status?.toLowerCase()) { 
-      case 'draft': return 'Borrador'; 
-      case 'pending': return 'Pendiente'; 
-      case 'paid': return 'Pagada'; 
-      case 'cancelled': return 'Anulada'; 
-      case 'overdue': return 'Vencida'; 
-      case 'partial': return 'Pago Parcial'; 
-      default: return 'Borrador'; 
-    } 
+  const getStatusLabel = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'draft': return 'Borrador';
+      case 'pending': return 'Pendiente';
+      case 'paid': return 'Pagada';
+      case 'cancelled': return 'Anulada';
+      case 'overdue': return 'Vencida';
+      case 'partial': return 'Pago Parcial';
+      default: return 'Borrador';
+    }
   };
-  
-  const getStatusColorForMenu = (status) => { 
-    switch (status?.toLowerCase()) { 
-      case 'draft': return 'default'; 
-      case 'pending': return 'warning'; 
-      case 'paid': return 'success'; 
-      case 'cancelled': return 'error'; 
-      case 'overdue': return 'error'; 
-      case 'partial': return 'info'; 
-      default: return 'default'; 
-    } 
+
+  const getStatusColorForMenu = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'draft': return 'default';
+      case 'pending': return 'warning';
+      case 'paid': return 'success';
+      case 'cancelled': return 'error';
+      case 'overdue': return 'error';
+      case 'partial': return 'info';
+      default: return 'default';
+    }
   };
-  
-  const getStatusColorSx = (status) => { 
-    switch (status?.toLowerCase()) { 
-      case 'draft': return { borderColor: 'grey.500', color: 'grey.700' }; 
-      case 'pending': return { borderColor: 'warning.main', color: 'warning.dark' }; 
-      case 'paid': return { borderColor: 'success.main', color: 'success.dark' }; 
-      case 'cancelled': return { borderColor: 'error.main', color: 'error.dark' }; 
-      case 'overdue': return { borderColor: 'error.main', color: 'error.dark' }; 
-      case 'partial': return { borderColor: 'info.main', color: 'info.dark' }; 
-      default: return { borderColor: 'grey.500', color: 'grey.700' }; 
-    } 
+
+  const getStatusColorSx = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'draft': return { borderColor: 'grey.500', color: 'grey.700' };
+      case 'pending': return { borderColor: 'warning.main', color: 'warning.dark' };
+      case 'paid': return { borderColor: 'success.main', color: 'success.dark' };
+      case 'cancelled': return { borderColor: 'error.main', color: 'error.dark' };
+      case 'overdue': return { borderColor: 'error.main', color: 'error.dark' };
+      case 'partial': return { borderColor: 'info.main', color: 'info.dark' };
+      default: return { borderColor: 'grey.500', color: 'grey.700' };
+    }
   };
 
   // Función para obtener el color de fondo del chip según el estado
   const getStatusBgColor = (status) => {
-    switch (status?.toLowerCase()) { 
+    switch (status?.toLowerCase()) {
       case 'draft': return 'rgba(158, 158, 158, 0.15)'; // Gris
-      case 'pending': return 'rgba(255, 152, 0, 0.15)'; // Naranja/Amarillo 
+      case 'pending': return 'rgba(255, 152, 0, 0.15)'; // Naranja/Amarillo
       case 'paid': return 'rgba(76, 175, 80, 0.15)'; // Verde
       case 'cancelled': return 'rgba(244, 67, 54, 0.15)'; // Rojo
       case 'overdue': return 'rgba(244, 67, 54, 0.15)'; // Rojo
@@ -157,28 +164,31 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
       default: return 'rgba(158, 158, 158, 0.15)'; // Gris
     }
   };
-  
-  const formatDisplayDate = (dateString) => { 
-    if (!dateString) return '—'; 
-    try { 
-      if (dateString.includes('T')) { 
-        const d = new Date(dateString); 
-        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`; 
-      } 
-      const parts = dateString.split('-'); 
-      if (parts.length === 3) { 
-        return `${parts[2]}/${parts[1]}/${parts[0]}`; 
-      } 
-      return dateString; 
-    } catch (e) { 
-      console.error('Error formateando fecha:', e); 
-      return dateString || '—'; 
-    } 
+
+  const formatDisplayDate = (dateString) => {
+    if (!dateString) return '—';
+    try {
+      if (dateString.includes('T')) {
+        const d = new Date(dateString);
+        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+      }
+      const parts = dateString.split('-');
+      if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+      return dateString;
+    } catch (e) {
+      console.error('Error formateando fecha:', e);
+      return dateString || '—';
+    }
   };
-  
-  const formatCurrency = (amount, currency = 'VES') => { 
-    if (amount === undefined || amount === null) return '—'; 
-    return new Intl.NumberFormat('es-ES', { style: 'currency', currency: currency }).format(amount); 
+
+  const formatCurrency = (amount, currency = 'VES') => {
+    if (amount === undefined || amount === null) return '—';
+    // Asegurarse que amount es un número antes de formatear
+    const numericAmount = Number(amount);
+    if (isNaN(numericAmount)) return 'Inválido';
+    return new Intl.NumberFormat('es-ES', { style: 'currency', currency: currency }).format(numericAmount);
   };
 
   // Filtrado (sin cambios)
@@ -200,8 +210,11 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
     setPage(0);
   };
 
-  // Menú de estado (sin cambios)
+  // Menú de estado
   const handleStatusClick = (event, invoice) => {
+    // --- MODIFICACIÓN: No abrir menú si es visor ---
+    if (isViewer) return;
+    // --- FIN MODIFICACIÓN ---
     event.stopPropagation();
     setStatusMenu(event.currentTarget);
     setSelectedInvoice(invoice);
@@ -255,18 +268,18 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
           <TableBody>
             {filteredInvoices.length === 0 ? (
               <TableRow>
-                <TableCell 
-                  colSpan={6} 
-                  align="center" 
-                  sx={{ 
-                    py: 5, 
+                <TableCell
+                  colSpan={6}
+                  align="center"
+                  sx={{
+                    py: 5,
                     color: 'rgba(255, 255, 255, 0.5)',
                     border: 'none',
                     backgroundColor: '#121212'
                   }}
                 >
-                  {searchTerm ? 
-                    `No se encontraron facturas que coincidan con "${searchTerm}"` : 
+                  {searchTerm ?
+                    `No se encontraron facturas que coincidan con "${searchTerm}"` :
                     'No hay facturas disponibles'
                   }
                 </TableCell>
@@ -281,24 +294,31 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
                     <TableCell>{invoice.client?.nombre || 'N/A'}</TableCell>
                     <TableCell>{formatCurrency(invoice.total, invoice.moneda)}</TableCell>
                     <TableCell>
+                      {/* --- MODIFICACIÓN: Chip de estado --- */}
                       <Chip
                         label={getStatusLabel(invoice.status)}
                         size="small"
-                        onClick={(e) => handleStatusClick(e, invoice)}
+                        // Solo permitir click si NO es visor
+                        onClick={!isViewer ? (e) => handleStatusClick(e, invoice) : undefined}
                         sx={{
-                          cursor: 'pointer',
+                          // Cambiar cursor si es visor para indicar que no es clickeable
+                          cursor: isViewer ? 'default' : 'pointer',
                           borderRadius: '16px',
                           fontWeight: 500,
                           backgroundColor: getStatusBgColor(invoice.status),
                           color: getStatusColorSx(invoice.status).color,
                           borderColor: getStatusColorSx(invoice.status).borderColor,
                           border: '1px solid',
-                          '&:hover': {
-                            backgroundColor: getStatusBgColor(invoice.status),
-                            opacity: 0.9
-                          }
+                          // Mantener hover solo si NO es visor
+                          ...(!isViewer && {
+                            '&:hover': {
+                              backgroundColor: getStatusBgColor(invoice.status),
+                              opacity: 0.9
+                            }
+                          })
                         }}
                       />
+                      {/* --- FIN MODIFICACIÓN --- */}
                     </TableCell>
                     <TableCell
                       align="right"
@@ -310,6 +330,8 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
                         onDownload={onDownload}
                         onEdit={onEdit}
                         onDelete={onDelete}
+                        // Pasar isViewer a InvoiceActions si también necesita deshabilitar acciones allí
+                        isViewer={isViewer}
                       />
                     </TableCell>
                   </StyledTableRow>
@@ -334,7 +356,7 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
         />
       )}
 
-      {/* Menú de estado para cambiar estado */}
+      {/* Menú de estado para cambiar estado (no se abrirá si es visor) */}
       <Menu
         anchorEl={statusMenu}
         open={Boolean(statusMenu)}
@@ -349,8 +371,8 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
         }}
       >
         {['draft', 'pending', 'paid', 'partial', 'overdue', 'cancelled'].map((status) => (
-          <MenuItem 
-            key={status} 
+          <MenuItem
+            key={status}
             onClick={() => handleStatusChange(status)}
             sx={{
               '&:hover': {
@@ -362,8 +384,8 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
               label={getStatusLabel(status)}
               size="small"
               color={getStatusColorForMenu(status)}
-              sx={{ 
-                minWidth: '100px', 
+              sx={{
+                minWidth: '100px',
                 fontWeight: 'medium',
                 backgroundColor: getStatusBgColor(status),
                 color: getStatusColorSx(status).color,
@@ -377,5 +399,3 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
     </Box>
   );
 };
-
-export default InvoiceTable;
