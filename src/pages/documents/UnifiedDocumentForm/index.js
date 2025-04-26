@@ -1,5 +1,5 @@
 // src/pages/documents/UnifiedDocumentForm/index.js
-// (Importaciones y otras funciones como estaban)
+// (Importaciones como estaban)
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -14,18 +14,18 @@ import {
   Divider,
   CircularProgress,
   Paper,
-  Alert // Importar Alert para mostrar advertencias
+  Alert // Importar Alert para mostrar advertencias/errores
 } from '@mui/material';
 import {
   Close as CloseIcon,
   Save as SaveIcon,
   RestartAlt as ResetIcon,
-  WarningAmberRounded as WarningIcon // Icono para advertencia
+  WarningAmberRounded as WarningIcon // Icono para advertencia/error
 } from '@mui/icons-material';
 
 import DocumentTypeSection from './DocumentTypeSection';
 import ClientSection from './ClientSection';
-import ItemsSection from './ItemsSection';
+import ItemsSection from './ItemsSection'; // Importamos ItemsSection
 import NotesSection from './NotesSection';
 
 import { calculateTotals } from './utils/calculations';
@@ -103,9 +103,11 @@ const UnifiedDocumentForm = ({
   };
 
   const [saving, setSaving] = useState(false);
-  // --- NUEVO: Estado para advertencias de productos no encontrados ---
   const [productWarnings, setProductWarnings] = useState([]);
+  const [errors, setErrors] = useState({});
+  const [submitStockErrors, setSubmitStockErrors] = useState([]);
 
+  // --- CORRECCIÓN: Mover definición de getInitialFormState ANTES de su uso ---
   const calculateExpiryDate = (docType) => {
     if (isInvoice || docType !== DOCUMENT_TYPES.QUOTE) return null;
     const expiryDate = new Date();
@@ -135,69 +137,58 @@ const UnifiedDocumentForm = ({
     notes: '',
     terms: ''
   });
+  // --- FIN CORRECCIÓN ---
 
+  // Ahora inicializamos el estado usando la función ya definida
   const [formData, setFormData] = useState(getInitialFormState());
   const [selectedProducts, setSelectedProducts] = useState([]); // Estado para el Autocomplete
-  const [errors, setErrors] = useState({});
 
+
+  // useEffect para cargar initialData (sin cambios respecto a la versión anterior)
   useEffect(() => {
-    // Limpiar advertencias al abrir/cambiar datos
     setProductWarnings([]);
+    setSubmitStockErrors([]);
 
     if (open) {
       if (initialData) {
         console.log('Cargando initialData:', initialData);
-        console.log('Lista de productos disponibles:', products); // Log para verificar lista
+        console.log('Lista de productos disponibles:', products);
 
-        // --- MODIFICACIÓN: Lógica mejorada para mapear productos para Autocomplete ---
         const warnings = [];
         const documentProductsForAutocomplete = (initialData.items || [])
           .map(item => {
             const productId = item.product?._id || item.product;
-            // Buscar el producto COMPLETO en la lista 'products' que viene como prop
             const fullProduct = products.find(p => p._id === productId);
-
             if (fullProduct) {
-              // Si se encuentra, devolver el objeto completo
               return fullProduct;
             } else {
-              // Si no se encuentra, registrar una advertencia y crear un objeto básico
               console.warn(`Producto con ID ${productId} (desc: ${item.descripcion}) no encontrado en la lista general.`);
               warnings.push(`El producto "${item.descripcion || productId}" no se encontró en la lista actual y podría no mostrarse correctamente.`);
-              // Devolver un objeto mínimo para que la tabla funcione, pero Autocomplete no lo mostrará
-              return null; // Devolver null para filtrarlo después
+              return null;
             }
           })
-          .filter(p => p !== null); // Filtrar los que no se encontraron
+          .filter(p => p !== null);
 
         if (warnings.length > 0) {
             setProductWarnings(warnings);
         }
 
-        console.log('Productos mapeados para Autocomplete:', documentProductsForAutocomplete);
-        setSelectedProducts(documentProductsForAutocomplete); // Establecer estado para Autocomplete
-        // --- FIN MODIFICACIÓN ---
+        setSelectedProducts(documentProductsForAutocomplete);
 
-
-        // --- Lógica para mapear items para la tabla (más robusta) ---
         const loadedItems = (initialData.items || []).map(item => {
              const productId = item.product?._id || item.product;
              const fullProduct = products.find(p => p._id === productId);
              return {
-                product: productId, // ID del producto
-                codigo: fullProduct?.codigo || item.codigo || 'N/A', // Código del producto
-                descripcion: fullProduct?.nombre || item.descripcion || 'Producto Desconocido', // Nombre/Descripción
-                quantity: item.quantity || 1, // Cantidad
-                price: item.price ?? fullProduct?.precio ?? 0, // Precio (usar ?? para permitir 0)
-                taxExempt: item.taxExempt || false, // Exento de impuestos
-                // Calcular subtotal basado en los datos cargados
+                product: productId,
+                codigo: fullProduct?.codigo || item.codigo || 'N/A',
+                descripcion: fullProduct?.nombre || item.descripcion || 'Producto Desconocido',
+                quantity: item.quantity || 1,
+                price: item.price ?? fullProduct?.precio ?? 0,
+                taxExempt: item.taxExempt || false,
                 subtotal: (item.quantity || 1) * (item.price ?? fullProduct?.precio ?? 0)
              };
         });
-        console.log('Items mapeados para la tabla:', loadedItems);
-        // --- FIN LÓGICA ITEMS ---
 
-        // Cargar resto de datos del formulario
         let dateValue = initialData.date;
         if (dateValue && typeof dateValue === 'string' && dateValue.includes('T')) {
           dateValue = dateValue.split('T')[0];
@@ -207,20 +198,17 @@ const UnifiedDocumentForm = ({
           expiryDateValue = expiryDateValue.split('T')[0];
         }
 
-        // Calcular totales basados en los items cargados
         const totals = calculateTotals(loadedItems);
 
         const loadedData = {
-          ...getInitialFormState(), // Empezar con estado inicial por defecto
-          ...initialData, // Sobrescribir con datos iniciales
-          // Asegurar campos clave
+          ...getInitialFormState(),
+          ...initialData,
           type: initialData.type || (isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE),
           documentType: initialData.documentType || initialData.type || (isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE),
           documentNumber: initialData.documentNumber || initialData.number || '',
           date: dateValue || formatLocalDate(new Date()),
           expiryDate: expiryDateValue || calculateExpiryDate(initialData.type),
           status: (isInvoice ? (initialData.status || 'DRAFT') : initialData.status || DOCUMENT_STATUS.DRAFT).toUpperCase(),
-          // Asegurar que el cliente sea el objeto completo si está disponible
           client: clients.find(c => c._id === (initialData.client?._id || initialData.client)) || initialData.client || null,
           currency: initialData.currency || initialData.moneda || 'VES',
           moneda: initialData.moneda || initialData.currency || 'VES',
@@ -228,8 +216,7 @@ const UnifiedDocumentForm = ({
           condicionesPago: initialData.condicionesPago || initialData.paymentTerms || 'Contado',
           creditDays: initialData.creditDays || initialData.diasCredito || 0,
           diasCredito: initialData.diasCredito || initialData.creditDays || 0,
-          items: loadedItems, // Usar los items procesados
-          // Usar los totales recalculados
+          items: loadedItems,
           subtotal: totals.subtotal,
           tax: totals.taxAmount,
           taxAmount: totals.taxAmount,
@@ -238,28 +225,35 @@ const UnifiedDocumentForm = ({
           terms: initialData.terms || ''
         };
 
-        console.log('Datos finales cargados en formData:', loadedData);
         setFormData(loadedData);
 
       } else {
-        resetForm(); // Si no hay initialData, resetear el formulario
+        resetForm();
       }
     }
-  }, [open, initialData, products, clients, isInvoice]); // Añadir clients a las dependencias
+  }, [open, initialData, products, clients, isInvoice]); // Dependencias actualizadas
 
+  // La función resetForm ahora usa getInitialFormState que ya está definida arriba
   const resetForm = () => {
     setFormData(getInitialFormState());
     setSelectedProducts([]);
     setErrors({});
-    setProductWarnings([]); // Limpiar advertencias al resetear
+    setProductWarnings([]);
+    setSubmitStockErrors([]);
   };
 
   // handleFieldChange (sin cambios)
   const handleFieldChange = (field, value) => {
+    if (errors.submit) {
+        setErrors(prev => ({...prev, submit: undefined}));
+    }
+    if (field === 'client' || field === 'currency' || field === 'moneda'){
+         setSubmitStockErrors([]);
+    }
+
     setFormData(prev => {
       const updated = { ...prev, [field]: value };
-      // ... (resto de la lógica sin cambios) ...
-       if (field === 'currency') updated.moneda = value;
+      if (field === 'currency') updated.moneda = value;
       if (field === 'moneda') updated.currency = value;
       if (field === 'paymentTerms') updated.condicionesPago = value;
       if (field === 'condicionesPago') updated.paymentTerms = value;
@@ -278,34 +272,33 @@ const UnifiedDocumentForm = ({
     });
   };
 
-  // handleProductSelect (actualiza items y totales)
+  // handleProductSelect (sin cambios)
    const handleProductSelect = (event, values) => {
     const safeValues = values || [];
-    // Mapear los productos seleccionados en el Autocomplete a la estructura de items
     const newItems = safeValues.map(product => {
-      // Buscar si este producto ya estaba en la lista de items para mantener su cantidad
       const existingItem = formData.items.find(item => item.product === product._id);
       return {
         product: product._id,
         codigo: product.codigo || '',
         descripcion: product.nombre || '',
-        quantity: existingItem?.quantity || 1, // Mantener cantidad si ya existía, sino 1
+        quantity: existingItem?.quantity || 1,
         price: product.precio || 0,
-        taxExempt: product.isExempt || false, // Asumiendo que viene de 'products'
-        subtotal: (existingItem?.quantity || 1) * (product.precio || 0) // Recalcular subtotal
+        taxExempt: product.isExempt || false,
+        subtotal: (existingItem?.quantity || 1) * (product.precio || 0)
       };
     });
 
-    setSelectedProducts(safeValues); // Actualizar estado para Autocomplete
-    const totals = calculateTotals(newItems); // Recalcular totales generales
+    setSelectedProducts(safeValues);
+    const totals = calculateTotals(newItems);
     setFormData(prev => ({
       ...prev,
-      items: newItems, // Actualizar la lista de items en el formulario
+      items: newItems,
       subtotal: totals.subtotal,
       tax: totals.taxAmount,
       taxAmount: totals.taxAmount,
       total: totals.total
     }));
+    setSubmitStockErrors([]);
   };
 
 
@@ -327,61 +320,91 @@ const UnifiedDocumentForm = ({
       taxAmount: totals.taxAmount,
       total: totals.total
     }));
+    setSubmitStockErrors([]);
   };
 
-  // handleSubmit (sin cambios por ahora, se modificará para validar stock antes de guardar)
+  // handleSubmit con validación de stock (sin cambios)
   const handleSubmit = () => {
-    const updatedErrors = validateForm(formData, isInvoice);
-    setErrors(updatedErrors);
+    setErrors({});
+    setSubmitStockErrors([]);
 
-    if (Object.keys(updatedErrors).length === 0) {
-      setSaving(true);
-      const statusToSend = isInvoice ? formData.status.toLowerCase() : formData.status;
-      const documentToSave = {
-        _id: initialData?._id,
-        type: formData.type,
-        documentType: formData.documentType,
-        number: formData.documentNumber || undefined,
-        documentNumber: formData.documentNumber || undefined,
-        date: formData.date,
-        expiryDate: formData.expiryDate,
-        status: statusToSend,
-        client: formData.client?._id || formData.client,
-        currency: formData.currency,
-        moneda: formData.moneda,
-        paymentTerms: formData.paymentTerms,
-        condicionesPago: formData.condicionesPago,
-        creditDays: parseInt(formData.creditDays, 10) || 0,
-        diasCredito: parseInt(formData.diasCredito, 10) || 0,
-        items: formData.items.map(item => ({
-          product: item.product,
-          quantity: item.quantity,
-          price: item.price,
-          taxExempt: item.taxExempt || false
-        })),
-        subtotal: formData.subtotal,
-        tax: formData.tax,
-        taxAmount: formData.taxAmount,
-        total: formData.total,
-        notes: formData.notes || '',
-        terms: formData.terms || '',
-        usePrefix: isInvoice ? 'INV' : undefined
-      };
-
-      console.log('Guardando documento:', documentToSave);
-      onSave(documentToSave)
-        .then(() => {
-          onClose();
-        })
-        .catch(error => {
-          setErrors({ submit: 'Error al guardar: ' + (error?.response?.data?.message || error.message) });
-        })
-        .finally(() => {
-          setSaving(false);
-        });
-    } else {
-        console.log("Errores de validación:", updatedErrors);
+    const formErrors = validateForm(formData, isInvoice);
+    if (Object.keys(formErrors).length > 0) {
+      setErrors(formErrors);
+      console.log("Errores de validación básicos:", formErrors);
+      return;
     }
+
+    const stockValidationErrors = [];
+    let hasStockError = false;
+    formData.items.forEach((item, index) => {
+        const productId = item.product;
+        const fullProduct = products.find(p => p._id === productId);
+
+        if (fullProduct && fullProduct.tipo === 'producto' && typeof fullProduct.stock === 'number') {
+            const requestedQuantity = item.quantity;
+            const availableStock = fullProduct.stock;
+
+            if (requestedQuantity > availableStock) {
+                hasStockError = true;
+                const errorMsg = `Stock insuficiente para "${fullProduct.nombre}" (Código: ${fullProduct.codigo || 'N/A'}). Solicitado: ${requestedQuantity}, Disponible: ${availableStock}.`;
+                stockValidationErrors.push(errorMsg);
+                console.warn(errorMsg);
+            }
+        }
+    });
+
+    if (hasStockError) {
+        setSubmitStockErrors(stockValidationErrors);
+        setErrors(prev => ({...prev, submit: 'No se puede guardar: hay productos con stock insuficiente.'}));
+        console.log("Errores de validación de stock:", stockValidationErrors);
+        return;
+    }
+
+    setSaving(true);
+    const statusToSend = isInvoice ? formData.status.toLowerCase() : formData.status;
+    const documentToSave = {
+      _id: initialData?._id,
+      type: formData.type,
+      documentType: formData.documentType,
+      number: formData.documentNumber || undefined,
+      documentNumber: formData.documentNumber || undefined,
+      date: formData.date,
+      expiryDate: formData.expiryDate,
+      status: statusToSend,
+      client: formData.client?._id || formData.client,
+      currency: formData.currency,
+      moneda: formData.moneda,
+      paymentTerms: formData.paymentTerms,
+      condicionesPago: formData.condicionesPago,
+      creditDays: parseInt(formData.creditDays, 10) || 0,
+      diasCredito: parseInt(formData.diasCredito, 10) || 0,
+      items: formData.items.map(item => ({
+        product: item.product,
+        quantity: item.quantity,
+        price: item.price,
+        taxExempt: item.taxExempt || false
+      })),
+      subtotal: formData.subtotal,
+      tax: formData.tax,
+      taxAmount: formData.taxAmount,
+      total: formData.total,
+      notes: formData.notes || '',
+      terms: formData.terms || '',
+      usePrefix: isInvoice ? 'INV' : undefined
+    };
+
+    console.log('Guardando documento (sin errores de stock):', documentToSave);
+    onSave(documentToSave)
+      .then(() => {
+        onClose();
+      })
+      .catch(error => {
+        setErrors({ submit: 'Error al guardar: ' + (error?.response?.data?.message || error.message) });
+      })
+      .finally(() => {
+        setSaving(false);
+      });
   };
 
   const getDocumentTitle = () => {
@@ -394,7 +417,6 @@ const UnifiedDocumentForm = ({
   // renderTotalsBar (sin cambios)
   const renderTotalsBar = () => {
     if (formData.items.length === 0) return null;
-    // Calcular totales basados en formData.items actual
     const totals = calculateTotals(formData.items);
     return (
       <Box sx={{ width: '100%', mb: 2, bgcolor: '#2a2a2a', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
@@ -416,7 +438,7 @@ const UnifiedDocumentForm = ({
     );
   };
 
-  // Obtener símbolo de moneda
+  // Obtener símbolo de moneda (sin cambios)
   const getCurrencySymbol = () => {
     switch (formData.currency) {
       case 'USD': return '$';
@@ -448,7 +470,7 @@ const UnifiedDocumentForm = ({
         </IconButton>
       </DialogTitle>
 
-      {/* --- NUEVO: Mostrar advertencias de productos --- */}
+      {/* Mostrar advertencias de productos no encontrados */}
       {productWarnings.length > 0 && (
           <Box sx={{ p: 2, pt: 0 }}>
               {productWarnings.map((warning, index) => (
@@ -462,9 +484,22 @@ const UnifiedDocumentForm = ({
       {renderTotalsBar()}
 
       <DialogContent sx={{ p: 2, bgcolor: '#1e1e1e', color: 'white' }}>
-        {errors.submit && (
+        {/* Mostrar errores de stock al intentar guardar */}
+        {submitStockErrors.length > 0 && (
+             <Alert severity="error" sx={{ mb: 2 }}>
+                <Typography fontWeight="bold">Error de Stock:</Typography>
+                <ul>
+                    {submitStockErrors.map((error, index) => (
+                        <li key={index}>{error}</li>
+                    ))}
+                </ul>
+             </Alert>
+        )}
+        {/* Mostrar error general de submit (si existe) */}
+        {errors.submit && !submitStockErrors.length > 0 && (
           <Alert severity="error" sx={{ mb: 2 }}>{errors.submit}</Alert>
         )}
+
         <Grid container spacing={2}>
           {/* DocumentTypeSection */}
           <Grid item xs={12}>
@@ -482,7 +517,7 @@ const UnifiedDocumentForm = ({
             <Paper elevation={3} sx={{ p: 2, mb: 2, bgcolor: 'rgba(45, 45, 45, 0.7)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
               <ClientSection
                 formData={formData}
-                clients={clients} // Pasar lista completa de clientes
+                clients={clients}
                 errors={errors}
                 onFieldChange={handleFieldChange}
               />
@@ -493,11 +528,11 @@ const UnifiedDocumentForm = ({
             <Paper elevation={3} sx={{ p: 2, mb: 2, bgcolor: 'rgba(45, 45, 45, 0.7)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
               <ItemsSection
                 formData={formData}
-                selectedProducts={selectedProducts} // Los productos seleccionados para el Autocomplete
-                products={products} // La lista completa de productos/servicios disponibles
+                selectedProducts={selectedProducts}
+                products={products}
                 errors={errors}
-                onProductSelect={handleProductSelect} // Función para manejar selección en Autocomplete
-                onItemChange={handleItemChange} // Función para manejar cambios en la tabla
+                onProductSelect={handleProductSelect}
+                onItemChange={handleItemChange}
               />
             </Paper>
           </Grid>
