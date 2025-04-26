@@ -1,4 +1,4 @@
-// src/pages/invoices/Invoices.js (CORREGIDO - Ocultar botón Nueva Factura)
+// src/pages/invoices/Invoices.js - VERSIÓN MEJORADA CON ESTILO NEGRO
 import React, { useState, useMemo } from 'react';
 import {
     Box,
@@ -6,62 +6,87 @@ import {
     Typography,
     Snackbar,
     Alert,
-    Paper,
     Dialog,
     DialogActions,
     DialogContent,
     DialogContentText,
     DialogTitle,
     IconButton,
-    CircularProgress
+    CircularProgress,
+    LinearProgress,
+    styled
 } from '@mui/material';
 import {
     Add as AddIcon,
     Close as CloseIcon,
     DeleteForever as DeleteIcon,
-    Cancel as CancelIcon
+    Cancel as CancelIcon,
+    Info as InfoIcon
 } from '@mui/icons-material';
-import { InvoiceTable } from './InvoiceTable'; // Asegúrate que la ruta sea correcta
-import UnifiedDocumentForm from '../documents/UnifiedDocumentForm'; // Ajusta ruta si es necesario
-import { InvoicePreview } from './InvoicePreview/InvoicePreview'; // Ajusta ruta si es necesario
-import { useInvoices } from '../../hooks/useInvoices'; // Ajusta ruta si es necesario
-import { useClients } from '../../hooks/useClients'; // Ajusta ruta si es necesario
-import { useProducts } from '../../hooks/useProducts'; // Ajusta ruta si es necesario
-import { generatePDF } from '../../utils/pdfGenerator'; // Ajusta ruta si es necesario
-// Importar el hook de acceso por rol
-import { useRoleAccess } from '../../hooks/useRoleAccess'; // Ajusta la ruta si es necesario
+import { InvoiceTable } from './InvoiceTable';
+import UnifiedDocumentForm from '../documents/UnifiedDocumentForm';
+import { InvoicePreview } from './InvoicePreview/InvoicePreview';
+import { useInvoices } from '../../hooks/useInvoices';
+import { useClients } from '../../hooks/useClients';
+import { useProducts } from '../../hooks/useProducts';
+import { generatePDF } from '../../utils/pdfGenerator';
+import { useRoleAccess } from '../../hooks/useRoleAccess';
+
+// Componentes estilizados
+const PageContainer = styled(Box)(({ theme }) => ({
+  padding: '24px',
+  backgroundColor: '#121212',
+  color: 'white',
+  minHeight: 'calc(100vh - 64px)',
+  position: 'relative'
+}));
+
+const GradientButton = styled(Button)(({ theme }) => ({
+  borderRadius: '50px',
+  color: 'white',
+  fontWeight: 600,
+  padding: '8px 22px',
+  textTransform: 'none',
+  backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+  boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)',
+  transition: 'all 0.2s ease-in-out',
+  border: 'none',
+  backgroundColor: 'transparent',
+  fontSize: '14px',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: '0 6px 20px rgba(79, 172, 254, 0.6)',
+    backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+    backgroundColor: 'transparent',
+  },
+  '&:active': {
+    transform: 'translateY(0)',
+    boxShadow: '0 2px 10px rgba(79, 172, 254, 0.4)',
+  },
+  '&.Mui-disabled': {
+    backgroundImage: 'linear-gradient(to right, #919191 0%, #b7b7b7 100%)',
+    color: 'rgba(255, 255, 255, 0.6)',
+  }
+}));
+
+const StyledDialogTitle = styled(DialogTitle)(({ theme }) => ({
+  backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+  color: 'white',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  padding: '12px 24px',
+}));
+
+const LoadingContainer = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  height: 'calc(100vh - 64px)',
+  backgroundColor: '#121212'
+}));
 
 const Invoices = () => {
-  // Estilo para botones de acción (sin cambios)
-  const actionButtonStyle = {
-    borderRadius: '50px',
-    color: 'white',
-    fontWeight: 600,
-    padding: '8px 22px',
-    textTransform: 'none',
-    backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
-    boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)',
-    transition: 'all 0.2s ease-in-out',
-    border: 'none',
-    backgroundColor: 'transparent',
-    '&:hover': {
-      transform: 'translateY(-2px)',
-      boxShadow: '0 6px 20px rgba(79, 172, 254, 0.6)',
-      backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
-      backgroundColor: 'transparent',
-    },
-    '&:active': {
-      transform: 'translateY(0)',
-      boxShadow: '0 2px 10px rgba(79, 172, 254, 0.4)',
-    },
-     '&.Mui-disabled': { // Estilo para botón deshabilitado si se usara
-      backgroundImage: 'linear-gradient(to right, #919191 0%, #b7b7b7 100%)',
-      color: 'rgba(255, 255, 255, 0.6)',
-      boxShadow: 'none',
-      cursor: 'not-allowed'
-    }
-  };
-
   // Obtener permisos del hook
   const { canCreate } = useRoleAccess();
 
@@ -72,12 +97,13 @@ const Invoices = () => {
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
   const [invoiceIdToDelete, setInvoiceIdToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { invoices, loading: loadingInvoices, saveInvoice, deleteInvoice, changeInvoiceStatus, fetchInvoices } = useInvoices(); // Añadir fetchInvoices si no está
+  const { invoices, loading: loadingInvoices, saveInvoice, deleteInvoice, changeInvoiceStatus, fetchInvoices } = useInvoices();
   const { clients, loading: loadingClients } = useClients();
   const { products, loading: loadingProducts } = useProducts();
 
-  // Ordenar facturas por fecha descendente (sin cambios)
+  // Ordenar facturas por fecha descendente
   const sortedInvoices = useMemo(() => {
     if (!invoices) return [];
     return [...invoices].sort((a, b) => {
@@ -91,9 +117,9 @@ const Invoices = () => {
     setSnackbarInfo({ open: true, message, severity });
   };
 
-  // Función para procesar datos (sin cambios)
+  // Función para procesar datos
   const processInvoiceData = (invoice) => {
-     console.log('Procesando datos de factura:', invoice);
+    console.log('Procesando datos de factura:', invoice);
     if (!invoice) return null;
     try {
       const processedItems = invoice.items?.map(item => {
@@ -118,10 +144,12 @@ const Invoices = () => {
       const processedInvoice = { ...invoice, items: processedItems, subtotal, iva, total, moneda: invoice.moneda || 'VES' };
       console.log('Factura procesada:', processedInvoice);
       return processedInvoice;
-    } catch (error) { console.error('Error procesando factura:', error); throw error; }
-   };
+    } catch (error) { 
+      console.error('Error procesando factura:', error); 
+      throw error; 
+    }
+  };
 
-  // Funciones de manejo (handlePreview, handleDownload, etc. sin cambios en lógica principal)
   const handlePreview = (invoice) => {
     try {
       const processedInvoice = processInvoiceData(invoice);
@@ -134,6 +162,7 @@ const Invoices = () => {
   };
 
   const handleDownload = async (invoice) => {
+    setIsSubmitting(true);
     try {
       const processedInvoice = processInvoiceData(invoice);
       if (!processedInvoice) throw new Error("No se pudo procesar la factura.");
@@ -143,17 +172,17 @@ const Invoices = () => {
     } catch (error) {
       console.error('Error preparando/generando PDF:', error);
       showSnackbar('Error al generar el PDF: ' + error.message, 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // handleEdit no necesita chequeo aquí, se verifica en InvoiceActions
   const handleEdit = (invoice) => {
     console.log('Editando factura:', invoice);
     setSelectedInvoice(invoice);
     setOpenForm(true);
   };
 
-  // handleDelete no necesita chequeo aquí, se verifica en InvoiceActions
   const handleDelete = (id) => {
     setInvoiceIdToDelete(id);
     setOpenConfirmDialog(true);
@@ -162,18 +191,18 @@ const Invoices = () => {
   const handleConfirmDelete = async () => {
     if (invoiceIdToDelete) {
       setDeleting(true);
+      setIsSubmitting(true);
       try {
         await deleteInvoice(invoiceIdToDelete);
         showSnackbar('Factura eliminada exitosamente', 'success');
-        // fetchInvoices(); // Refrescar datos si el hook no lo hace automáticamente
       } catch (err) {
         console.error('Error al eliminar la factura:', err);
         showSnackbar('Error al eliminar la factura: ' + (err.message || 'Error desconocido'), 'error');
       } finally {
         setDeleting(false);
+        setIsSubmitting(false);
         setOpenConfirmDialog(false);
         setInvoiceIdToDelete(null);
-        // Asegurar refresco
         if (typeof fetchInvoices === 'function') fetchInvoices();
       }
     }
@@ -186,55 +215,73 @@ const Invoices = () => {
   };
 
   const handleStatusChange = async (id, newStatus) => {
+    setIsSubmitting(true);
     try {
       await changeInvoiceStatus(id, newStatus);
-       const statusLabels = { draft: 'Borrador', pending: 'Pendiente', paid: 'Pagada', partial: 'Pago Parcial', overdue: 'Vencida', cancelled: 'Anulada' };
-       const statusLabel = statusLabels[newStatus] || newStatus;
+      const statusLabels = { 
+        draft: 'Borrador', 
+        pending: 'Pendiente', 
+        paid: 'Pagada', 
+        partial: 'Pago Parcial', 
+        overdue: 'Vencida', 
+        cancelled: 'Anulada' 
+      };
+      const statusLabel = statusLabels[newStatus] || newStatus;
       showSnackbar(`Estado de la factura actualizado a "${statusLabel}"`, 'success');
-       // fetchInvoices(); // Refrescar datos si el hook no lo hace automáticamente
-       if (typeof fetchInvoices === 'function') fetchInvoices();
+      if (typeof fetchInvoices === 'function') fetchInvoices();
     } catch (err) {
       console.error('Error al cambiar el estado de la factura:', err);
       showSnackbar('Error al cambiar el estado: ' + (err.message || 'Error desconocido'), 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // Manejo de carga (sin cambios)
-  if (loadingInvoices || loadingClients /* || loadingProducts */) { // Considera añadir loadingProducts si es relevante
+  // Indicador de carga principal
+  if (loadingInvoices || loadingClients) {
     return (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-            <CircularProgress />
-        </Box>
+      <LoadingContainer>
+        <CircularProgress sx={{ color: '#4facfe' }} />
+        <Typography sx={{ color: 'white', ml: 2 }}>Cargando facturas...</Typography>
+      </LoadingContainer>
     );
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-        {/* Renderizar botón "NUEVA FACTURA" solo si tiene permiso canCreate */}
+    <PageContainer>
+      {/* Indicador de carga global para acciones */}
+      {isSubmitting && (
+        <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 1500 }}>
+          <LinearProgress 
+            sx={{
+              '& .MuiLinearProgress-bar': {
+                background: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)'
+              },
+              backgroundColor: 'rgba(0,0,0,0.2)'
+            }}
+          />
+        </Box>
+      )}
+
+      {/* Botón Nueva Factura */}
+      <Box display="flex" justifyContent="flex-end" mb={3}>
         {canCreate() && (
-          <Button
+          <GradientButton
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => {
-              setSelectedInvoice(null); // Asegurarse de limpiar la selección
+              setSelectedInvoice(null);
               setOpenForm(true);
             }}
-            sx={{ ...actionButtonStyle, fontSize: '14px' }} // Quitado marginLeft: 'auto' si solo hay un botón
+            disabled={isSubmitting}
           >
             NUEVA FACTURA
-          </Button>
+          </GradientButton>
         )}
       </Box>
 
-      {/* Resto del componente (Paper, InvoiceTable, Forms, Modals, Snackbar) sin cambios */}
-      <Paper elevation={1} sx={{
-        mb: 3,
-        borderRadius: '8px',
-        overflow: 'hidden',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        bgcolor: '#1e1e1e',
-      }}>
+      {/* Tabla de facturas con estilo unificado */}
+      <Box sx={{ mb: 3 }}>
         <InvoiceTable
           invoices={sortedInvoices}
           onEdit={handleEdit}
@@ -242,50 +289,35 @@ const Invoices = () => {
           onPreview={handlePreview}
           onDownload={handleDownload}
           onStatusChange={handleStatusChange}
-          // Pasando estilos (sin cambios)
-          tableHeaderStyle={{
-            fontWeight: 700,
-            fontSize: '15px',
-            color: 'rgba(255, 255, 255, 0.9)',
-          }}
-          tableCellStyle={{
-            fontWeight: 600,
-            fontSize: '14px',
-            color: 'rgba(255, 255, 255, 0.85)',
-          }}
-          statusChipStyle={{
-            fontWeight: 600,
-            textShadow: '0px 0px 1px rgba(0,0,0,0.5)',
-          }}
         />
-      </Paper>
+      </Box>
 
       {/* Modal de Formulario Unificado */}
       <UnifiedDocumentForm
         open={openForm}
         initialData={selectedInvoice}
-        clients={clients || []} // Asegurar que clients y products sean arrays
+        clients={clients || []}
         products={products || []}
         onClose={() => {
           setOpenForm(false);
-          setSelectedInvoice(null); // Limpiar al cerrar
+          setSelectedInvoice(null);
         }}
         onSave={async (data) => {
-            try {
-                await saveInvoice(data);
-                showSnackbar(data._id ? 'Factura actualizada correctamente' : 'Factura creada correctamente', 'success');
-                setOpenForm(false); // Cerrar modal al guardar con éxito
-                setSelectedInvoice(null); // Limpiar selección
-                // fetchInvoices(); // Refrescar si el hook no lo hace
-                if (typeof fetchInvoices === 'function') fetchInvoices();
-            } catch(err) {
-                 console.error("Error al guardar desde form:", err);
-                 showSnackbar('Error al guardar la factura: ' + (err.message || 'Error desconocido'), 'error');
-                 // No cerrar el modal en caso de error para que el usuario pueda corregir
-                 // throw err; // Opcional: relanzar si se maneja más arriba
-            }
+          setIsSubmitting(true);
+          try {
+            await saveInvoice(data);
+            showSnackbar(data._id ? 'Factura actualizada correctamente' : 'Factura creada correctamente', 'success');
+            setOpenForm(false);
+            setSelectedInvoice(null);
+            if (typeof fetchInvoices === 'function') fetchInvoices();
+          } catch(err) {
+            console.error("Error al guardar desde form:", err);
+            showSnackbar('Error al guardar la factura: ' + (err.message || 'Error desconocido'), 'error');
+          } finally {
+            setIsSubmitting(false);
+          }
         }}
-        isInvoice={true} // Indicar que es para una factura
+        isInvoice={true}
       />
 
       {/* Modal de Vista Previa */}
@@ -294,74 +326,101 @@ const Invoices = () => {
         invoice={selectedInvoice}
         onClose={() => {
           setOpenPreview(false);
-          setSelectedInvoice(null); // Limpiar al cerrar
+          setSelectedInvoice(null);
         }}
       />
 
-      {/* Snackbar (sin cambios) */}
-      <Snackbar
-        open={snackbarInfo.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbarInfo({ ...snackbarInfo, open: false })}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={() => setSnackbarInfo({ ...snackbarInfo, open: false })}
-          severity={snackbarInfo.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {snackbarInfo.message}
-        </Alert>
-      </Snackbar>
-
-      {/* Diálogo de Confirmación de Borrado (sin cambios) */}
+      {/* Diálogo de confirmación para eliminar */}
       <Dialog
         open={openConfirmDialog}
         onClose={handleCloseConfirmDialog}
-        aria-labelledby="confirm-delete-dialog-title"
-        aria-describedby="confirm-delete-dialog-description"
         disableEscapeKeyDown={deleting}
-        PaperProps={{ sx: { bgcolor: '#1e1e1e', backgroundImage: 'none', border: '1px solid rgba(255, 255, 255, 0.1)' } }}
+        PaperProps={{ 
+          sx: { 
+            backgroundColor: '#2a2a2a', 
+            color: 'white', 
+            borderRadius: '8px', 
+            border: '1px solid rgba(255, 255, 255, 0.1)' 
+          } 
+        }}
       >
-        <DialogTitle
-          id="confirm-delete-dialog-title"
-          sx={{ bgcolor: 'primary.main', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5, px: 2 }}
-        >
-          Confirmar Eliminación
-          <IconButton onClick={handleCloseConfirmDialog} sx={{ color: 'white' }} disabled={deleting}>
+        <StyledDialogTitle>
+          Confirmar eliminación
+          <IconButton 
+            onClick={handleCloseConfirmDialog} 
+            sx={{ color: 'white' }} 
+            disabled={deleting}
+            size="small"
+          >
             <CloseIcon />
           </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ p: 3, bgcolor: '#1e1e1e', color: 'rgba(255, 255, 255, 0.8)' }}>
-          <DialogContentText id="confirm-delete-dialog-description" sx={{ color: 'inherit', fontWeight: 500 }}>
+        </StyledDialogTitle>
+        <DialogContent sx={{ mt: 2, p: 3 }}>
+          <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.7)', fontWeight: 500 }}>
             ¿Está seguro de que desea eliminar esta factura? Esta acción no se puede deshacer.
           </DialogContentText>
         </DialogContent>
-        <DialogActions sx={{ p: 2, display: 'flex', justifyContent: 'space-between', bgcolor: '#2a2a2a', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }} >
-          <Button
-            variant="outlined"
+        <DialogActions sx={{ px: 3, pb: 3, display: 'flex', justifyContent: 'space-between' }}>
+          <Button 
             onClick={handleCloseConfirmDialog}
+            variant="outlined"
             startIcon={<CancelIcon />}
+            sx={{ 
+              color: 'rgba(255, 255, 255, 0.7)', 
+              borderColor: 'rgba(255, 255, 255, 0.3)',
+              fontWeight: 600,
+              '&:hover': { 
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                borderColor: 'rgba(255, 255, 255, 0.5)'
+              } 
+            }} 
             disabled={deleting}
-            sx={{ color: 'rgba(255, 255, 255, 0.7)', borderColor: 'rgba(255, 255, 255, 0.3)', fontWeight: 600, '&:hover': { borderColor: 'rgba(255, 255, 255, 0.5)', bgcolor: 'rgba(255, 255, 255, 0.05)' } }}
           >
             Cancelar
           </Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={handleConfirmDelete}
+          <Button 
+            onClick={handleConfirmDelete} 
+            color="error" 
+            variant="contained" 
             startIcon={deleting ? <CircularProgress size={20} color="inherit" /> : <DeleteIcon />}
+            sx={{ 
+              background: 'linear-gradient(to right, #ff416c, #ff4b2b)', 
+              boxShadow: '0 4px 15px rgba(255, 75, 43, 0.4)',
+              fontWeight: 600
+            }} 
             disabled={deleting}
-            sx={{ fontWeight: 600 }}
           >
             {deleting ? 'Eliminando...' : 'Eliminar'}
           </Button>
         </DialogActions>
       </Dialog>
 
-    </Box>
+      {/* Snackbar para mensajes */}
+      <Snackbar
+        open={snackbarInfo.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarInfo({ ...snackbarInfo, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbarInfo({ ...snackbarInfo, open: false })}
+          severity={snackbarInfo.severity}
+          variant="filled"
+          sx={{ 
+            width: '100%',
+            boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.25)',
+            borderRadius: '8px',
+            ...(snackbarInfo.severity === 'success' && {
+              backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+              '& .MuiAlert-icon': { color: 'white' },
+              color: 'white'
+            })
+          }}
+        >
+          {snackbarInfo.message}
+        </Alert>
+      </Snackbar>
+    </PageContainer>
   );
 };
 

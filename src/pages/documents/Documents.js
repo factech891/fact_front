@@ -1,11 +1,9 @@
-// src/pages/documents/Documents.js (CORREGIDO)
+// src/pages/documents/Documents.js - VERSIÓN MEJORADA CON ESTILO NEGRO
 import React, { useState } from 'react';
 import {
   Box,
   Button,
   Typography,
-  Grid,
-  Paper,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -13,46 +11,83 @@ import {
   Snackbar,
   Alert,
   CircularProgress,
-  IconButton
+  IconButton,
+  LinearProgress,
+  styled
 } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
-import { Close as CloseIcon, DeleteForever as DeleteIcon, Cancel as CancelIcon } from '@mui/icons-material';
+import {
+  Add as AddIcon,
+  Close as CloseIcon,
+  DeleteForever as DeleteIcon,
+  Cancel as CancelIcon,
+  Info as InfoIcon
+} from '@mui/icons-material';
 import DocumentTable from './DocumentTable';
 import DocumentFormModal from './components/DocumentFormModal';
 import { useDocuments } from '../../hooks/useDocuments';
-// Importar el hook de acceso por rol
-import { useRoleAccess } from '../../hooks/useRoleAccess'; // Ajusta la ruta si es necesario
+import { useRoleAccess } from '../../hooks/useRoleAccess';
+
+// Componentes estilizados
+const PageContainer = styled(Box)(({ theme }) => ({
+  padding: '24px',
+  backgroundColor: '#121212',
+  color: 'white',
+  minHeight: 'calc(100vh - 64px)',
+  position: 'relative'
+}));
+
+const GradientButton = styled(Button)(({ theme }) => ({
+  borderRadius: '50px',
+  color: 'white',
+  fontWeight: 600,
+  padding: '8px 22px',
+  textTransform: 'none',
+  backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+  boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)',
+  transition: 'all 0.2s ease-in-out',
+  border: 'none',
+  backgroundColor: 'transparent',
+  fontSize: '14px',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: '0 6px 20px rgba(79, 172, 254, 0.6)',
+    backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+    backgroundColor: 'transparent',
+  },
+  '&:active': {
+    transform: 'translateY(0)',
+    boxShadow: '0 2px 10px rgba(79, 172, 254, 0.4)',
+  },
+  '&.Mui-disabled': {
+    backgroundImage: 'linear-gradient(to right, #919191 0%, #b7b7b7 100%)',
+    color: 'rgba(255, 255, 255, 0.6)',
+  }
+}));
+
+const StyledDialogTitle = styled(DialogTitle)(({ theme }) => ({
+  backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+  color: 'white',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  padding: '12px 24px',
+}));
+
+const LoadingContainer = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  height: 'calc(100vh - 64px)',
+  backgroundColor: '#121212'
+}));
+
+const StyledAlert = styled(Alert)(({ theme }) => ({
+  width: '100%',
+  borderRadius: '8px',
+  boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.25)',
+}));
 
 const Documents = () => {
-  // Estilo para botones de acción principal (sin cambios)
-  const actionButtonStyle = {
-    borderRadius: '50px',
-    color: 'white',
-    fontWeight: 600,
-    padding: '8px 22px',
-    textTransform: 'none',
-    backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
-    boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)',
-    transition: 'all 0.2s ease-in-out',
-    border: 'none',
-    backgroundColor: 'transparent',
-    fontSize: '14px',
-    '&:hover': {
-      transform: 'translateY(-2px)',
-      boxShadow: '0 6px 20px rgba(79, 172, 254, 0.6)',
-      backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
-      backgroundColor: 'transparent',
-    },
-    '&:active': {
-      transform: 'translateY(0)',
-      boxShadow: '0 2px 10px rgba(79, 172, 254, 0.4)',
-    },
-    '&.Mui-disabled': {
-      backgroundImage: 'linear-gradient(to right, #919191 0%, #b7b7b7 100%)',
-      color: 'rgba(255, 255, 255, 0.6)',
-    }
-  };
-
   // Obtener funciones de permiso del hook
   const { canCreate } = useRoleAccess();
 
@@ -70,9 +105,9 @@ const Documents = () => {
   const [documentToDelete, setDocumentToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleCreateNew = () => {
-    // Verificar permiso antes de abrir (aunque el botón ya estará oculto)
     if (!canCreate()) {
         console.warn("Intento de crear sin permisos.");
         setSnackbar({ open: true, message: 'No tienes permisos para crear documentos.', severity: 'warning' });
@@ -83,8 +118,6 @@ const Documents = () => {
     setFormOpen(true);
   };
 
-  // handleEdit no necesita chequeo de permiso aquí,
-  // porque se llama desde DocumentTable -> DocumentActions, donde ya se verifica canEdit
   const handleEdit = (id) => {
     console.log('Abriendo formulario para editar documento con ID:', id);
     setSelectedDocumentId(id);
@@ -100,8 +133,6 @@ const Documents = () => {
     }
   };
 
-  // handleDeleteRequest no necesita chequeo de permiso aquí,
-  // porque se llama desde DocumentTable -> DocumentActions, donde ya se verifica canDelete
   const handleDeleteRequest = (id) => {
     const doc = documents.find(d => d._id === id);
     if (!doc) {
@@ -122,140 +153,199 @@ const Documents = () => {
   const handleDeleteConfirm = async () => {
     if (!documentToDelete) return;
     setDeleting(true);
+    setIsSubmitting(true);
     try {
       await deleteDocument(documentToDelete._id);
       setSnackbar({ open: true, message: 'Documento eliminado correctamente', severity: 'success' });
-      // fetchDocuments(); // useDocuments hook debería manejar la actualización tras borrar
     } catch (err) {
       console.error("Error eliminando documento:", err)
       setSnackbar({ open: true, message: 'Error al eliminar el documento: ' + (err.message || 'Error desconocido'), severity: 'error' });
     } finally {
       setDeleting(false);
+      setIsSubmitting(false);
       setDeleteDialogOpen(false);
       setDocumentToDelete(null);
-       // Asegurarse de refrescar por si el hook no lo hizo automáticamente
-       fetchDocuments();
+      fetchDocuments();
     }
   };
 
-  // Indicador de carga principal (sin cambios)
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
+  // Indicador de carga principal
   if (loading && documents.length === 0) {
       return (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-              <CircularProgress />
-          </Box>
+          <LoadingContainer>
+            <CircularProgress sx={{ color: '#4facfe' }} />
+            <Typography sx={{ color: 'white', ml: 2 }}>Cargando documentos...</Typography>
+          </LoadingContainer>
       );
   }
-  // Manejo de error principal (sin cambios)
+  
+  // Manejo de error principal
   if (error && documents.length === 0) {
       return (
-          <Box sx={{ p: 3 }}>
-              <Alert severity="error">Error al cargar documentos: {typeof error === 'string' ? error : error?.message || 'Error desconocido'}</Alert>
-          </Box>
+          <PageContainer>
+            <StyledAlert severity="error" variant="filled">
+              Error al cargar documentos: {typeof error === 'string' ? error : error?.message || 'Error desconocido'}
+            </StyledAlert>
+          </PageContainer>
       );
   }
 
-
   return (
-    <Box sx={{p: 3}}>
-      <Box sx={{ mb: 4 }}>
-        <Grid container justifyContent="flex-end" alignItems="center" spacing={2}>
-          {/* Renderizar el botón solo si el usuario tiene permiso para crear */}
-          {canCreate() && (
-            <Grid item>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={handleCreateNew}
-                sx={{
-                  ...actionButtonStyle,
-                }}
-              >
-                NUEVA COTIZACIÓN
-              </Button>
-            </Grid>
-          )}
-        </Grid>
+    <PageContainer>
+      {/* Indicador de carga global */}
+      {isSubmitting && (
+        <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 1500 }}>
+          <LinearProgress 
+            sx={{
+              '& .MuiLinearProgress-bar': {
+                background: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)'
+              },
+              backgroundColor: 'rgba(0,0,0,0.2)'
+            }}
+          />
+        </Box>
+      )}
+
+      {/* Botón Nueva Cotización */}
+      <Box display="flex" justifyContent="flex-end" mb={3}>
+        {canCreate() && (
+          <GradientButton
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleCreateNew}
+            disabled={isSubmitting}
+          >
+            NUEVA COTIZACIÓN
+          </GradientButton>
+        )}
       </Box>
 
-      {/* Resto del componente (Paper, DocumentTable, Dialogs, Snackbar, DocumentFormModal) sin cambios */}
-      <Paper sx={{ mb: 3, borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.1)', bgcolor: '#1e1e1e' }}>
-         {loading && documents.length > 0 ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}><CircularProgress size={24} /></Box>
-          ) : error ? (
-            <Alert severity="error" sx={{ m: 2 }}>Error: {typeof error === 'string' ? error : error?.message || 'No se pudieron cargar/actualizar los documentos'}</Alert>
-          ) : null}
-          { !(error && documents.length === 0) &&
-            <DocumentTable
-              documents={documents || []}
-              onDelete={handleDeleteRequest} // Pasa la función para solicitar borrado
-              onEdit={handleEdit}           // Pasa la función para editar
-              onRefresh={fetchDocuments}    // Pasa la función para refrescar
-              // onConvertToInvoice se maneja dentro de DocumentTable/DocumentActions
-            />
-           }
-      </Paper>
+      {/* Tabla de documentos con estilo unificado */}
+      <Box sx={{ mb: 3 }}>
+        {loading && documents.length > 0 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+            <CircularProgress size={24} sx={{ color: '#4facfe' }} />
+          </Box>
+        )}
+        
+        {error && (
+          <StyledAlert severity="error" variant="filled" sx={{ mb: 2 }}>
+            Error: {typeof error === 'string' ? error : error?.message || 'No se pudieron cargar/actualizar los documentos'}
+          </StyledAlert>
+        )}
+        
+        {!(error && documents.length === 0) && (
+          <DocumentTable
+            documents={documents || []}
+            onDelete={handleDeleteRequest}
+            onEdit={handleEdit}
+            onRefresh={fetchDocuments}
+          />
+        )}
+      </Box>
 
-      <Dialog open={deleteDialogOpen} onClose={handleCloseDeleteDialog} disableEscapeKeyDown={deleting}>
-        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5, px: 2 }}>
-            Confirmar eliminación
-             <IconButton onClick={handleCloseDeleteDialog} sx={{ color: 'white' }} disabled={deleting}>
-                 <CloseIcon />
-             </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ p: 3, bgcolor: '#1e1e1e', color: 'rgba(255, 255, 255, 0.8)' }}>
+      {/* Diálogo de confirmación para eliminar */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleCloseDeleteDialog}
+        disableEscapeKeyDown={deleting}
+        PaperProps={{ 
+          sx: { 
+            backgroundColor: '#2a2a2a', 
+            color: 'white', 
+            borderRadius: '8px', 
+            border: '1px solid rgba(255, 255, 255, 0.1)' 
+          } 
+        }}
+      >
+        <StyledDialogTitle>
+          Confirmar eliminación
+          <IconButton 
+            onClick={handleCloseDeleteDialog} 
+            sx={{ color: 'white' }} 
+            disabled={deleting}
+            size="small"
+          >
+            <CloseIcon />
+          </IconButton>
+        </StyledDialogTitle>
+        <DialogContent sx={{ mt: 2, p: 3 }}>
           {documentToDelete && (
-            <Typography sx={{ color: 'inherit' }}>
-              ¿Está seguro de que desea eliminar el documento <Typography component="span" fontWeight="bold">{documentToDelete.documentNumber}</Typography>? Esta acción no se puede deshacer.
+            <Typography sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+              ¿Está seguro de que desea eliminar el documento <Typography component="span" fontWeight="bold" sx={{ color: 'white' }}>{documentToDelete.documentNumber}</Typography>? Esta acción no se puede deshacer.
             </Typography>
           )}
         </DialogContent>
-        <DialogActions sx={{ p: 2, display: 'flex', justifyContent: 'space-between', bgcolor: '#2a2a2a', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-          <Button
-             variant="outlined"
-             onClick={handleCloseDeleteDialog}
-             startIcon={<CancelIcon />}
-             disabled={deleting}
-             sx={{ color: 'rgba(255, 255, 255, 0.7)', borderColor: 'rgba(255, 255, 255, 0.3)', '&:hover': { borderColor: 'rgba(255, 255, 255, 0.5)', bgcolor: 'rgba(255, 255, 255, 0.05)' } }}
-            >
-                Cancelar
-            </Button>
-          <Button
-            onClick={handleDeleteConfirm}
-            color="error"
-            variant="contained"
+        <DialogActions sx={{ px: 3, pb: 3, display: 'flex', justifyContent: 'space-between' }}>
+          <Button 
+            onClick={handleCloseDeleteDialog}
+            variant="outlined"
+            startIcon={<CancelIcon />}
+            sx={{ 
+              color: 'rgba(255, 255, 255, 0.7)', 
+              borderColor: 'rgba(255, 255, 255, 0.3)',
+              '&:hover': { 
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                borderColor: 'rgba(255, 255, 255, 0.5)'
+              } 
+            }} 
             disabled={deleting}
+          >
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleDeleteConfirm} 
+            color="error" 
+            variant="contained" 
             startIcon={deleting ? <CircularProgress size={20} color="inherit" /> : <DeleteIcon />}
-            >
-               {deleting ? 'Eliminando...' : 'Eliminar'}
-            </Button>
+            sx={{ 
+              background: 'linear-gradient(to right, #ff416c, #ff4b2b)', 
+              boxShadow: '0 4px 15px rgba(255, 75, 43, 0.4)' 
+            }} 
+            disabled={deleting}
+          >
+            {deleting ? 'Eliminando...' : 'Eliminar'}
+          </Button>
         </DialogActions>
       </Dialog>
 
+      {/* Snackbar para mensajes */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
         <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          onClose={handleCloseSnackbar}
           severity={snackbar.severity}
           variant="filled"
-          sx={{ width: '100%' }}
+          sx={{ 
+            width: '100%',
+            boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.25)',
+            borderRadius: '8px',
+            ...(snackbar.severity === 'success' && {
+              backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+              '& .MuiAlert-icon': { color: 'white' },
+              color: 'white'
+            })
+          }}
         >
           {snackbar.message}
         </Alert>
       </Snackbar>
 
-      {/* El modal de formulario se renderiza aquí, pero se abre/cierra con estado */}
-      {/* No necesita chequeo de permiso aquí porque handleCreateNew ya lo hace */}
+      {/* Modal de formulario de documento */}
       <DocumentFormModal
         open={formOpen}
         onClose={handleFormClose}
-        documentId={selectedDocumentId} // Pasa null para crear, o un ID para editar
+        documentId={selectedDocumentId}
       />
-    </Box>
+    </PageContainer>
   );
 };
 

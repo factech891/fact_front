@@ -17,7 +17,7 @@ import {
   MenuItem,      
   FormControl,   
   InputLabel,
-  FormHelperText  // Movido aquí arriba la importación
+  FormHelperText
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -25,7 +25,10 @@ import {
   RestartAlt as ResetIcon 
 } from '@mui/icons-material';
 
+// Mantener la exportación con nombre para App.js
 export const ProductForm = ({ open, onClose, product, onSave }) => {
+  // El resto del código sigue igual...
+  
   // Estilo para botones de acción principal
   const actionButtonStyle = {
     borderRadius: '50px',
@@ -56,9 +59,7 @@ export const ProductForm = ({ open, onClose, product, onSave }) => {
   };
 
   const initialFormData = {
-    // --- Nuevo campo para el tipo ---
-    tipo: 'producto', // Valor por defecto
-    // --- Fin nuevo campo ---
+    tipo: 'producto',
     codigo: '',
     nombre: '',
     precio: '0',
@@ -76,13 +77,10 @@ export const ProductForm = ({ open, onClose, product, onSave }) => {
         setSubmitError(null);
         if (product) {
           setFormData({
-            // --- Cargar tipo si existe ---
-            tipo: product.tipo || 'producto', 
-            // --- Fin cargar tipo ---
+            tipo: product.tipo || 'producto',
             codigo: product.codigo || '',
             nombre: product.nombre || '',
             precio: product.precio?.toString() || '0',
-            // Mostrar stock solo si es producto al cargar, si no 0
             stock: (product.tipo === 'producto' ? product.stock?.toString() : '0') || '0', 
             descripcion: product.descripcion || ''
           });
@@ -97,7 +95,7 @@ export const ProductForm = ({ open, onClose, product, onSave }) => {
     const newErrors = {};
     setSubmitError(null);
 
-    if (!formData.tipo) newErrors.tipo = 'Seleccione un tipo'; // Validar tipo
+    if (!formData.tipo) newErrors.tipo = 'Seleccione un tipo';
     if (!formData.codigo.trim()) newErrors.codigo = 'El código es requerido';
     if (!formData.nombre.trim()) newErrors.nombre = 'El nombre es requerido';
 
@@ -106,14 +104,12 @@ export const ProductForm = ({ open, onClose, product, onSave }) => {
       newErrors.precio = 'Ingrese un precio válido (mayor o igual a 0)';
     }
 
-    // --- Validar stock solo si es producto ---
     if (formData.tipo === 'producto') {
         const stockNum = Number(formData.stock);
         if (isNaN(stockNum) || stockNum < 0 || !Number.isInteger(stockNum)) {
         newErrors.stock = 'Ingrese un stock válido (número entero >= 0)';
         }
     }
-    // --- Fin validación stock ---
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -122,15 +118,12 @@ export const ProductForm = ({ open, onClose, product, onSave }) => {
   const handleFieldChange = (e) => {
     const { name, value } = e.target;
     
-    // --- Lógica especial al cambiar tipo: resetear stock si cambia a servicio ---
     if (name === 'tipo') {
         setFormData(prev => ({
             ...prev,
             tipo: value,
-            // Si se cambia a 'servicio', limpiar el stock en el formulario
             stock: value === 'servicio' ? '0' : prev.stock 
         }));
-        // Limpiar error de stock si se cambia a servicio
         if (value === 'servicio' && errors.stock) {
             setErrors(prev => {
                 const newErrors = {...prev};
@@ -138,9 +131,8 @@ export const ProductForm = ({ open, onClose, product, onSave }) => {
                 return newErrors;
             });
         }
-        return; // Terminar aquí para el cambio de tipo
+        return;
     }
-    // --- Fin lógica especial ---
 
      if (name === 'precio') {
         if (value === '' || /^[0-9]*\.?[0-9]*$/.test(value)) {
@@ -150,7 +142,6 @@ export const ProductForm = ({ open, onClose, product, onSave }) => {
     }
     
     if (name === 'stock') {
-        // Solo permitir edición de stock si es producto
         if (formData.tipo === 'producto') {
             if (value === '' || /^[0-9]*$/.test(value)) {
             setFormData(prev => ({...prev, [name]: value}));
@@ -170,12 +161,8 @@ export const ProductForm = ({ open, onClose, product, onSave }) => {
       const productData = {
         ...formData,
         precio: Number(formData.precio) || 0,
-         // Asegurar que stock sea número, o quizás 0/null si es servicio (depende del backend)
         stock: formData.tipo === 'producto' ? (Number(formData.stock) || 0) : 0 
       };
-
-      // Incluir el campo 'tipo' al guardar
-      // productData.tipo ya está en formData
 
       if (product?._id) {
         productData._id = product._id;
@@ -205,30 +192,24 @@ export const ProductForm = ({ open, onClose, product, onSave }) => {
      onClose();
   };
 
-  // Estilos comunes para los inputs (para no repetir)
   const inputStyles = {
     '& .MuiOutlinedInput-root': {
       '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
       '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
       '&.Mui-focused fieldset': { borderColor: 'primary.main' },
-      // Asegurar color de texto blanco para input y textarea
       '& input, & textarea': { color: 'white' } 
     },
-    '& .MuiFormHelperText-root': { color: 'rgba(255, 255, 255, 0.5)'}, // Helper text base
-     // Color específico para el helper text en estado de error
+    '& .MuiFormHelperText-root': { color: 'rgba(255, 255, 255, 0.5)'},
     '& .Mui-error .MuiFormHelperText-root': { color: 'error.main' },
-    // Estilo para el label
     '& label': { color: 'text.secondary' },
-    '& label.Mui-focused': { color: 'primary.main' }, // Label focus
+    '& label.Mui-focused': { color: 'primary.main' },
   };
   
-  // Estilo específico para Select
-   const selectStyles = {
-    ...inputStyles, // Heredar estilos base
-    '& .MuiSelect-select': { color: 'white' }, // Color del texto seleccionado
-    '& .MuiSvgIcon-root': { color: 'rgba(255, 255, 255, 0.7)' }, // Color del icono dropdown
+  const selectStyles = {
+    ...inputStyles,
+    '& .MuiSelect-select': { color: 'white' },
+    '& .MuiSvgIcon-root': { color: 'rgba(255, 255, 255, 0.7)' },
   };
-
 
   return (
     <Dialog
@@ -250,7 +231,6 @@ export const ProductForm = ({ open, onClose, product, onSave }) => {
           px: 2 
         }}
       >
-        {/* Cambiar título según si edita o crea */}
         {product ? `Editar ${formData.tipo === 'producto' ? 'Producto' : 'Servicio'}` : `Nuevo ${formData.tipo === 'producto' ? 'Producto' : 'Servicio'}`}
         <IconButton onClick={handleClose} sx={{ color: 'white' }} disabled={saving}>
           <CloseIcon />
@@ -266,7 +246,6 @@ export const ProductForm = ({ open, onClose, product, onSave }) => {
 
         <Box sx={{ mt: 1 }}>
           <Grid container spacing={3}>
-             {/* --- Selector de Tipo --- */}
              <Grid item xs={12} sm={6}>
                 <FormControl fullWidth variant="outlined" sx={selectStyles} error={!!errors.tipo}>
                     <InputLabel>Tipo</InputLabel>
@@ -280,29 +259,25 @@ export const ProductForm = ({ open, onClose, product, onSave }) => {
                         <MenuItem value="producto">Producto</MenuItem>
                         <MenuItem value="servicio">Servicio</MenuItem>
                     </Select>
-                     {/* Mostrar helper text si hay error */}
                      {errors.tipo && <FormHelperText sx={{ color: 'error.main', ml: 2 }}>{errors.tipo}</FormHelperText>}
                 </FormControl>
             </Grid>
-            {/* --- Fin Selector de Tipo --- */}
 
             <Grid item xs={12} sm={6}>
               <TextField name="codigo" label="Código" fullWidth required value={formData.codigo} onChange={handleFieldChange} error={!!errors.codigo} helperText={errors.codigo} disabled={saving} sx={inputStyles} />
             </Grid>
-            <Grid item xs={12} sm={12}> {/* Nombre ocupa toda la fila */}
+            <Grid item xs={12} sm={12}>
               <TextField name="nombre" label="Nombre" fullWidth required value={formData.nombre} onChange={handleFieldChange} error={!!errors.nombre} helperText={errors.nombre} disabled={saving} sx={inputStyles} />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField name="precio" label="Precio" fullWidth InputProps={{ startAdornment: <InputAdornment position="start" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>Bs.</InputAdornment> }} inputProps={{ inputMode: 'decimal' }} value={formData.precio} onChange={handleFieldChange} error={!!errors.precio} helperText={errors.precio} disabled={saving} sx={inputStyles} />
             </Grid>
 
-             {/* --- Campo Stock Condicional --- */}
              {formData.tipo === 'producto' && (
                 <Grid item xs={12} sm={6}>
                     <TextField name="stock" label="Stock" fullWidth inputProps={{ inputMode: 'numeric' }} value={formData.stock} onChange={handleFieldChange} error={!!errors.stock} helperText={errors.stock} disabled={saving} sx={inputStyles} />
                 </Grid>
              )}
-             {/* --- Fin Campo Stock Condicional --- */}
 
             <Grid item xs={12}>
               <TextField name="descripcion" label="Descripción" fullWidth multiline rows={3} value={formData.descripcion} onChange={handleFieldChange} disabled={saving} sx={inputStyles} />
@@ -313,18 +288,16 @@ export const ProductForm = ({ open, onClose, product, onSave }) => {
       <DialogActions sx={{ p: 2, display: 'flex', justifyContent: 'space-between', bgcolor: '#2a2a2a', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
         <Button
           variant="outlined"
-          // --- Aplicar color de error al botón Limpiar ---
           color="error" 
           onClick={resetForm}
           startIcon={<ResetIcon />}
           disabled={saving}
           sx={{ 
-            // Estilos específicos para botón outlined de error en tema oscuro
             borderColor: 'rgba(255, 77, 77, 0.5)', 
-            color: 'rgba(255, 77, 77, 0.8)', // Color texto más claro que el borde
+            color: 'rgba(255, 77, 77, 0.8)',
             '&:hover': { 
-              borderColor: 'error.main', // Borde más fuerte en hover
-              bgcolor: 'rgba(255, 77, 77, 0.1)' // Fondo ligero en hover
+              borderColor: 'error.main',
+              bgcolor: 'rgba(255, 77, 77, 0.1)'
             } 
           }}
         >
@@ -337,10 +310,12 @@ export const ProductForm = ({ open, onClose, product, onSave }) => {
           disabled={saving}
           sx={{ ...actionButtonStyle }}
         >
-          {/* Cambiar texto del botón según si edita o crea */}
           {saving ? (product ? 'GUARDANDO...' : 'CREANDO...') : (product ? 'GUARDAR CAMBIOS' : 'CREAR')}
         </Button>
       </DialogActions>
     </Dialog>
   );
 };
+
+// Añadir también la exportación por defecto para compatibilidad
+export default ProductForm;

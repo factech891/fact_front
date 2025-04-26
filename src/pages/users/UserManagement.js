@@ -1,11 +1,10 @@
-// src/pages/users/UserManagement.js
+// src/pages/users/UserManagement.js - VERSIÓN MEJORADA CON ESTILO NEGRO
 import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
   TextField,
   InputAdornment,
-  IconButton,
   Switch,
   Typography,
   Dialog,
@@ -16,7 +15,17 @@ import {
   Snackbar,
   Alert,
   CircularProgress,
-  LinearProgress // *** CORRECCIÓN: Añadida la importación que faltaba ***
+  LinearProgress,
+  IconButton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  styled,
+  Tooltip
 } from '@mui/material';
 import { useUsers } from '../../hooks/useUsers';
 import { useAuth } from '../../context/AuthContext';
@@ -26,10 +35,131 @@ import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import CloseIcon from '@mui/icons-material/Close';
 
 // Componentes
 import UserForm from './UserForm';
 
+// Componentes estilizados para el tema oscuro
+const StyledTableHead = styled(TableHead)(({ theme }) => ({
+  '& .MuiTableCell-head': {
+    background: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+    color: theme.palette.common.white,
+    fontWeight: 800, // Más negrita
+    fontSize: '0.95rem',
+    border: 'none',
+    whiteSpace: 'nowrap',
+    padding: '14px 16px'
+  },
+  '& .MuiTableCell-head:first-of-type': {
+    borderTopLeftRadius: '8px'
+  },
+  '& .MuiTableCell-head:last-of-type': {
+    borderTopRightRadius: '8px'
+  }
+}));
+
+const StyledTableRow = styled(TableRow)(({ theme }) => ({
+  '&:nth-of-type(odd)': {
+    backgroundColor: '#161616', // Fila impar más oscura
+  },
+  '&:nth-of-type(even)': {
+    backgroundColor: '#1a1a1a', // Fila par ligeramente menos oscura
+  },
+  '&:hover': {
+    backgroundColor: 'rgba(79, 172, 254, 0.08)', // Azul sutil al pasar el mouse
+  },
+  '& .MuiTableCell-body': {
+    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+    color: 'rgba(255, 255, 255, 0.85)'
+  }
+}));
+
+const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
+  backgroundColor: '#121212', // Negro
+  borderRadius: '8px',
+  border: '1px solid rgba(255, 255, 255, 0.05)',
+  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)', // Sombra más pronunciada
+}));
+
+const SearchBar = styled(Box)(({ theme }) => ({
+  marginBottom: '24px',
+  padding: '10px 16px',
+  borderRadius: '8px',
+  backgroundColor: '#1e1e1e',
+  border: '1px solid rgba(255, 255, 255, 0.05)'
+}));
+
+const PageContainer = styled(Box)(({ theme }) => ({
+  padding: '24px',
+  backgroundColor: '#121212',
+  color: 'white',
+  minHeight: 'calc(100vh - 64px)',
+  position: 'relative'
+}));
+
+const GradientButton = styled(Button)(({ theme }) => ({
+  borderRadius: '50px',
+  color: 'white',
+  fontWeight: 600,
+  padding: '8px 22px',
+  textTransform: 'none',
+  backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+  boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)',
+  transition: 'all 0.2s ease-in-out',
+  border: 'none',
+  backgroundColor: 'transparent',
+  fontSize: '14px',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: '0 6px 20px rgba(79, 172, 254, 0.6)',
+    backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+    backgroundColor: 'transparent',
+  },
+  '&:active': {
+    transform: 'translateY(0)',
+    boxShadow: '0 2px 10px rgba(79, 172, 254, 0.4)',
+  },
+  '&.Mui-disabled': {
+    backgroundImage: 'linear-gradient(to right, #919191 0%, #b7b7b7 100%)',
+    color: 'rgba(255, 255, 255, 0.6)',
+  }
+}));
+
+const StyledDialogTitle = styled(DialogTitle)(({ theme }) => ({
+  backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+  color: 'white',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  padding: '12px 24px',
+}));
+
+const LoadingContainer = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  height: 'calc(100vh - 64px)',
+  backgroundColor: '#121212'
+}));
+
+const StyledSwitch = styled(Switch)(({ theme }) => ({
+  '& .MuiSwitch-switchBase.Mui-checked': { 
+    color: '#4facfe',
+    '&:hover': { 
+      backgroundColor: 'rgba(79, 172, 254, 0.08)' 
+    } 
+  },
+  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { 
+    backgroundColor: '#4facfe',
+    backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)' 
+  },
+  '&.Mui-disabled': { 
+    opacity: 0.5 
+  }
+}));
+
+// Componente principal
 const UserManagement = () => {
   // Hooks y contexto
   const { users, loading, error, deleteUser, updateUser, createUser, fetchUsers } = useUsers();
@@ -44,7 +174,7 @@ const UserManagement = () => {
   const [alertMessage, setAlertMessage] = useState('');
   const [alertSeverity, setAlertSeverity] = useState('warning');
   const [openAlert, setOpenAlert] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false); // Estado para operaciones
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Asegurarnos de que users es un array
   const safeUsers = Array.isArray(users) ? users : [];
@@ -72,7 +202,6 @@ const UserManagement = () => {
   const mainAdmin = findMainAdmin();
 
   // --- Funciones de manejo ---
-
   const handleCreateUser = () => {
     setUserToEdit(null);
     setOpenForm(true);
@@ -164,7 +293,6 @@ const UserManagement = () => {
     }
   };
 
-
   const handleDeleteClick = (user) => {
     if (isMainAdmin(user)) {
         setAlertMessage('No se puede eliminar al administrador principal.');
@@ -234,78 +362,61 @@ const UserManagement = () => {
     return currentUser._id === user._id;
   };
 
-  // --- Estilos (sin cambios) ---
-  const actionButtonStyle = {
-    borderRadius: '50px', color: 'white', fontWeight: 600, padding: '8px 22px', textTransform: 'none',
-    backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
-    boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)', transition: 'all 0.2s ease-in-out', border: 'none',
-    backgroundColor: 'transparent', fontSize: '14px',
-    '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 6px 20px rgba(79, 172, 254, 0.6)', backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)', backgroundColor: 'transparent' },
-    '&:active': { transform: 'translateY(0)', boxShadow: '0 2px 10px rgba(79, 172, 254, 0.4)' },
-    '&.Mui-disabled': { backgroundImage: 'linear-gradient(to right, #919191 0%, #b7b7b7 100%)', color: 'rgba(255, 255, 255, 0.6)', cursor: 'not-allowed' }
-  };
-  const switchStyle = {
-    '& .MuiSwitch-switchBase.Mui-checked': { color: '#4facfe', '&:hover': { backgroundColor: 'rgba(79, 172, 254, 0.08)' } },
-    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#4facfe', backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)' },
-    '&.Mui-disabled': { opacity: 0.5 }
-  };
-
   // Verificación de permisos
   const canManageUsers = hasRole && hasRole('admin');
 
   // --- Renderizado ---
   if (loading && !isSubmitting) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 64px)', backgroundColor: '#121212' }}>
+      <LoadingContainer>
         <CircularProgress sx={{ color: '#4facfe' }} />
         <Typography sx={{ color: 'white', ml: 2 }}>Cargando usuarios...</Typography>
-      </div>
+      </LoadingContainer>
     );
   }
 
   if (error && !loading) {
      return (
-      <div style={{ padding: '24px', backgroundColor: '#121212', color: 'white', minHeight: 'calc(100vh - 64px)' }}>
+      <Box sx={{ p: 3, bgcolor: '#121212', color: 'white', minHeight: 'calc(100vh - 64px)' }}>
          <Alert severity="error" variant="filled" sx={{ width: '100%' }}>
             Error al cargar los usuarios: {error.message || 'Error desconocido.'}
          </Alert>
-      </div>
+      </Box>
      );
   }
 
-
   return (
-    <div style={{ padding: '24px', backgroundColor: '#121212', color: 'white', minHeight: 'calc(100vh - 64px)', position: 'relative' /* Para posicionar LinearProgress */ }}>
+    <PageContainer>
       {/* Indicador de carga global para acciones */}
       {isSubmitting && (
-          <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 1500 }}> {/* Cambiado a absolute */}
-              {/* *** CORRECCIÓN: LinearProgress ahora está definido *** */}
-              <LinearProgress sx={{
-                  '& .MuiLinearProgress-bar': {
-                      background: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)'
-                  },
-                  backgroundColor: 'rgba(0,0,0,0.2)'
-              }} />
-          </Box>
+        <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 1500 }}>
+          <LinearProgress 
+            sx={{
+              '& .MuiLinearProgress-bar': {
+                background: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)'
+              },
+              backgroundColor: 'rgba(0,0,0,0.2)'
+            }}
+          />
+        </Box>
       )}
 
       {/* Botón Nuevo Usuario */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
+      <Box display="flex" justifyContent="flex-end" mb={3}>
         {canManageUsers && (
-          <Button
+          <GradientButton
             variant="contained"
             startIcon={<AddIcon />}
             onClick={handleCreateUser}
-            sx={actionButtonStyle}
             disabled={isSubmitting}
           >
             NUEVO USUARIO
-          </Button>
+          </GradientButton>
         )}
-      </div>
+      </Box>
 
       {/* Buscador */}
-      <div style={{ marginBottom: '24px', padding: '8px 16px', borderRadius: '4px', backgroundColor: '#1e1e1e', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+      <SearchBar>
         <TextField
           fullWidth
           placeholder="Buscar usuarios por nombre, email o rol..."
@@ -315,94 +426,147 @@ const UserManagement = () => {
           disabled={isSubmitting}
           InputProps={{
             disableUnderline: true,
-            startAdornment: ( <InputAdornment position="start"> <SearchIcon style={{ color: 'rgba(255, 255, 255, 0.5)' }} /> </InputAdornment> ),
-            style: { color: 'white' }
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon sx={{ color: 'rgba(255, 255, 255, 0.5)' }} />
+              </InputAdornment>
+            ),
+            sx: { color: 'white', fontSize: '0.95rem' }
           }}
-          style={{ marginTop: '-5px' }}
         />
-      </div>
+      </SearchBar>
 
       {/* Tabla de usuarios */}
-      <div style={{ overflowX: 'auto', opacity: isSubmitting ? 0.7 : 1, transition: 'opacity 0.3s' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              <th style={{ padding: '12px 16px', color: 'white', textAlign: 'left', fontWeight: 'bold', background: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)', borderTopLeftRadius: '4px' }}>Nombre</th>
-              <th style={{ padding: '12px 16px', color: 'white', textAlign: 'left', fontWeight: 'bold', background: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)' }}>Email</th>
-              <th style={{ padding: '12px 16px', color: 'white', textAlign: 'left', fontWeight: 'bold', background: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)' }}>Rol</th>
-              <th style={{ padding: '12px 16px', color: 'white', textAlign: 'left', fontWeight: 'bold', background: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)' }}>Estado</th>
-              <th style={{ padding: '12px 16px', color: 'white', textAlign: 'center', fontWeight: 'bold', background: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)', borderTopRightRadius: '4px' }}>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
+      <StyledTableContainer 
+        component={Paper} 
+        sx={{ 
+          opacity: isSubmitting ? 0.7 : 1,
+          transition: 'opacity 0.3s'
+        }}
+      >
+        <Table size="medium">
+          <StyledTableHead>
+            <TableRow>
+              <TableCell>Nombre</TableCell>
+              <TableCell>Email</TableCell>
+              <TableCell>Rol</TableCell>
+              <TableCell>Estado</TableCell>
+              <TableCell align="center">Acciones</TableCell>
+            </TableRow>
+          </StyledTableHead>
+          <TableBody>
             {filteredUsers.length > 0 ? (
               filteredUsers.map((user) => (
                 user && user._id ? (
-                  <tr key={user._id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)', backgroundColor: 'transparent' }}>
-                    <td style={{ padding: '12px 16px', color: 'white' }}>{user.name || user.nombre}</td>
-                    <td style={{ padding: '12px 16px', color: 'white' }}>{user.email}</td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{
+                  <StyledTableRow key={user._id}>
+                    <TableCell sx={{ fontWeight: 500 }}>{user.name || user.nombre}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <Box
+                        sx={{
                           display: 'inline-block',
                           backgroundColor: user.role === 'admin' ? '#f44336'
                                         : user.role === 'manager' ? '#4285F4'
                                         : user.role === 'facturador' ? '#ff9800'
                                         : user.role === 'visor' ? '#4CAF50'
                                         : '#607d8b',
-                          color: 'white', padding: '4px 8px', borderRadius: '16px', fontSize: '12px', fontWeight: '500', textTransform: 'capitalize'
-                      }}>
+                          color: 'white', 
+                          padding: '4px 8px', 
+                          borderRadius: '16px', 
+                          fontSize: '12px', 
+                          fontWeight: '500', 
+                          textTransform: 'capitalize'
+                        }}
+                      >
                         {user.role === 'admin' ? 'Administrador' : user.role}
-                      </div>
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         {isMainAdmin(user) ? (
-                          <Typography variant="body2" style={{ opacity: 0.8, marginLeft: '12px' }}> Activo (Admin principal) </Typography>
+                          <Typography variant="body2" sx={{ opacity: 0.8, ml: 1 }}>
+                            Activo (Admin principal)
+                          </Typography>
                         ) : (
                           <>
-                            <Switch
+                            <StyledSwitch
                               checked={!!user.active}
                               onChange={() => toggleUserStatus(user._id, user.active)}
-                              sx={switchStyle}
                               disabled={isSubmitting || (isCurrentUser(user) && user.active)}
                             />
-                            <Typography variant="body2" style={{ opacity: isSubmitting ? 0.5 : 0.8 }}>
+                            <Typography variant="body2" sx={{ opacity: isSubmitting ? 0.5 : 0.8 }}>
                               {user.active ? 'Activo' : 'Inactivo'}
                               {isCurrentUser(user) ? ' (Tu usuario)' : ''}
                             </Typography>
                           </>
                         )}
-                      </div>
-                    </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                      </Box>
+                    </TableCell>
+                    <TableCell align="center">
                       {canManageUsers && (
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                        <Box display="flex" justifyContent="center">
                           {!isMainAdmin(user) && (
-                            <IconButton onClick={() => handleEditUser(user)} size="small" sx={{ color: 'white' }} disabled={isSubmitting}>
-                              <EditIcon fontSize="small" />
-                            </IconButton>
+                            <Tooltip title="Editar usuario">
+                              <IconButton 
+                                size="small"
+                                onClick={() => handleEditUser(user)}
+                                disabled={isSubmitting}
+                                sx={{ 
+                                  color: 'rgba(255, 255, 255, 0.8)',
+                                  '&:hover': { 
+                                    color: '#4facfe',
+                                    backgroundColor: 'rgba(79, 172, 254, 0.1)'
+                                  },
+                                  marginRight: 1
+                                }}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
                           )}
                           {!isMainAdmin(user) && !isCurrentUser(user) && (
-                            <IconButton onClick={() => handleDeleteClick(user)} size="small" sx={{ color: 'white' }} disabled={isSubmitting}>
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
+                            <Tooltip title="Eliminar usuario">
+                              <IconButton 
+                                size="small"
+                                onClick={() => handleDeleteClick(user)}
+                                disabled={isSubmitting}
+                                sx={{ 
+                                  color: 'rgba(255, 255, 255, 0.8)',
+                                  '&:hover': { 
+                                    color: '#ff4b2b',
+                                    backgroundColor: 'rgba(255, 75, 43, 0.1)'
+                                  }
+                                }}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
                           )}
-                        </div>
+                        </Box>
                       )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </StyledTableRow>
                 ) : null
               ))
             ) : (
-              <tr>
-                <td colSpan={5} style={{ padding: '16px', textAlign: 'center', color: 'rgba(255, 255, 255, 0.7)' }}>
+              <TableRow>
+                <TableCell 
+                  colSpan={5} 
+                  align="center" 
+                  sx={{ 
+                    py: 5, 
+                    color: 'rgba(255, 255, 255, 0.5)',
+                    border: 'none',
+                    backgroundColor: '#121212'
+                  }}
+                >
                   {searchTerm ? "No se encontraron usuarios que coincidan" : "No hay usuarios registrados"}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </StyledTableContainer>
 
       {/* Formulario Modal de Usuario */}
       {openForm && (
@@ -415,22 +579,61 @@ const UserManagement = () => {
           />
       )}
 
-
       {/* Diálogo de confirmación para eliminar */}
       <Dialog
         open={openDialog}
         onClose={handleDeleteCancel}
-        PaperProps={{ style: { backgroundColor: '#2a2a2a', color: 'white', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)' } }}
+        PaperProps={{ 
+          sx: { 
+            backgroundColor: '#2a2a2a', 
+            color: 'white', 
+            borderRadius: '8px', 
+            border: '1px solid rgba(255, 255, 255, 0.1)' 
+          } 
+        }}
       >
-        <DialogTitle sx={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)', py: 1.5 }}> Confirmar eliminación </DialogTitle>
-        <DialogContent sx={{ mt: 2 }}>
+        <StyledDialogTitle>
+          Confirmar eliminación
+          <IconButton 
+            onClick={handleDeleteCancel} 
+            sx={{ color: 'white' }} 
+            disabled={isSubmitting}
+            size="small"
+          >
+            <CloseIcon />
+          </IconButton>
+        </StyledDialogTitle>
+        <DialogContent sx={{ mt: 2, p: 3 }}>
           <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
             ¿Estás seguro de que deseas eliminar al usuario {selectedUser?.name || selectedUser?.nombre}? Esta acción no se puede deshacer.
           </DialogContentText>
         </DialogContent>
-        <DialogActions sx={{ px: 2, pb: 2 }}>
-          <Button onClick={handleDeleteCancel} sx={{ color: 'rgba(255, 255, 255, 0.7)', '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.05)' } }} disabled={isSubmitting}> Cancelar </Button>
-          <Button onClick={handleDeleteConfirm} color="error" variant="contained" sx={{ background: 'linear-gradient(to right, #ff416c, #ff4b2b)', boxShadow: '0 4px 15px rgba(255, 75, 43, 0.4)' }} autoFocus disabled={isSubmitting}>
+        <DialogActions sx={{ px: 3, pb: 3, display: 'flex', justifyContent: 'space-between' }}>
+          <Button 
+            onClick={handleDeleteCancel}
+            variant="outlined"
+            sx={{ 
+              color: 'rgba(255, 255, 255, 0.7)', 
+              borderColor: 'rgba(255, 255, 255, 0.3)',
+              '&:hover': { 
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                borderColor: 'rgba(255, 255, 255, 0.5)'
+              } 
+            }} 
+            disabled={isSubmitting}
+          >
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleDeleteConfirm} 
+            color="error" 
+            variant="contained" 
+            sx={{ 
+              background: 'linear-gradient(to right, #ff416c, #ff4b2b)', 
+              boxShadow: '0 4px 15px rgba(255, 75, 43, 0.4)' 
+            }} 
+            disabled={isSubmitting}
+          >
             {isSubmitting ? <CircularProgress size={24} sx={{ color: 'white' }}/> : 'Eliminar'}
           </Button>
         </DialogActions>
@@ -452,7 +655,7 @@ const UserManagement = () => {
             {alertMessage}
         </Alert>
       </Snackbar>
-    </div>
+    </PageContainer>
   );
 };
 

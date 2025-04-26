@@ -1,4 +1,4 @@
-// src/pages/products/Products.js (CORREGIDO - Layout Botón Nuevo)
+// src/pages/products/Products.js - ESTILO NEGRO CON GRADIENTE AZUL
 import { useState } from 'react';
 import {
   Box,
@@ -11,9 +11,10 @@ import {
   DialogTitle,
   IconButton,
   CircularProgress,
-  Paper,
   Snackbar,
-  Alert
+  Alert,
+  LinearProgress,
+  styled
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -26,48 +27,81 @@ import { ProductTable } from './ProductTable';
 import { ProductForm } from './ProductForm';
 import { useProducts } from '../../hooks/useProducts';
 import { useRoleAccess } from '../../hooks/useRoleAccess';
-import ActionButton from '../../components/ActionButton'; // VERIFICA RUTA
+
+// Componentes estilizados
+const PageContainer = styled(Box)(({ theme }) => ({
+  padding: '24px',
+  backgroundColor: '#121212',
+  color: 'white',
+  minHeight: 'calc(100vh - 64px)',
+  position: 'relative'
+}));
+
+const GradientButton = styled(Button)(({ theme }) => ({
+  borderRadius: '50px',
+  color: 'white',
+  fontWeight: 600,
+  padding: '8px 22px',
+  textTransform: 'none',
+  backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+  boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)',
+  transition: 'all 0.2s ease-in-out',
+  border: 'none',
+  backgroundColor: 'transparent',
+  fontSize: '14px',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: '0 6px 20px rgba(79, 172, 254, 0.6)',
+    backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+    backgroundColor: 'transparent',
+  },
+  '&:active': {
+    transform: 'translateY(0)',
+    boxShadow: '0 2px 10px rgba(79, 172, 254, 0.4)',
+  },
+  '&.Mui-disabled': {
+    backgroundImage: 'linear-gradient(to right, #919191 0%, #b7b7b7 100%)',
+    color: 'rgba(255, 255, 255, 0.6)',
+  }
+}));
+
+const StyledDialogTitle = styled(DialogTitle)(({ theme }) => ({
+  backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+  color: 'white',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  padding: '12px 24px',
+}));
+
+const LoadingContainer = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  height: 'calc(100vh - 64px)',
+  backgroundColor: '#121212'
+}));
+
+const ErrorContainer = styled(Box)(({ theme }) => ({
+  padding: '24px',
+  backgroundColor: '#121212',
+  color: 'white',
+  minHeight: 'calc(100vh - 64px)'
+}));
 
 const Products = () => {
-  // Estilo para botones de acción principal (sin cambios)
-  const actionButtonStyle = {
-    borderRadius: '50px',
-    color: 'white',
-    fontWeight: 600,
-    padding: '8px 22px',
-    textTransform: 'none',
-    backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
-    boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)',
-    transition: 'all 0.2s ease-in-out',
-    border: 'none',
-    backgroundColor: 'transparent',
-    fontSize: '14px',
-    '&:hover': {
-      transform: 'translateY(-2px)',
-      boxShadow: '0 6px 20px rgba(79, 172, 254, 0.6)',
-      backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
-      backgroundColor: 'transparent',
-    },
-    '&:active': {
-      transform: 'translateY(0)',
-      boxShadow: '0 2px 10px rgba(79, 172, 254, 0.4)',
-    },
-    '&.Mui-disabled': {
-      backgroundImage: 'linear-gradient(to right, #919191 0%, #b7b7b7 100%)',
-      color: 'rgba(255, 255, 255, 0.6)',
-    }
-  };
-
-  const { userRole, canCreate } = useRoleAccess(); // Obtener canCreate también
+  const { userRole, canCreate } = useRoleAccess();
   const [openForm, setOpenForm] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const { products, loading, error, saveProduct, deleteProduct, fetchProducts } = useProducts(); // Añadir fetchProducts
+  const { products, loading, error, saveProduct, deleteProduct, fetchProducts } = useProducts();
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
   const [productIdToDelete, setProductIdToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSave = async (product) => {
+    setIsSubmitting(true);
     try {
       await saveProduct(product);
       setOpenForm(false);
@@ -77,7 +111,7 @@ const Products = () => {
         message: product._id ? 'Producto actualizado exitosamente' : 'Producto creado exitosamente',
         severity: 'success'
       });
-      // fetchProducts(); // Refrescar si el hook no lo hace
+      if (typeof fetchProducts === 'function') await fetchProducts();
     } catch (error) {
       console.error('Error saving product:', error);
       setSnackbar({
@@ -85,6 +119,8 @@ const Products = () => {
         message: error.message || 'No se pudo guardar el producto',
         severity: 'error'
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -101,6 +137,7 @@ const Products = () => {
   const handleConfirmDelete = async () => {
     if (productIdToDelete) {
       setDeleting(true);
+      setIsSubmitting(true);
       try {
         await deleteProduct(productIdToDelete);
         setSnackbar({
@@ -108,7 +145,7 @@ const Products = () => {
           message: 'Producto eliminado exitosamente',
           severity: 'success'
         });
-        // fetchProducts(); // Refrescar si el hook no lo hace
+        if (typeof fetchProducts === 'function') await fetchProducts();
       } catch (error) {
         console.error('Error deleting product:', error);
         setSnackbar({
@@ -120,8 +157,7 @@ const Products = () => {
         setDeleting(false);
         setOpenConfirmDialog(false);
         setProductIdToDelete(null);
-        // Asegurar refresco
-        if (typeof fetchProducts === 'function') fetchProducts();
+        setIsSubmitting(false);
       }
     }
   };
@@ -133,62 +169,80 @@ const Products = () => {
   };
 
   const handleCloseForm = () => {
+    if (isSubmitting) return;
     setOpenForm(false);
     setSelectedProduct(null);
-  }
+  };
 
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
-  // Carga y Error (sin cambios)
-  if (loading && !products?.length) return (
-    <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <CircularProgress />
-    </Box>
-  );
-  if (error && !products?.length) return (
-      <Typography color="error" variant="h6" sx={{ textAlign: 'center', my: 4 }}>
-          Error al cargar productos: {typeof error === 'string' ? error : error?.message || 'Error desconocido'}
-      </Typography>
-  );
+  // Estados de carga y error
+  if (loading && !products?.length) {
+    return (
+      <LoadingContainer>
+        <CircularProgress sx={{ color: '#4facfe' }} />
+        <Typography sx={{ color: 'white', ml: 2 }}>Cargando productos...</Typography>
+      </LoadingContainer>
+    );
+  }
+
+  if (error && !products?.length) {
+    return (
+      <ErrorContainer>
+        <Alert severity="error" variant="filled" sx={{ width: '100%' }}>
+          Error al cargar los productos: {error.message || 'Error desconocido.'}
+        </Alert>
+      </ErrorContainer>
+    );
+  }
 
   return (
-    <Box sx={{ p: 3 }}>
-      {/* Contenedor del botón "NUEVO PRODUCTO" */}
-      {/* CORREGIDO: Usar justifyContent: 'flex-end' para alinear a la derecha */}
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-        {/* Usar ActionButton para controlar visibilidad */}
-        {canCreate() && ( // Solo mostrar si puede crear
-            <ActionButton
-              type="create" // No necesita onClick aquí si se maneja en buttonProps
-              tooltipTitle="Crear nuevo producto"
-              buttonProps={{
-                variant: "contained",
-                startIcon: <AddIcon />,
-                sx: { ...actionButtonStyle }, // Quitamos marginLeft: 'auto'
-                onClick: () => { // onClick va dentro de buttonProps
-                  setSelectedProduct(null);
-                  setOpenForm(true);
-                }
-              }}
-            >
-              NUEVO PRODUCTO
-            </ActionButton>
+    <PageContainer>
+      {/* Indicador de carga global */}
+      {isSubmitting && (
+        <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 1500 }}>
+          <LinearProgress 
+            sx={{
+              '& .MuiLinearProgress-bar': {
+                background: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)'
+              },
+              backgroundColor: 'rgba(0,0,0,0.2)'
+            }}
+          />
+        </Box>
+      )}
+
+      {/* Botón Nuevo Producto */}
+      <Box display="flex" justifyContent="flex-end" mb={3}>
+        {canCreate && canCreate() && (
+          <GradientButton
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => {
+              setSelectedProduct(null);
+              setOpenForm(true);
+            }}
+            disabled={isSubmitting}
+          >
+            NUEVO PRODUCTO
+          </GradientButton>
         )}
       </Box>
 
-      {/* Resto del componente (Paper, ProductTable, etc. sin cambios) */}
-      <Paper elevation={1} sx={{ mb: 3, borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.1)', bgcolor: '#1e1e1e' }}>
+      {/* Tabla de productos */}
+      <Box sx={{ mb: 3 }}>
         <ProductTable
           products={products || []}
           onEdit={handleEdit}
           onDelete={handleDelete}
-          loading={loading}
+          loading={loading || isSubmitting}
           isVisor={userRole === 'visor'}
         />
-      </Paper>
+      </Box>
 
+      {/* Formulario Modal de Producto */}
       <ProductForm
         open={openForm}
         product={selectedProduct}
@@ -196,43 +250,61 @@ const Products = () => {
         onSave={handleSave}
       />
 
+      {/* Diálogo de confirmación para eliminar */}
       <Dialog
         open={openConfirmDialog}
         onClose={handleCloseConfirmDialog}
-        aria-labelledby="confirm-delete-dialog-title"
-        aria-describedby="confirm-delete-dialog-description"
-        disableEscapeKeyDown={deleting}
-        PaperProps={{ sx: { bgcolor: '#1e1e1e', backgroundImage: 'none', border: '1px solid rgba(255, 255, 255, 0.1)' } }}
+        PaperProps={{ 
+          sx: { 
+            backgroundColor: '#2a2a2a', 
+            color: 'white', 
+            borderRadius: '8px', 
+            border: '1px solid rgba(255, 255, 255, 0.1)' 
+          } 
+        }}
       >
-        <DialogTitle
-          id="confirm-delete-dialog-title"
-          sx={{ bgcolor: 'primary.main', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5, px: 2 }}
-        >
-          Confirmar Eliminación
-          <IconButton onClick={handleCloseConfirmDialog} sx={{ color: 'white' }} disabled={deleting}>
+        <StyledDialogTitle>
+          Confirmar eliminación
+          <IconButton 
+            onClick={handleCloseConfirmDialog} 
+            sx={{ color: 'white' }} 
+            disabled={deleting}
+            size="small"
+          >
             <CloseIcon />
           </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ p: 3, bgcolor: '#1e1e1e', color: 'rgba(255, 255, 255, 0.8)' }}>
-          <DialogContentText id="confirm-delete-dialog-description" sx={{ color: 'inherit' }}>
-            ¿Está seguro de que desea eliminar este producto? Esta acción no se puede deshacer.
+        </StyledDialogTitle>
+        <DialogContent sx={{ mt: 2, p: 3 }}>
+          <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+            ¿Estás seguro de que deseas eliminar este producto? Esta acción no se puede deshacer.
           </DialogContentText>
         </DialogContent>
-        <DialogActions sx={{ p: 2, display: 'flex', justifyContent: 'space-between', bgcolor: '#2a2a2a', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-          <Button
+        <DialogActions sx={{ px: 3, pb: 3, display: 'flex', justifyContent: 'space-between' }}>
+          <Button 
+            onClick={handleCloseConfirmDialog} 
             variant="outlined"
-            onClick={handleCloseConfirmDialog}
             startIcon={<CancelIcon />}
+            sx={{ 
+              color: 'rgba(255, 255, 255, 0.7)', 
+              borderColor: 'rgba(255, 255, 255, 0.3)',
+              '&:hover': { 
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                borderColor: 'rgba(255, 255, 255, 0.5)'
+              } 
+            }} 
             disabled={deleting}
-            sx={{ color: 'rgba(255, 255, 255, 0.7)', borderColor: 'rgba(255, 255, 255, 0.3)', '&:hover': { borderColor: 'rgba(255, 255, 255, 0.5)', bgcolor: 'rgba(255, 255, 255, 0.05)' } }}
           >
             Cancelar
           </Button>
-          <Button
+          <Button 
+            onClick={handleConfirmDelete} 
+            color="error" 
             variant="contained"
-            color="error"
-            onClick={handleConfirmDelete}
             startIcon={deleting ? <CircularProgress size={20} color="inherit" /> : <DeleteIcon />}
+            sx={{ 
+              background: 'linear-gradient(to right, #ff416c, #ff4b2b)', 
+              boxShadow: '0 4px 15px rgba(255, 75, 43, 0.4)' 
+            }} 
             disabled={deleting}
           >
             {deleting ? 'Eliminando...' : 'Eliminar'}
@@ -240,26 +312,42 @@ const Products = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Alertas */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} variant="filled" sx={{ width: '100%' }}>
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>
 
+      {/* Mensaje para usuarios con rol visor */}
       {userRole === 'visor' && (
-        <Box sx={{ mt: 3, p: 2, bgcolor: 'rgba(33, 150, 243, 0.1)', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
+        <Box 
+          sx={{ 
+            mt: 3, 
+            p: 2, 
+            bgcolor: 'rgba(33, 150, 243, 0.1)', 
+            borderRadius: '8px', 
+            display: 'flex', 
+            alignItems: 'center' 
+          }}
+        >
           <InfoIcon sx={{ color: '#2196f3', mr: 1 }} />
           <Typography color="#2196f3">
             Modo de solo lectura: Como Visor, puedes ver todos los datos pero no puedes crear, editar o eliminar registros.
           </Typography>
         </Box>
       )}
-    </Box>
+    </PageContainer>
   );
 };
 
