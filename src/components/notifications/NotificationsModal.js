@@ -41,7 +41,8 @@ const NotificationsModal = ({ open, onClose }) => {
     error,
     markAsRead, 
     markAllAsRead, 
-    deleteNotification 
+    deleteNotification,
+    loadNotifications
   } = useNotifications();
   
   const [selectedTab, setSelectedTab] = useState('all'); // 'all', 'unread', 'read'
@@ -100,24 +101,43 @@ const NotificationsModal = ({ open, onClose }) => {
     }
   };
 
-  // Manejar clic en una notificación
+  // Manejar clic en una notificación - CORREGIDO
   const handleNotificationClick = async (notification) => {
-    // Si no está leída, marcarla como leída
-    if (!notification.read) {
-      await markAsRead(notification._id);
-    }
-    
-    // Si tiene un link, navegar a él
-    if (notification.link) {
-      navigate(notification.link);
-      onClose();
+    try {
+      // Si no está leída, marcarla como leída
+      if (!notification.read) {
+        await markAsRead(notification._id);
+      }
+      
+      // No intentamos navegar a ninguna parte, simplemente mostramos la información
+      // de la notificación en el modal actual
+      console.log("Notificación seleccionada:", notification);
+      
+      // Si es necesario tomar alguna acción específica según el tipo, podemos hacerlo aquí
+      if (notification.type === 'inventario_bajo' && notification.referenceId) {
+        // Podríamos navegar a la página de producto, pero solo si estamos seguros de que existe
+        // Por ahora, no hacemos nada para evitar el error de "Página no encontrada"
+      }
+    } catch (error) {
+      console.error("Error al interactuar con la notificación:", error);
     }
   };
 
   // Manejar eliminación de una notificación
   const handleDelete = async (e, notificationId) => {
     e.stopPropagation(); // Evitar que se propague al ListItem
-    await deleteNotification(notificationId);
+    try {
+      await deleteNotification(notificationId);
+    } catch (error) {
+      console.error("Error al eliminar notificación:", error);
+    }
+  };
+
+  // Función para reintentar la carga de notificaciones
+  const handleRetry = () => {
+    if (loadNotifications) {
+      loadNotifications();
+    }
   };
 
   return (
@@ -189,7 +209,7 @@ const NotificationsModal = ({ open, onClose }) => {
         ) : error ? (
           <Box sx={{ p: 3, textAlign: 'center' }}>
             <Typography color="error">{error}</Typography>
-            <Button variant="outlined" color="primary" sx={{ mt: 2 }} onClick={() => window.location.reload()}>
+            <Button variant="outlined" color="primary" sx={{ mt: 2 }} onClick={handleRetry}>
               Reintentar
             </Button>
           </Box>
@@ -222,27 +242,21 @@ const NotificationsModal = ({ open, onClose }) => {
                   <ListItemIcon sx={{ minWidth: 42 }}>
                     {getNotificationIcon(notification)}
                   </ListItemIcon>
-                  <ListItemText
-                    primary={
-                      <Typography 
-                        variant="body2" 
-                        fontWeight={notification.read ? 'normal' : 600}
-                        color="text.primary"
-                      >
-                        {notification.title}
-                      </Typography>
-                    }
-                    secondary={
-                      <>
-                        <Typography variant="caption" color="text.secondary" display="block">
-                          {notification.message}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-                          {formatDate(notification.createdAt)}
-                        </Typography>
-                      </>
-                    }
-                  />
+                  <Box sx={{ flexGrow: 1, mr: 1 }}>
+                    <Typography 
+                      variant="body2" 
+                      fontWeight={notification.read ? 'normal' : 600}
+                      color="text.primary"
+                    >
+                      {notification.title}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      {notification.message}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                      {formatDate(notification.createdAt)}
+                    </Typography>
+                  </Box>
                   <Tooltip title="Eliminar">
                     <IconButton 
                       edge="end" 
@@ -260,6 +274,23 @@ const NotificationsModal = ({ open, onClose }) => {
           </List>
         )}
       </DialogContent>
+      
+      {/* Footer - CORREGIDO para evitar navegación */}
+      {filteredNotifications.length > 0 && (
+        <>
+          <Divider />
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 1.5 }}>
+            <Button 
+              variant="text" 
+              color="primary"
+              size="small"
+              onClick={onClose}
+            >
+              Cerrar
+            </Button>
+          </Box>
+        </>
+      )}
     </Dialog>
   );
 };
