@@ -1,3 +1,4 @@
+import React from 'react';
 // src/pages/invoices/InvoicePreview/InvoicePreview.js
 import { useState, useEffect, useRef } from 'react';
 import {

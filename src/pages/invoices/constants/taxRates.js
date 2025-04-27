@@ -1,3 +1,4 @@
+import React from 'react';
 /**
  * Constantes para tasas de impuestos y configuraciones relacionadas
  */

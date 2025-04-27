@@ -1,3 +1,4 @@
+import React from 'react';
 // src/pages/products/Products.js - ESTILO NEGRO CON GRADIENTE AZUL
 import { useState } from 'react';
 import {

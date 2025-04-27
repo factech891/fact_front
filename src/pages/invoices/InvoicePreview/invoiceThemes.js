@@ -1,3 +1,4 @@
+import React from 'react';
 // src/pages/invoices/InvoicePreview/invoiceThemes.js
 export const invoiceThemes = {
     modern: {

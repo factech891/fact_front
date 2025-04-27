@@ -1,3 +1,4 @@
+import React from 'react';
 // src/hooks/useCompany.js
 import { useState, useEffect } from 'react';
 import { companyApi } from '../services/api';

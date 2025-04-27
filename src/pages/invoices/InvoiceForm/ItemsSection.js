@@ -1,3 +1,4 @@
+import React from 'react';
 // src/pages/invoices/InvoiceForm/ItemsSection.js
 import { 
   Card, Box, Typography, Autocomplete, TextField, InputAdornment,

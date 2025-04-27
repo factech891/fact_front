@@ -1,3 +1,4 @@
+import React from 'react';
 /**
  * Utilidades para realizar cálculos relacionados con facturas
  */

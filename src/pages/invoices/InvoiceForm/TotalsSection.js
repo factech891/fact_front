@@ -1,3 +1,4 @@
+import React from 'react';
 // src/pages/invoices/InvoiceForm/TotalsSection.js
 import { Box, Typography } from '@mui/material';
 import { formatCurrency } from '../utils/formatters';

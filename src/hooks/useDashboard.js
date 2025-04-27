@@ -1,3 +1,4 @@
+import React from 'react';
 // src/hooks/useDashboard.js (con Diagnósticos)
 import { useState, useEffect, useMemo } from 'react';
 import { useInvoices } from './useInvoices'; // Asegúrate que la ruta sea correcta

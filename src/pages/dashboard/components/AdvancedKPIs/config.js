@@ -1,3 +1,4 @@
+import React from 'react';
 // Datos de KPIs según el rango de tiempo seleccionado
 export const KPI_DATA = {
     daily: {

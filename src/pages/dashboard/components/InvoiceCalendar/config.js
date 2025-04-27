@@ -1,3 +1,4 @@
+import React from 'react';
 // Nombres de los meses
 export const MONTHS = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',

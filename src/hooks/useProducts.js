@@ -1,3 +1,4 @@
+import React from 'react';
 // src/hooks/useProducts.js
 import { useState, useEffect } from 'react';
 import { productsApi } from '../services/api';

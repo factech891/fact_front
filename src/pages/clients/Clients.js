@@ -1,3 +1,4 @@
+import React from 'react';
 // src/pages/clients/Clients.js - MEJORADO CON MUI + ESTILO PERSONALIZADO
 import { useState } from 'react';
 import {

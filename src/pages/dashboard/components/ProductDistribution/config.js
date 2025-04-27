@@ -1,3 +1,4 @@
+import React from 'react';
 // Colores para el gráfico de distribución de productos
 export const COLORS = ['#3498db', '#2ecc71', '#f39c12', '#e74c3c', '#9b59b6', '#1abc9c'];
 

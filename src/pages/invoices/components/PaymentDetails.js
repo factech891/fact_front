@@ -1,3 +1,4 @@
+import React from 'react';
 // src/pages/invoices/PaymentDetails.js
 import { Card, Grid, Typography, Box } from '@mui/material';
 

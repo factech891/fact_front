@@ -1,3 +1,4 @@
+import React from 'react';
 // src/services/companyApi.js
 import { api } from './api';
 

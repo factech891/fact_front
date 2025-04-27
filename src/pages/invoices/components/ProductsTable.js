@@ -1,3 +1,4 @@
+import React from 'react';
 // src/pages/invoices/ProductsTable.js
 import {
     Table,

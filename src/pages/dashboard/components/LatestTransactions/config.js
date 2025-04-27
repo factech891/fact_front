@@ -1,3 +1,4 @@
+import React from 'react';
 // Colores para los diferentes estados de transacciones
 export const STATUS_COLORS = {
     'Pagada': '#4CAF50',

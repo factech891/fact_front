@@ -1,3 +1,4 @@
+import React from 'react';
 // src/pages/invoices/InvoicePreview/InvoiceFooter.js
 import { Typography, Box, Grid } from '@mui/material';
 

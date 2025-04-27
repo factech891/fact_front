@@ -1,3 +1,4 @@
+import React from 'react';
 // src/App.js (actualizado para visor)
 import { Routes, Route } from 'react-router-dom';
 import { DashboardLayout } from './layouts/DashboardLayout';

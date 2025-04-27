@@ -1,3 +1,4 @@
+import React from 'react';
 // src/theme/index.js
 import { createTheme } from '@mui/material';
 

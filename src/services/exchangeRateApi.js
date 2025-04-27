@@ -1,3 +1,4 @@
+import React from 'react';
 // src/services/exchangeRateApi.js - COMPLETO
 
 // Claves de localStorage

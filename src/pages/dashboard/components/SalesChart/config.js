@@ -1,3 +1,4 @@
+import React from 'react';
 // Opciones de tipo de gráfico
 export const CHART_OPTIONS = [
   { id: 'area', label: 'Área' },

@@ -1,3 +1,4 @@
+import React from 'react';
 // Colores para el gráfico de distribución por moneda
 export const COLORS = ['#4285F4', '#4CAF50', '#FFA726', '#F44336', '#AB47BC', '#26C6DA'];
 

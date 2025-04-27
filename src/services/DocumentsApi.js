@@ -1,3 +1,4 @@
+import React from 'react';
 // src/services/DocumentsApi.js (Corregido para incluir token)
 
 // Importar las funciones necesarias desde api.js

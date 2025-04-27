@@ -1,3 +1,4 @@
+import React from 'react';
 // src/pages/documents/constants/documentTypes.js
 // Tipos de documentos
 export const DOCUMENT_TYPES = {

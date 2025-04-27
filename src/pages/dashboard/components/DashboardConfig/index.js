@@ -1,3 +1,4 @@
+import React from 'react';
 // src/pages/dashboard/components/DashboardConfig/index.js
 import { useState } from 'react';
 import {

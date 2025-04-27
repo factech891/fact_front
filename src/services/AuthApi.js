@@ -1,3 +1,4 @@
+import React from 'react';
 // src/services/AuthApi.js (actualizado con método updateProfile)
 import { API_BASE_URL, handleResponse } from './api';
 

@@ -1,3 +1,4 @@
+import React from 'react';
 // Meses para mostrar en el heatmap
 export const MONTHS = [
     'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 

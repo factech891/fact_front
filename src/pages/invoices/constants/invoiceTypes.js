@@ -1,3 +1,4 @@
+import React from 'react';
 // src/pages/invoices/constants/invoiceTypes.js
 
 // Valores para el tipo de documento

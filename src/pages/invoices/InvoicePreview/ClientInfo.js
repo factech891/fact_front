@@ -1,3 +1,4 @@
+import React from 'react';
 // src/pages/invoices/InvoicePreview/ClientInfo.js
 import { Typography, Box } from '@mui/material';
 
