@@ -1,18 +1,12 @@
-import React from 'react';
 // src/services/InvoicesApi.js
-const API_BASE_URL = 'http://localhost:5002/api'; // Asegúrate que esta URL sea correcta
+import { API_BASE_URL, handleResponse, getAuthHeaders } from './api';
 
 export const fetchInvoices = async () => {
     try {
         const response = await fetch(`${API_BASE_URL}/invoices?populate=client,items.product`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}` // Añadir si usas autenticación
-            }
+            headers: getAuthHeaders()
         });
-        if (!response.ok) {
-            throw new Error(`Error al obtener las facturas: ${response.status}`);
-        }
-        return response.json();
+        return handleResponse(response);
     } catch (error) {
         console.error('Error al obtener las facturas:', error);
         throw error;
@@ -67,26 +61,10 @@ export const saveInvoice = async (invoice) => {
         console.log(`>>> [POST] Enviando datos a ${url}:`, invoiceData);
         const response = await fetch(url, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify(invoiceData),
         });
-        if (!response.ok) {
-            let errorData;
-            try {
-                errorData = await response.json();
-            } catch (e) {
-                errorData = { message: `Error HTTP ${response.status}: ${response.statusText}` };
-            }
-            console.error('Error del backend:', errorData);
-            throw new Error(errorData.message || `Error HTTP ${response.status}: ${response.statusText}`);
-        }
-        if (response.status === 204) {
-           return {}; 
-        }
-        return response.json();
+        return handleResponse(response);
     } catch (error) {
         console.error('Error en saveInvoice:', error);
         throw error;
@@ -97,27 +75,15 @@ export const deleteInvoice = async (id) => {
     try {
         const response = await fetch(`${API_BASE_URL}/invoices/${id}`, {
             method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}` // Si usas autenticación
-            }
+            headers: getAuthHeaders()
         });
-
-        // Status 204 (No Content) también es éxito para DELETE
-        if (!response.ok && response.status !== 204) {
-             let errorData;
-             try {
-                 errorData = await response.json();
-             } catch (e) {
-                 errorData = { message: `Error HTTP ${response.status}: ${response.statusText}` };
-             }
-             console.error('Error del backend al eliminar:', errorData);
-             throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
-        }
-
-        // No intentar parsear JSON si es 204
-        return response.status === 204 ? { success: true } : response.json();
+        return handleResponse(response);
     } catch (error) {
         console.error('Error en deleteInvoice:', error);
+        // Si es un error de permisos, estandarizar el mensaje
+        if (error.message.includes('permiso') || error.message.includes('acceso')) {
+            throw new Error('Sin acceso.');
+        }
         throw error;
     }
 };
@@ -125,20 +91,11 @@ export const deleteInvoice = async (id) => {
 export const generatePDF = async (id) => {
     try {
         const response = await fetch(`${API_BASE_URL}/invoices/${id}/pdf`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}` // Si usas autenticación
-            }
+            headers: getAuthHeaders('application/pdf')
         });
 
         if (!response.ok) {
-             let errorData;
-             try {
-                 errorData = await response.json();
-             } catch (e) {
-                 errorData = { message: `Error HTTP ${response.status}: ${response.statusText}` };
-             }
-             console.error('Error del backend al generar PDF:', errorData);
-             throw new Error(errorData.message || `Error al generar PDF: ${response.status}`);
+            return handleResponse(response);
         }
 
         const blob = await response.blob();
@@ -158,10 +115,10 @@ export const generatePDF = async (id) => {
         // Opcional: Revocar la URL después de un tiempo para liberar memoria
         // setTimeout(() => URL.revokeObjectURL(pdfUrl), 10000);
 
+        return { success: true };
     } catch (error) {
         console.error('Error en generatePDF:', error);
-        // Puedes mostrar un mensaje más amigable al usuario aquí
-        throw error; // Re-lanzar para manejo superior si es necesario
+        throw error;
     }
 };
 
@@ -175,28 +132,12 @@ export const updateInvoiceStatus = async (id, newStatus) => {
              throw new Error(`Estado "${newStatus}" no es válido.`);
         }
 
-
         const response = await fetch(`${API_BASE_URL}/invoices/${id}/status`, {
             method: 'PATCH', // Usar PATCH para actualizaciones parciales como el estado
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}` // Si usas autenticación
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({ status: statusToSend }), // Enviar solo el campo a actualizar
         });
-
-        if (!response.ok) {
-            let errorData;
-            try {
-                errorData = await response.json();
-            } catch (e) {
-                errorData = { message: `Error HTTP ${response.status}: ${response.statusText}` };
-            }
-            console.error('Error del backend al actualizar estado:', errorData);
-            throw new Error(errorData.message || `Error HTTP: ${response.status}`);
-        }
-
-        return response.json(); // Devolver la factura actualizada
+        return handleResponse(response);
     } catch (error) {
         console.error('Error al actualizar estado de factura:', error);
         throw error;

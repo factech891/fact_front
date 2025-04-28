@@ -19,11 +19,12 @@ export const useDocuments = () => {
   const fetchDocuments = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null); // Limpiar errores anteriores
       const data = await getDocuments();
       console.log('Documentos cargados:', data);
       setDocuments(data);
-      setError(null);
     } catch (err) {
+      console.error('Error en fetchDocuments:', err);
       setError(err.message || 'Error fetching documents');
     } finally {
       setLoading(false);
@@ -33,14 +34,14 @@ export const useDocuments = () => {
   const fetchDocument = useCallback(async (id) => {
     try {
       setLoading(true);
+      setError(null); // Limpiar errores anteriores
       const data = await getDocument(id);
       console.log('Documento individual cargado:', data);
       setCurrentDocument(data);
-      setError(null);
       return data;
     } catch (err) {
-      setError(err.message || 'Error fetching document');
       console.error('Error en fetchDocument:', err);
+      setError(err.message || 'Error fetching document');
       return null;
     } finally {
       setLoading(false);
@@ -50,6 +51,7 @@ export const useDocuments = () => {
   const handleCreateDocument = useCallback(async (document) => {
     try {
       setLoading(true);
+      setError(null); // Limpiar errores anteriores
       const result = await createDocument(document);
       console.log('Documento creado desde API:', result);
       setDocuments((prev) => {
@@ -57,11 +59,10 @@ export const useDocuments = () => {
         console.log('Estado actualizado de documents:', updated);
         return updated;
       });
-      setError(null);
       return result;
     } catch (err) {
-      setError(err.message || 'Error creating document');
       console.error('Error al crear documento:', err);
+      setError(err.message || 'Error creating document');
       throw err; // Lanzamos el error para que DocumentFormModal lo capture
     } finally {
       setLoading(false);
@@ -71,13 +72,14 @@ export const useDocuments = () => {
   const handleUpdateDocument = useCallback(async (id, document) => {
     try {
       setLoading(true);
+      setError(null); // Limpiar errores anteriores
       const result = await updateDocument(id, document);
       setDocuments((prev) => 
         prev.map((doc) => (doc._id === id ? result : doc))
       );
-      setError(null);
       return result;
     } catch (err) {
+      console.error('Error al actualizar documento:', err);
       setError(err.message || 'Error updating document');
       throw err;
     } finally {
@@ -88,13 +90,18 @@ export const useDocuments = () => {
   const handleDeleteDocument = useCallback(async (id) => {
     try {
       setLoading(true);
+      setError(null); // Limpiar errores anteriores
       await deleteDocument(id);
+      // Solo actualizar el estado si la eliminación fue exitosa
       setDocuments((prev) => prev.filter((doc) => doc._id !== id));
-      setError(null);
-      return true;
+      return { success: true, message: "Documento eliminado correctamente" };
     } catch (err) {
-      setError(err.message || 'Error deleting document');
-      return false;
+      console.error('Error al eliminar documento:', err);
+      // Capturar específicamente el error de permisos
+      const errorMessage = err.message || 'Error deleting document';
+      setError(errorMessage);
+      // Propagar el error para que la UI pueda manejarlo
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -103,13 +110,14 @@ export const useDocuments = () => {
   const handleConvertToInvoice = useCallback(async (id, invoice) => {
     try {
       setLoading(true);
+      setError(null); // Limpiar errores anteriores
       const result = await convertToInvoice(id, invoice);
       setDocuments((prev) => 
         prev.map((doc) => (doc._id === id ? result : doc))
       );
-      setError(null);
       return result;
     } catch (err) {
+      console.error('Error al convertir documento a factura:', err);
       setError(err.message || 'Error converting document to invoice');
       return null;
     } finally {
@@ -120,10 +128,11 @@ export const useDocuments = () => {
   const handleGetPendingDocuments = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null); // Limpiar errores anteriores
       const data = await getPendingDocuments();
-      setError(null);
       return data;
     } catch (err) {
+      console.error('Error al obtener documentos pendientes:', err);
       setError(err.message || 'Error fetching pending documents');
       return [];
     } finally {

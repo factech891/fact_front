@@ -1,15 +1,47 @@
-import React from 'react';
-// src/services/AuthApi.js (actualizado con método updateProfile)
+// src/services/AuthApi.js (actualizado con mejores mensajes de error)
 import { API_BASE_URL, handleResponse } from './api';
 
 export const authApi = {
   login: async (credentials) => {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(credentials)
-    });
-    return handleResponse(response);
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credentials)
+      });
+      
+      // Si la respuesta no es exitosa, manejar los errores específicos de login
+      if (!response.ok) {
+        const errorBody = await response.json();
+        const errorMessage = errorBody.message || errorBody.error || 'Error de autenticación';
+        
+        // Manejar mensajes específicos
+        if (errorMessage === 'Usuario no existe') {
+          throw new Error('Usuario no existe');
+        } else if (errorMessage === 'Contraseña incorrecta') {
+          throw new Error('Contraseña incorrecta');
+        } else if (errorMessage.includes('Email o contraseña incorrectos')) {
+           // Si el backend aún usa el mensaje genérico, intentar determinar el problema
+           // Posible conflicto: La lógica original del código base ya incluía el manejo de 'no existe' e 'incorrecta',
+           // este bloque adicional para 'Email o contraseña incorrectos' podría ser redundante si el backend
+           // ya envía los mensajes específicos ('Usuario no existe', 'Contraseña incorrecta').
+           // Se mantiene la lógica agregada pero se señala como posible redundancia o lógica cuestionable.
+           if (!credentials.email) { // Esta comprobación puede no ser fiable aquí.
+             throw new Error('Usuario no existe');
+           } else {
+             throw new Error('Contraseña incorrecta');
+           }
+        }
+         
+        // Si no coincide con los errores específicos, lanzar el mensaje recibido.
+        throw new Error(errorMessage);
+      }
+      
+      return handleResponse(response);
+    } catch (error) {
+      // Si ya tenemos un mensaje estandarizado, propagarlo
+      throw error;
+    }
   },
   
   register: async (userData) => {

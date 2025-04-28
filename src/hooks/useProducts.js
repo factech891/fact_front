@@ -1,4 +1,3 @@
-import React from 'react';
 // src/hooks/useProducts.js
 import { useState, useEffect } from 'react';
 import { productsApi } from '../services/api';
@@ -10,6 +9,7 @@ export const useProducts = () => {
 
   const fetchProducts = async () => {
     try {
+      setError(null); // Limpiar errores anteriores
       const data = await productsApi.getAll();
       console.log('5. Datos recibidos del API:', data);
 
@@ -43,6 +43,7 @@ export const useProducts = () => {
 
   const saveProduct = async (product) => {
     try {
+      setError(null); // Limpiar errores anteriores
       console.log('3. useProducts - Antes de API:', {
         precio: product.precio,
         productoCompleto: product
@@ -62,11 +63,16 @@ export const useProducts = () => {
 
   const deleteProduct = async (id) => {
     try {
-      await productsApi.delete(id);
+      setError(null); // Limpiar errores anteriores
+      const response = await productsApi.delete(id);
       await fetchProducts();
+      return { success: true, message: "Producto eliminado correctamente" };
     } catch (error) {
-      setError(error.message);
-      throw error;
+      console.error('Error en deleteProduct:', error);
+      // Manejar específicamente el error de permisos
+      const errorMessage = error.message || 'Error al eliminar el producto';
+      setError(errorMessage);
+      throw error; // Propagar el error para que la UI pueda reaccionar
     }
   };
 
@@ -74,5 +80,5 @@ export const useProducts = () => {
     fetchProducts();
   }, []);
 
-  return { products, loading, error, saveProduct, deleteProduct };
+  return { products, loading, error, saveProduct, deleteProduct, fetchProducts };
 };

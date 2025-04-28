@@ -1,14 +1,20 @@
-import React from 'react';
 // src/services/api.js modificado
 const API_BASE_URL = 'http://localhost:5002/api';
 
 // Función para manejar respuestas de la API
 const handleResponse = async (response) => {
   if (!response.ok) {
-    // Intentar obtener detalles del error desde el cuerpo
     try {
       const errorBody = await response.json();
-      const errorMessage = errorBody.error || `Error: ${response.status}`;
+      const errorMessage = errorBody.error || errorBody.message || `Error: ${response.status}`;
+      
+      // Estandarizar mensajes de error de permisos
+      if (response.status === 403 || 
+          errorMessage.includes('permiso') || 
+          errorMessage.includes('acceso') || 
+          errorMessage.includes('autorizado')) {
+        throw new Error('Sin acceso.');
+      }
       
       // Traducir mensajes de error comunes a mensajes amigables
       if (errorMessage.includes('duplicate key') && errorMessage.includes('email')) {
@@ -22,9 +28,19 @@ const handleResponse = async (response) => {
       throw new Error(errorMessage);
     } catch (e) {
       // Si no podemos extraer el JSON o es otro tipo de error
+      if (e.message === 'Sin acceso.') {
+        throw e; // Ya es nuestro mensaje estandarizado
+      }
+      
       if (e.message && (e.message.includes('correo') || e.message.includes('RIF'))) {
         throw e; // Usar nuestro mensaje amigable ya creado
       }
+      
+      // Para errores 403 que no pudimos parsear
+      if (response.status === 403) {
+        throw new Error('Sin acceso.');
+      }
+      
       throw new Error(`Error ${response.status}: No se pudo procesar la solicitud`);
     }
   }
@@ -208,6 +224,45 @@ export const invoicesApi = {
       console.error('Error descargando PDF:', error);
       throw error;
     }
+  }
+};
+
+// Servicios para documentos/cotizaciones con autenticación
+export const documentsApi = {
+  getAll: async () => {
+    const response = await fetch(`${API_BASE_URL}/documents`, {
+      headers: getAuthHeaders()
+    });
+    return handleResponse(response);
+  },
+  getById: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
+      headers: getAuthHeaders()
+    });
+    return handleResponse(response);
+  },
+  create: async (data) => {
+    const response = await fetch(`${API_BASE_URL}/documents`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(response);
+  },
+  update: async (id, data) => {
+    const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(response);
+  },
+  delete: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(response);
   }
 };
 
