@@ -21,93 +21,74 @@ export const fetchInvoices = async () => {
 
 export const saveInvoice = async (invoice) => {
     try {
-        const method = invoice._id ? 'PUT' : 'POST';
-        const url = invoice._id
-            ? `${API_BASE_URL}/invoices/${invoice._id}`
-            : `${API_BASE_URL}/invoices`;
-
+        // Siempre usar POST para ambos casos (crear y actualizar)
+        const url = `${API_BASE_URL}/invoices`;
         // Mapeo de items (asegurando enviar solo ID del producto)
         const formattedItems = invoice.items.map(item => ({
             product: item.product?._id || item.product,  // Enviar ObjectID válido
-            quantity: item.quantity || 0,                // Asegurar número
-            price: item.price || 0,                      // Asegurar número
-            // No es necesario enviar subtotal de item, backend recalcula
-            taxExempt: item.taxExempt || false           // Enviar estado de exención
+            quantity: Number(item.quantity) || 0,        // Forzar a Number
+            price: Number(item.price) || 0,              // Forzar a Number
+            taxExempt: Boolean(item.taxExempt) || false  // Forzar a Boolean
         }));
-
-        // Estructura final de datos a enviar, alineada con el modelo del backend
+        // Asegurar que la fecha esté en formato ISO completo
+        const formattedDate = invoice.date ? 
+            (invoice.date.includes('T') ? 
+                invoice.date : 
+                `${invoice.date}T12:00:00.000Z`) 
+            : new Date().toISOString();
+        // Estructura final de datos a enviar, simplificada y con tipos adecuados
         const invoiceData = {
-            // Campos de identificación y estado
-            number: invoice.number, // El backend puede generar si es POST y está vacío
-            status: invoice.status || 'draft', // Estado del documento
-
-            // Campos de cliente y fechas
-            client: invoice.client?._id || invoice.client, // Enviar ObjectID válido
-            date: invoice.date || new Date().toISOString().split('T')[0], // Fecha del documento
-
-            // Campos de items y financieros
-            items: formattedItems, // Array de items formateados
-            subtotal: invoice.subtotal, // Subtotal calculado en frontend (backend puede recalcular/validar)
-            tax: invoice.tax,           // Impuesto calculado (backend puede recalcular/validar)
-            total: invoice.total,         // Total calculado (backend puede recalcular/validar)
-            moneda: invoice.moneda || 'VES', // Moneda del documento
-
-            // Campos de condiciones y configuración
-            condicionesPago: invoice.condicionesPago || 'Contado', // Términos de pago
-            diasCredito: invoice.diasCredito || 0, // Días de crédito (usar 0 si es Contado)
-
-             // ---> ¡¡CORRECCIÓN AQUÍ!! <---
-            notes: invoice.notes || '', // Incluir las notas del formulario
-            terms: invoice.terms || ''  // Incluir los términos del formulario
-
-            // Campo opcional para backend (si lo usas para lógica de número)
-            // usePrefix: invoice.usePrefix || 'INV' // Puedes omitir si el backend lo maneja internamente
+            // Si es actualización, incluir el _id
+            ...(invoice._id && { _id: invoice._id }),
+            
+            // Campos esenciales
+            number: invoice.number || '',
+            status: invoice.status || 'draft',
+            client: invoice.client?._id || invoice.client,
+            date: formattedDate,
+            items: formattedItems,
+            
+            // Campos financieros (asegurar números)
+            subtotal: Number(invoice.subtotal) || 0,
+            tax: Number(invoice.tax) || 0,
+            total: Number(invoice.total) || 0,
+            
+            // Campos adicionales con valores por defecto
+            moneda: invoice.moneda || 'VES',
+            condicionesPago: invoice.condicionesPago || 'Contado',
+            diasCredito: Number(invoice.diasCredito) || 0,
+            notes: invoice.notes || '',
+            terms: invoice.terms || ''
         };
-
-        // Si es una creación (POST) y no se envió un número, podemos quitarlo
-        // para que el backend lo genere. Si es PUT, debe ir el número.
-        if (method === 'POST' && !invoiceData.number) {
-            delete invoiceData.number;
+        // CAMBIO CLAVE: Convertir documentType a minúsculas
+        if (invoice.documentType) {
+            invoiceData.documentType = invoice.documentType.toLowerCase();
         }
-         // Si es una creación (POST), no necesitamos enviar el _id en el cuerpo
-         if (method === 'POST') {
-             delete invoiceData._id; // Mongoose lo ignora, pero es más limpio
-         }
-
-
-        console.log(`>>> [${method}] Enviando datos a ${url}:`, invoiceData); // Log detallado antes de enviar
-
+        console.log(`>>> [POST] Enviando datos a ${url}:`, invoiceData);
         const response = await fetch(url, {
-            method,
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}` // Si usas autenticación
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
             },
-            body: JSON.stringify(invoiceData), // Enviar el objeto invoiceData completo
+            body: JSON.stringify(invoiceData),
         });
-
         if (!response.ok) {
-            // Intentar obtener más detalles del error del backend
             let errorData;
             try {
                 errorData = await response.json();
             } catch (e) {
-                // Si el cuerpo no es JSON válido
                 errorData = { message: `Error HTTP ${response.status}: ${response.statusText}` };
             }
             console.error('Error del backend:', errorData);
-            throw new Error(errorData.message || `Error HTTP: ${response.status}`);
+            throw new Error(errorData.message || `Error HTTP ${response.status}: ${response.statusText}`);
         }
-
-        // Si la respuesta es OK pero no tiene contenido (ej. 204 No Content)
         if (response.status === 204) {
-           return {}; // Devuelve un objeto vacío o algo indicativo de éxito sin datos
+           return {}; 
         }
-
-        return response.json(); // Devuelve los datos de la factura guardada/actualizada
+        return response.json();
     } catch (error) {
         console.error('Error en saveInvoice:', error);
-        // Re-lanzar el error para que el componente que llama pueda manejarlo
         throw error;
     }
 };
