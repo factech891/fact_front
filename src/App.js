@@ -1,8 +1,18 @@
-// src/App.js (actualizado para visor y NotificationsProvider)
+// src/App.js (unificado con rutas de Platform Admin y Companies)
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { DashboardLayout } from './layouts/DashboardLayout';
 import { ThemeProvider, CssBaseline } from '@mui/material';
+
+// Layouts
+import { DashboardLayout } from './layouts/DashboardLayout';
+import PlatformAdminLayout from './layouts/PlatformAdminLayout'; // Importar el nuevo layout
+
+// Pages - Autenticación
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+import ForgotPassword from './pages/auth/ForgotPassword';
+
+// Pages - Aplicación Principal
 import Dashboard from './pages/dashboard/Dashboard';
 import Invoices from './pages/invoices/Invoices';
 import { InvoiceForm } from './pages/invoices/InvoiceForm';
@@ -12,29 +22,24 @@ import Products from './pages/products/Products';
 import { ProductForm } from './pages/products/ProductForm';
 import Settings from './pages/settings/Settings';
 import ProfilePage from './pages/settings/ProfilePage';
-
-// Importamos los componentes del módulo de documentos
 import Documents from './pages/documents/Documents';
 import DocumentForm from './pages/documents/DocumentForm';
 import DocumentPreview from './pages/documents/DocumentPreview';
-
-// Importamos los componentes del módulo de usuarios
 import UserManagement from './pages/users/UserManagement';
 import UserForm from './pages/users/UserForm';
 
-// Importamos componentes de autenticación
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
-import ForgotPassword from './pages/auth/ForgotPassword';
+// Pages - Platform Admin
+import PlatformAdminDashboard from './pages/platformAdmin/Dashboard'; // Importar el dashboard de admin
+import PlatformAdminCompanies from './pages/platformAdmin/Companies'; // Importar la nueva página de Compañías
+
+// Contextos y Componentes Utilitarios
 import { AuthProvider } from './context/AuthContext';
-// Importamos el proveedor de notificaciones
 import { NotificationsProvider } from './context/NotificationsContext';
 import ProtectedRoute from './components/ProtectedRoute';
-
 import theme from './theme';
 import './styles/global.css';
 
-// Componente para la página no autorizada
+// Componente para la página no autorizada (actualizado con theme)
 const Unauthorized = () => (
   <div style={{
     display: 'flex',
@@ -43,15 +48,15 @@ const Unauthorized = () => (
     height: '100vh',
     flexDirection: 'column',
     gap: '1rem',
-    backgroundColor: '#121212', // Considerar usar theme.palette.background.default
-    color: 'white' // Considerar usar theme.palette.text.primary
+    backgroundColor: theme.palette.background.default, // Usa el tema
+    color: theme.palette.text.primary // Usa el tema
   }}>
     <h1>Acceso no autorizado</h1>
     <p>No tienes permisos para acceder a esta página.</p>
   </div>
 );
 
-// Componente para la página no encontrada
+// Componente para la página no encontrada (actualizado con theme)
 const NotFound = () => (
   <div style={{
     display: 'flex',
@@ -60,9 +65,9 @@ const NotFound = () => (
     height: '100vh',
     flexDirection: 'column',
     gap: '1rem',
-    backgroundColor: '#121212', // Considerar usar theme.palette.background.default
-    color: 'white' // Considerar usar theme.palette.text.primary
-  }}>
+    backgroundColor: theme.palette.background.default, // Usa el tema
+    color: theme.palette.text.primary // Usa el tema
+   }}>
     <h1>Página no encontrada</h1>
     <p>La página que estás buscando no existe.</p>
   </div>
@@ -70,6 +75,9 @@ const NotFound = () => (
 
 
 function App() {
+  // --- IMPORTANTE: Define aquí el rol exacto para el administrador de plataforma ---
+  const PLATFORM_ADMIN_ROLE = 'platform_admin'; // O 'super_admin', etc. ¡Asegúrate que coincida con tu AuthContext!
+
   return (
     // Proveedor de Tema de Material UI
     <ThemeProvider theme={theme}>
@@ -77,7 +85,7 @@ function App() {
       <CssBaseline />
       {/* Proveedor de Autenticación */}
       <AuthProvider>
-        {/* Proveedor de Notificaciones (nuevo) */}
+        {/* Proveedor de Notificaciones */}
         <NotificationsProvider>
           {/* Definición de Rutas */}
           <Routes>
@@ -89,7 +97,7 @@ function App() {
             {/* Ruta para acceso no autorizado */}
             <Route path="/unauthorized" element={<Unauthorized />} />
 
-            {/* Rutas protegidas que usan el DashboardLayout */}
+            {/* --- Rutas Protegidas para Usuarios Normales (Layout Principal) --- */}
             <Route
               path="/"
               element={
@@ -99,73 +107,40 @@ function App() {
                 </ProtectedRoute>
               }
             >
-              {/* Ruta índice (Dashboard) - accesible para admin, manager, visor */}
+              {/* Dashboard Principal */}
               <Route index element={
                 <ProtectedRoute requiredRoles={['admin', 'manager', 'visor']}>
                   <Dashboard />
                 </ProtectedRoute>
               } />
-              {/* Ruta explícita del Dashboard */}
               <Route path="dashboard" element={
                 <ProtectedRoute requiredRoles={['admin', 'manager', 'visor']}>
                   <Dashboard />
                 </ProtectedRoute>
               } />
 
-              {/* Rutas de Facturas */}
-              <Route path="invoices" element={<Invoices />} /> {/* Asumo acceso general dentro del layout */}
-              <Route path="invoices/new" element={
-                <ProtectedRoute> {/* Asumo que crear requiere estar logueado */}
-                  <InvoiceForm />
-                </ProtectedRoute>
-              } />
-              <Route path="invoices/edit/:id" element={
-                <ProtectedRoute> {/* Asumo que editar requiere estar logueado */}
-                  <InvoiceForm />
-                </ProtectedRoute>
-              } />
+              {/* Facturas */}
+              <Route path="invoices" element={<Invoices />} />
+              <Route path="invoices/new" element={<ProtectedRoute><InvoiceForm /></ProtectedRoute>} />
+              <Route path="invoices/edit/:id" element={<ProtectedRoute><InvoiceForm /></ProtectedRoute>} />
 
-              {/* Rutas de Cotizaciones/Documentos */}
-              <Route path="documents" element={<Documents />} /> {/* Asumo acceso general */}
-              <Route path="documents/new" element={
-                <ProtectedRoute>
-                  <DocumentForm />
-                </ProtectedRoute>
-              } />
-              <Route path="documents/edit/:id" element={
-                <ProtectedRoute>
-                  <DocumentForm />
-                </ProtectedRoute>
-              } />
-              <Route path="documents/view/:id" element={<DocumentPreview />} /> {/* Asumo vista pública o protegida por layout */}
+              {/* Documentos/Cotizaciones */}
+              <Route path="documents" element={<Documents />} />
+              <Route path="documents/new" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
+              <Route path="documents/edit/:id" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
+              <Route path="documents/view/:id" element={<DocumentPreview />} />
 
-              {/* Rutas de Clientes */}
-              <Route path="clients" element={<Clients />} /> {/* Asumo acceso general */}
-              <Route path="clients/new" element={
-                <ProtectedRoute>
-                  <ClientForm />
-                </ProtectedRoute>
-              } />
-              <Route path="clients/edit/:id" element={
-                <ProtectedRoute>
-                  <ClientForm />
-                </ProtectedRoute>
-              } />
+              {/* Clientes */}
+              <Route path="clients" element={<Clients />} />
+              <Route path="clients/new" element={<ProtectedRoute><ClientForm /></ProtectedRoute>} />
+              <Route path="clients/edit/:id" element={<ProtectedRoute><ClientForm /></ProtectedRoute>} />
 
-              {/* Rutas de Productos */}
-              <Route path="products" element={<Products />} /> {/* Asumo acceso general */}
-              <Route path="products/new" element={
-                <ProtectedRoute>
-                  <ProductForm />
-                </ProtectedRoute>
-              } />
-              <Route path="products/edit/:id" element={
-                <ProtectedRoute>
-                  <ProductForm />
-                </ProtectedRoute>
-              } />
+              {/* Productos */}
+              <Route path="products" element={<Products />} />
+              <Route path="products/new" element={<ProtectedRoute><ProductForm /></ProtectedRoute>} />
+              <Route path="products/edit/:id" element={<ProtectedRoute><ProductForm /></ProtectedRoute>} />
 
-              {/* Rutas de Gestión de Usuarios - solo admin y gerente */}
+              {/* Gestión de Usuarios (Empresa) */}
               <Route path="users" element={
                 <ProtectedRoute requiredRoles={['admin', 'gerente']}>
                   <UserManagement />
@@ -182,17 +157,39 @@ function App() {
                 </ProtectedRoute>
               } />
 
-              {/* Ruta de Configuración General - solo admin y gerente */}
+              {/* Configuración (Empresa) */}
               <Route path="settings" element={
                 <ProtectedRoute requiredRoles={['admin', 'gerente']}>
                   <Settings />
                 </ProtectedRoute>
               } />
-
-              {/* Ruta de Perfil de Usuario - accesible para todos los logueados */}
+              {/* Perfil (Todos los logueados) */}
               <Route path="settings/profile" element={<ProfilePage />} /> {/* Protegido por el layout padre */}
 
-            </Route> {/* Fin de las rutas dentro de DashboardLayout */}
+            </Route> {/* Fin de rutas bajo DashboardLayout */}
+
+
+            {/* --- Rutas Protegidas para Administrador de Plataforma --- */}
+            <Route
+              path="/platform-admin" // Base path para el panel de admin
+              element={
+                <ProtectedRoute requiredRoles={[PLATFORM_ADMIN_ROLE]}> {/* Protege TODO el panel de admin */}
+                  <PlatformAdminLayout /> {/* Usa el layout específico de admin */}
+                </ProtectedRoute>
+              }
+            >
+              {/* Dashboard del Admin */}
+              <Route index element={<PlatformAdminDashboard />} /> {/* Ruta índice /platform-admin */}
+              <Route path="dashboard" element={<PlatformAdminDashboard />} /> {/* Ruta explícita */}
+
+              {/* --- Inicio Modificación: Añadir ruta de Compañías --- */}
+              <Route path="companies" element={<PlatformAdminCompanies />} />
+              {/* --- Fin Modificación: Añadir ruta de Compañías --- */}
+
+              {/* Puedes añadir más rutas específicas del admin aquí (ej: logs, configuraciones globales) */}
+
+            </Route> {/* Fin de rutas bajo PlatformAdminLayout */}
+
 
             {/* Ruta para páginas no encontradas (Catch-all) */}
             <Route path="*" element={<NotFound />} />
