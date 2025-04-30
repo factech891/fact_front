@@ -143,8 +143,40 @@ const PlatformAdminApi = {
             // Re-throw the error
             throw error;
         }
+    },
+
+    // --- Inicio Modificación: NUEVA FUNCIÓN para enviar notificación ---
+    /**
+     * Sends a custom notification to a specific company.
+     * Corresponds to platformAdminController.sendNotificationToCompany in the backend.
+     * @param {string} companyId - The ID of the target company.
+     * @param {object} notificationData - The notification content.
+     * @param {string} notificationData.title - The title of the notification.
+     * @param {string} notificationData.message - The body/message of the notification.
+     * @param {string} [notificationData.type='info'] - The type/severity ('info', 'warning', 'error', 'success', 'admin_message').
+     * @returns {Promise<Object>} A promise that resolves with the API response (success message and created notification).
+     * Example response data: { success: true, message: "...", notification: {...} }
+     */
+    sendNotification: async (companyId, notificationData) => {
+        // Construct the full URL for the endpoint, including the companyId
+        const url = `${API_BASE_URL}/platform-admin/companies/${companyId}/notify`;
+        try {
+            // Make the fetch request using POST method, auth headers, and JSON body
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: getAuthHeaders(), // Gets Content-Type: application/json and Auth token
+                body: JSON.stringify(notificationData) // Send title, message, type in the body
+            });
+            // Process the response using the shared handler
+            return handleResponse(response);
+        } catch (error) {
+            // Log the error for debugging
+            console.error(`Error sending notification to company ${companyId}:`, error.message);
+            // Re-throw the error so it can be caught by the calling code (e.g., in the hook)
+            throw error;
+        }
     }
+    // --- Fin Modificación: NUEVA FUNCIÓN ---
 };
 
-// Export the service object to be used in hooks or components
 export default PlatformAdminApi;

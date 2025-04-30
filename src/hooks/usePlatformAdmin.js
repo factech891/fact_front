@@ -31,62 +31,54 @@ const usePlatformAdmin = () => {
         setSuccessMessage(null);
     }, []);
 
-    // Function to fetch dashboard statistics
+    // --- Funciones existentes (fetchDashboardStats, fetchCompanies, extendCompanyTrial, changeCompanySubscriptionStatus, toggleCompanyActiveState) ---
     const fetchDashboardStats = useCallback(async () => {
-        setLoadingStats(true); // Start loading
-        clearMessages(); // Clear previous messages
+        setLoadingStats(true);
+        clearMessages();
         try {
             const data = await PlatformAdminApi.getDashboardStats();
             if (data.success) {
-                setDashboardStats(data.stats); // Store the stats
+                setDashboardStats(data.stats);
             } else {
-                // Handle cases where the API returns success: false but no HTTP error
                 throw new Error(data.message || 'Failed to fetch dashboard stats');
             }
         } catch (err) {
             console.error("Hook error fetching stats:", err);
-            setError(err.message || 'Error al obtener estadísticas'); // Store error message
-            setDashboardStats(null); // Reset stats on error
+            setError(err.message || 'Error al obtener estadísticas');
+            setDashboardStats(null);
         } finally {
-            setLoadingStats(false); // Stop loading regardless of outcome
+            setLoadingStats(false);
         }
-    }, [clearMessages]); // Dependency: clearMessages
+    }, [clearMessages]);
 
-    // Function to fetch the list of all companies
     const fetchCompanies = useCallback(async () => {
-        setLoadingCompanies(true); // Start loading
-        clearMessages(); // Clear previous messages
+        setLoadingCompanies(true);
+        clearMessages();
         try {
             const data = await PlatformAdminApi.getCompanies();
             if (data.success) {
-                setCompanies(data.companies || []); // Store the companies list
+                setCompanies(data.companies || []);
             } else {
                 throw new Error(data.message || 'Failed to fetch companies list');
             }
         } catch (err) {
             console.error("Hook error fetching companies:", err);
-            setError(err.message || 'Error al listar compañías'); // Store error message
-            setCompanies([]); // Reset companies list on error
+            setError(err.message || 'Error al listar compañías');
+            setCompanies([]);
         } finally {
-            setLoadingCompanies(false); // Stop loading
+            setLoadingCompanies(false);
         }
-    }, [clearMessages]); // Dependency: clearMessages
+    }, [clearMessages]);
 
-    // Function to extend or reduce a company's trial period
     const extendCompanyTrial = useCallback(async (companyId, days) => {
-        setLoadingAction(true); // Start action loading
-        clearMessages(); // Clear previous messages
+        setLoadingAction(true);
+        clearMessages();
         let success = false;
         try {
             const data = await PlatformAdminApi.extendTrial(companyId, days);
             if (data.success) {
                 setSuccessMessage(data.message || 'Período de prueba modificado con éxito.');
-                // Option 1: Re-fetch the companies list to reflect changes
-                await fetchCompanies();
-                // Option 2 (Alternative): Update local state directly (more complex if sorting/filtering)
-                // setCompanies(prevCompanies => prevCompanies.map(c =>
-                //     c.id === companyId ? { ...c, ...data.company } : c
-                // ));
+                await fetchCompanies(); // Re-fetch after action
                 success = true;
             } else {
                 throw new Error(data.message || 'Failed to modify trial period');
@@ -95,22 +87,20 @@ const usePlatformAdmin = () => {
             console.error("Hook error extending trial:", err);
             setError(err.message || 'Error al modificar período de prueba');
         } finally {
-            setLoadingAction(false); // Stop action loading
+            setLoadingAction(false);
         }
-        return success; // Return success status for UI feedback
-    }, [clearMessages, fetchCompanies]); // Dependencies: clearMessages, fetchCompanies
+        return success;
+    }, [clearMessages, fetchCompanies]);
 
-    // Function to change a company's subscription status
     const changeCompanySubscriptionStatus = useCallback(async (companyId, status) => {
-        setLoadingAction(true); // Start action loading
-        clearMessages(); // Clear previous messages
+        setLoadingAction(true);
+        clearMessages();
         let success = false;
         try {
             const data = await PlatformAdminApi.changeSubscriptionStatus(companyId, status);
             if (data.success) {
                 setSuccessMessage(data.message || 'Estado de suscripción cambiado con éxito.');
-                // Re-fetch companies list to show the updated status
-                await fetchCompanies();
+                await fetchCompanies(); // Re-fetch after action
                 success = true;
             } else {
                 throw new Error(data.message || 'Failed to change subscription status');
@@ -119,22 +109,20 @@ const usePlatformAdmin = () => {
             console.error("Hook error changing status:", err);
             setError(err.message || 'Error al cambiar estado de suscripción');
         } finally {
-            setLoadingAction(false); // Stop action loading
+            setLoadingAction(false);
         }
-        return success; // Return success status
-    }, [clearMessages, fetchCompanies]); // Dependencies: clearMessages, fetchCompanies
+        return success;
+    }, [clearMessages, fetchCompanies]);
 
-    // Function to activate or deactivate a company
     const toggleCompanyActiveState = useCallback(async (companyId, active) => {
-        setLoadingAction(true); // Start action loading
-        clearMessages(); // Clear previous messages
+        setLoadingAction(true);
+        clearMessages();
         let success = false;
         try {
             const data = await PlatformAdminApi.toggleCompanyActive(companyId, active);
             if (data.success) {
                 setSuccessMessage(data.message || `Compañía ${active ? 'activada' : 'desactivada'} con éxito.`);
-                 // Re-fetch companies list to show the updated active state
-                await fetchCompanies();
+                await fetchCompanies(); // Re-fetch after action
                 success = true;
             } else {
                 throw new Error(data.message || 'Failed to toggle company active state');
@@ -143,10 +131,48 @@ const usePlatformAdmin = () => {
             console.error("Hook error toggling active:", err);
             setError(err.message || 'Error al activar/desactivar compañía');
         } finally {
+            setLoadingAction(false);
+        }
+        return success;
+    }, [clearMessages, fetchCompanies]);
+    // --- FIN Funciones existentes ---
+
+
+    // --- NUEVA FUNCIÓN para enviar notificación ---
+    /**
+     * Sends a notification to a specific company.
+     * @param {string} companyId - The ID of the target company.
+     * @param {object} notificationData - The notification details { title, message, type }.
+     * @returns {Promise<boolean>} True if the notification was sent successfully, false otherwise.
+     */
+    const sendCompanyNotification = useCallback(async (companyId, notificationData) => {
+        setLoadingAction(true); // Start action loading
+        clearMessages(); // Clear previous messages
+        let success = false;
+        try {
+            console.log(`Hook: Intentando enviar notificación a ${companyId}`, notificationData);
+            // Call the API service function
+            const data = await PlatformAdminApi.sendNotification(companyId, notificationData);
+
+            if (data.success) {
+                setSuccessMessage(data.message || 'Notificación enviada con éxito.');
+                // No es necesario re-fetch companies aquí, la notificación no cambia la lista
+                success = true;
+            } else {
+                // Handle API errors that don't throw exceptions (e.g., { success: false, message: '...' })
+                throw new Error(data.message || 'Failed to send notification');
+            }
+        } catch (err) {
+            // Handle exceptions thrown by the API call or handleResponse
+            console.error("Hook error sending notification:", err);
+            setError(err.message || 'Error al enviar la notificación');
+        } finally {
             setLoadingAction(false); // Stop action loading
         }
-        return success; // Return success status
-    }, [clearMessages, fetchCompanies]); // Dependencies: clearMessages, fetchCompanies
+        return success; // Return success status for UI feedback
+    }, [clearMessages]); // Dependency: clearMessages
+    // --- FIN NUEVA FUNCIÓN ---
+
 
     // Return all state values and functions needed by components
     return {
@@ -162,7 +188,8 @@ const usePlatformAdmin = () => {
         extendCompanyTrial,
         changeCompanySubscriptionStatus,
         toggleCompanyActiveState,
-        clearMessages // Expose function to clear messages manually if needed
+        sendCompanyNotification, // <-- Exponer la nueva función
+        clearMessages
     };
 };
 

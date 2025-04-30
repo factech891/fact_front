@@ -4,8 +4,8 @@ import { Box, Typography, CircularProgress, Alert } from '@mui/material';
 
 // Importar el hook personalizado
 import usePlatformAdmin from '../../hooks/usePlatformAdmin';
-// Importar el componente de la tabla (lo crearemos a continuación)
-import CompanyTable from '../../components/platformAdmin/CompanyTable';
+// Importar el componente de la tabla
+import CompanyTable from '../../components/platformAdmin/CompanyTable'; // Asegúrate que la ruta sea correcta
 
 const PlatformAdminCompanies = () => {
     // Usar el hook para obtener datos y estados de las compañías
@@ -15,20 +15,19 @@ const PlatformAdminCompanies = () => {
         error,
         fetchCompanies,
         clearMessages,
-        // También necesitaremos las funciones de acción más adelante
         extendCompanyTrial,
         changeCompanySubscriptionStatus,
         toggleCompanyActiveState,
-        successMessage, // Para mostrar mensajes de éxito
-        loadingAction // Para saber si una acción está en progreso
-    } = usePlatformAdmin();
+        sendCompanyNotification, // <-- ¡AÑADIR AQUÍ para extraer la función del hook!
+        successMessage,
+        loadingAction
+    } = usePlatformAdmin(); // Ahora sí extraemos la función
 
     // useEffect para cargar los datos cuando el componente se monta
     useEffect(() => {
         fetchCompanies();
-        // Limpiar mensajes al desmontar (opcional)
         return () => clearMessages();
-    }, [fetchCompanies, clearMessages]); // Dependencias del useEffect
+    }, [fetchCompanies, clearMessages]);
 
     return (
         <Box sx={{ flexGrow: 1 }}>
@@ -61,12 +60,12 @@ const PlatformAdminCompanies = () => {
                 // Renderizar la tabla si la carga finalizó
                 <CompanyTable
                     companies={companies}
-                    // Pasaremos las funciones de acción a la tabla para los botones
                     onExtendTrial={extendCompanyTrial}
-                    onChangeStatus={changeCompanySubscriptionStatus}
+                    onChangeStatus={changeCompanySubscriptionStatus} // Asegúrate que esta prop se use si es necesaria
                     onToggleActive={toggleCompanyActiveState}
-                    loadingAction={loadingAction} // Para deshabilitar botones mientras una acción ocurre
-                    refreshCompanies={fetchCompanies} // Para recargar la tabla después de una acción
+                    sendCompanyNotification={sendCompanyNotification} // <-- Ahora sí se pasa la función correcta
+                    loadingAction={loadingAction}
+                    refreshCompanies={fetchCompanies}
                 />
             )}
         </Box>
