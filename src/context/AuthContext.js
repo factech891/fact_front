@@ -1,4 +1,4 @@
-// src/context/AuthContext.js (actualizado con función hasRole mejorada)
+// src/context/AuthContext.js (actualizado con manejo de avatares específicos por usuario)
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { authApi } from '../services/AuthApi';
 import { useNavigate } from 'react-router-dom';
@@ -27,6 +27,19 @@ export const AuthProvider = ({ children }) => {
         try {
           const data = await authApi.getMe(token);
           if (data.success) {
+            // Verificar si hay un avatar guardado localmente para este usuario específico
+            const userId = data.user.id || data.user._id;
+            if (userId) {
+              const avatarKey = `userAvatar_${userId}`;
+              const savedAvatar = localStorage.getItem(avatarKey);
+              
+              if (savedAvatar && (!data.user.selectedAvatarUrl || data.user.selectedAvatarUrl !== savedAvatar)) {
+                // Usar el avatar guardado localmente para este usuario específico
+                data.user.selectedAvatarUrl = savedAvatar;
+                console.log(`Cargando avatar específico para usuario ${userId} desde localStorage`);
+              }
+            }
+            
             setCurrentUser(data.user);
             setCompany(data.company);
             setSubscription(data.subscription);
@@ -161,6 +174,27 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Función para actualizar los datos del usuario en el contexto
+  const updateUserContext = (updatedUserData) => {
+    // Actualizar solo en el contexto
+    setCurrentUser(prevUser => {
+      const newUserData = {
+        ...prevUser,
+        ...updatedUserData
+      };
+      
+      // Si actualizamos el avatar, guardarlo en localStorage específico para este usuario
+      if (updatedUserData.selectedAvatarUrl && prevUser && (prevUser.id || prevUser._id)) {
+        const userId = prevUser.id || prevUser._id;
+        const avatarKey = `userAvatar_${userId}`;
+        localStorage.setItem(avatarKey, updatedUserData.selectedAvatarUrl);
+        console.log(`Avatar guardado específicamente para usuario ${userId} con clave ${avatarKey}`);
+      }
+      
+      return newUserData;
+    });
+  };
+
   // Verificar si el usuario tiene un rol específico
   const hasRole = (role) => {
     if (!currentUser) return false;
@@ -206,7 +240,8 @@ export const AuthProvider = ({ children }) => {
     resetPassword,
     changePassword,
     hasRole,
-    getHomePageByRole
+    getHomePageByRole,
+    updateUserContext  // Actualizado para manejar avatares específicos por usuario
   };
 
   return (
