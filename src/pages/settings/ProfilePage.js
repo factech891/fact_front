@@ -59,7 +59,7 @@ const ProfilePage = () => {
   const [editMode, setEditMode] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [loadingPassword, setLoadingPassword] = useState(false);
-  const [profileError, setProfileError] = useState(null); // Ya no se usa para mostrar, solo para lógica si es necesario
+  // const [profileError, setProfileError] = useState(null); // No se usa, comentado o eliminado
   const [passwordError, setPasswordError] = useState(null); // Para mensaje de error específico de contraseña
   const [showAlert, setShowAlert] = useState(false);
   const [alertInfo, setAlertInfo] = useState({ severity: 'success', message: '' });
@@ -76,7 +76,24 @@ const ProfilePage = () => {
         email: currentUser.email || ''
       });
       // Usar el avatar guardado en el backend, o el primero de la lista como fallback
-      setCurrentAvatarUrl(currentUser.selectedAvatarUrl || availableAvatarUrls[0]);
+      // Corrección: La lógica para obtener el avatar guardado localmente debe ir aquí
+      let avatarToSet = currentUser.selectedAvatarUrl; // Prioridad 1: Backend
+      if (!avatarToSet) {
+        // Prioridad 2: LocalStorage específico del usuario (si existe)
+        const userId = currentUser.id || currentUser._id; // Obtener ID de usuario
+        if (userId) {
+            const avatarKey = `userAvatar_${userId}`;
+            avatarToSet = localStorage.getItem(avatarKey); // Intentar obtener del localStorage
+            console.log(`Avatar local para ${userId} encontrado: ${avatarToSet}`);
+        }
+      }
+      // Prioridad 3: Fallback a avatar por defecto
+      if (!avatarToSet) {
+        avatarToSet = availableAvatarUrls[0];
+         console.log('Usando avatar por defecto.');
+      }
+
+      setCurrentAvatarUrl(avatarToSet);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]); // Se ejecuta cuando currentUser cambia
@@ -110,16 +127,21 @@ const ProfilePage = () => {
   // Guardar cambios del perfil (solo nombre)
   const handleSaveProfile = async () => {
     setLoadingProfile(true);
-    // setProfileError(null); // Ya no se usa para mostrar error aquí
+    // setProfileError(null); // No se usa
     try {
       // Llama a la API para actualizar el perfil (solo nombre)
+      // NOTA: Usaremos authApi.updateProfile según la lógica de UsersApi.js
+      // (ver el 'intento 2' de la versión anterior)
+      // Asumiendo que authApi.updateProfile existe y funciona así:
       const response = await authApi.updateProfile({ nombre: profileData.nombre }, token);
 
-      if (response.success && response.user) {
+      // La respuesta puede variar, ajusta según tu implementación real de authApi.updateProfile
+      if (response && (response.success || response.user)) { // Ajusta la condición de éxito
+        const updatedName = response.user?.nombre || profileData.nombre; // Usa el nombre devuelto si existe
         setEditMode(false);
         // Actualizar el contexto para reflejar el cambio de nombre globalmente
-        if (updateUserContext) {
-           updateUserContext({ ...currentUser, nombre: response.user.nombre });
+        if (updateUserContext && currentUser) {
+           updateUserContext({ ...currentUser, nombre: updatedName });
         } else {
            console.warn("ProfilePage: updateUserContext no está disponible en AuthContext.");
            // Considera recargar datos o mostrar mensaje para refrescar
@@ -128,7 +150,7 @@ const ProfilePage = () => {
         setShowAlert(true);
       } else {
         // Usar el mensaje de error del backend si está disponible
-        throw new Error(response.message || 'Error al actualizar el perfil');
+        throw new Error(response?.message || 'Error al actualizar el perfil');
       }
     } catch (error) {
       console.error("Error guardando perfil:", error);
@@ -162,6 +184,7 @@ const ProfilePage = () => {
     try {
       // Llama a la API para cambiar la contraseña
       const { currentPassword, newPassword } = passwordData;
+      // Asumiendo que authApi.changePassword necesita estos 3 argumentos
       const response = await authApi.changePassword(currentPassword, newPassword, token);
 
       if (response.success) {
@@ -183,7 +206,7 @@ const ProfilePage = () => {
     }
   };
 
-  // NUEVA FUNCIÓN: Manejar Selección de Avatar (versión mejorada)
+  // NUEVA FUNCIÓN: Manejar Selección de Avatar (usando la API de UsersApi)
   const handleAvatarSelect = async (selectedUrl) => {
     // Evitar llamadas si se selecciona el mismo avatar o si ya está cargando
     if (selectedUrl === currentAvatarUrl || loadingAvatar) {
@@ -193,60 +216,65 @@ const ProfilePage = () => {
     setLoadingAvatar(true); // Iniciar indicador de carga
     try {
       console.log('Actualizando avatar a:', selectedUrl);
-      
+
       // Llama a la función del servicio UsersApi para actualizar el avatar
+      // Esta función ahora maneja la lógica híbrida (backend + localStorage)
       const response = await usersApi.updateMyAvatar(selectedUrl);
-      
-      console.log('Respuesta de la API:', response);
+
+      console.log('Respuesta de usersApi.updateMyAvatar:', response);
 
       if (response && response.success) {
-        // Usar la URL devuelta por el backend o la seleccionada si no hay URL en la respuesta
-        const newAvatarUrl = response.selectedAvatarUrl || selectedUrl;
-        
-        // Actualizar el estado local
+        // Usar la URL devuelta (que será la seleccionada en el caso de fallback)
+        const newAvatarUrl = response.selectedAvatarUrl;
+
+        // Actualizar el estado local para reflejar el cambio inmediatamente
         setCurrentAvatarUrl(newAvatarUrl);
-        
+
         // Actualizar el contexto para que el cambio se refleje en otras partes (ej. Navbar)
+        // IMPORTANTE: Asegurarse que la URL guardada en el contexto es la misma que se usa localmente.
         if (updateUserContext && currentUser) {
-          const updatedUser = { 
-            ...currentUser, 
-            selectedAvatarUrl: newAvatarUrl 
+          const updatedUser = {
+            ...currentUser,
+            selectedAvatarUrl: newAvatarUrl // Usar la URL confirmada por la API (o el fallback)
           };
           updateUserContext(updatedUser);
           console.log('Contexto de usuario actualizado con nuevo avatar:', updatedUser);
         } else {
           console.warn("ProfilePage: updateUserContext no está disponible en AuthContext.");
         }
-        
-        // Mostrar confirmación
-        setAlertInfo({ 
-          severity: 'success', 
-          message: 'Avatar actualizado correctamente.' 
+
+        // Mostrar confirmación (usando el mensaje de la respuesta de la API)
+        setAlertInfo({
+          severity: 'success',
+          message: response.message || 'Avatar actualizado.' // Usar mensaje de respuesta
         });
         setShowAlert(true);
       } else {
-        // Lanzar error si la API no tuvo éxito
+        // Si la API reporta fallo (aunque no debería con la lógica actual, por si acaso)
         throw new Error(response?.message || 'Error desconocido al actualizar el avatar');
       }
     } catch (error) {
       console.error("Error guardando avatar:", error);
       // Mostrar error en la alerta
-      setAlertInfo({ 
-        severity: 'error', 
-        message: `Error al guardar avatar: ${error.message || 'Error desconocido'}` 
+      setAlertInfo({
+        severity: 'error',
+        message: `Error al guardar avatar: ${error.message || 'Error desconocido'}`
       });
       setShowAlert(true);
+      // Opcional: Revertir el avatar visualmente si falla (aunque con localStorage, el cambio persiste)
+      // setCurrentAvatarUrl(currentUser.selectedAvatarUrl || availableAvatarUrls[0]);
     } finally {
       setLoadingAvatar(false); // Finalizar indicador de carga
     }
   };
+
 
   // Función para obtener el rol del usuario en formato legible
   const getUserRoleDisplay = () => {
     if (!currentUser || !currentUser.role) return 'Usuario';
     switch(currentUser.role) {
       case 'admin': return 'Administrador';
-      case 'manager': return 'Gerente'; // Confirmar si 'gerente' o 'manager' es el valor real
+      case 'manager': return 'Gerente';
       case 'facturador': return 'Facturador';
       case 'visor': return 'Visor';
       case 'platform_admin': return 'Admin Plataforma';
@@ -309,22 +337,37 @@ const ProfilePage = () => {
             <Box sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
               {/* Contenedor para Avatar y Progress */}
               <Box sx={{ position: 'relative', mr: 2 }}>
+                {/* *** INICIO CÓDIGO MODIFICADO *** */}
                 <Avatar
-                  src={currentAvatarUrl || ''} // Pasar string vacío si es null para evitar warning
+                  src={currentAvatarUrl || ''}
                   alt={profileData.nombre || 'Avatar'}
                   sx={{
-                    width: 80, height: 80, bgcolor: mainColor,
-                    fontWeight: 'bold', fontSize: '32px', color: 'white',
+                    width: 120, height: 120, // Tamaño del círculo
+                    bgcolor: '#1e1e1e', // Color de fondo si la imagen no carga o es transparente
+                    fontWeight: 'bold',
+                    fontSize: '48px',
+                    color: 'white', // Color del texto (inicial) si no hay imagen
+                    overflow: 'hidden', // Importante para que la imagen no se salga del círculo
+                    '& img': { // Estilos aplicados a la etiqueta <img> dentro del Avatar
+                      objectFit: 'cover', // Cambiado de 'contain' a 'cover' para llenar el espacio
+                      transform: 'scale(2.3)', // Hacer zoom 1.5x a la imagen
+                      transformOrigin: 'center', // Centrar el zoom
+                      width: '100%', // Asegurar que la imagen intente llenar el contenedor
+                      height: '100%' // Asegurar que la imagen intente llenar el contenedor
+                    }
                   }}
                 >
                   {/* Fallback a inicial SOLO si NO hay URL */}
                   {!currentAvatarUrl && profileData.nombre ? profileData.nombre.charAt(0).toUpperCase() : null}
                 </Avatar>
+                {/* *** FIN CÓDIGO MODIFICADO *** */}
+
                 {/* Indicador de carga mientras se guarda el avatar */}
                 {loadingAvatar && (
                   <CircularProgress
-                    size={88} thickness={2}
-                    sx={{ color: mainColor, position: 'absolute', top: -4, left: -4, zIndex: 1 }}
+                    size={128} // Ajusta el tamaño para que sea ligeramente mayor que el avatar
+                    thickness={2}
+                    sx={{ color: mainColor, position: 'absolute', top: -4, left: -4, zIndex: 1 }} // Ajustar posición
                   />
                 )}
               </Box>
@@ -383,24 +426,46 @@ const ProfilePage = () => {
             </Box>
 
             {/* Campos de Texto para Nombre y Email */}
-            <Box sx={{ mb: editMode ? 0 : 3 }}> {/* Ajustar margen si no está en modo edición */}
-              <TextField
-                fullWidth label="Nombre" variant="outlined" name="nombre"
-                value={profileData.nombre} onChange={handleProfileChange} disabled={!editMode}
-                sx={{ mb: 2, /* ... (estilos internos como antes) ... */ }}
-              />
-              <TextField
-                fullWidth label="Email" variant="outlined" name="email"
-                value={profileData.email} disabled={true} // Email no editable
-                sx={{ /* ... (estilos internos como antes) ... */ }}
-              />
-            </Box>
+            {/* Corrección: TextField debe estar fuera del Box que se oculta */}
+            <TextField
+              fullWidth label="Nombre" variant="outlined" name="nombre"
+              value={profileData.nombre} onChange={handleProfileChange} disabled={!editMode}
+              sx={{
+                mb: 2,
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.23)' },
+                  '&:hover fieldset': { borderColor: mainColor },
+                  '&.Mui-focused fieldset': { borderColor: mainColor },
+                },
+                '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                '& .MuiInputLabel-root.Mui-focused': { color: mainColor },
+                '& .MuiInputBase-input': { color: 'white' },
+                '& .MuiInputBase-input.Mui-disabled': { WebkitTextFillColor: 'rgba(255, 255, 255, 0.5)' }
+              }}
+            />
+            <TextField
+              fullWidth label="Email" variant="outlined" name="email"
+              value={profileData.email} disabled={true} // Email no editable
+              sx={{
+                 mb: editMode ? 2 : 0, // Añadir margen inferior solo en modo edición antes del botón
+                 '& .MuiOutlinedInput-root': {
+                    '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.23)' },
+                 },
+                 '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                 '& .MuiInputBase-input': { color: 'white' },
+                 '& .MuiInputBase-input.Mui-disabled': { WebkitTextFillColor: 'rgba(255, 255, 255, 0.5)' }
+               }}
+            />
+
 
              {/* Botón Guardar Cambios (visible solo en modo edición) */}
              {editMode && (
                <Button
                  variant="contained" fullWidth onClick={handleSaveProfile} disabled={loadingProfile}
-                 sx={{ mt: 2, py: 1.2, backgroundImage: buttonGradient, /* ... (otros estilos como antes) ... */ }}
+                 sx={{
+                   mt: 2, py: 1.2, backgroundImage: buttonGradient, color: 'white',
+                   fontWeight: 'bold', '&:hover': { opacity: 0.9 }
+                 }}
                >
                  {loadingProfile ? <CircularProgress size={24} color="inherit"/> : 'Guardar Nombre'}
                </Button>
@@ -444,22 +509,55 @@ const ProfilePage = () => {
              <TextField
                fullWidth label="Contraseña Actual" variant="outlined" type="password" name="currentPassword"
                value={passwordData.currentPassword} onChange={handlePasswordChange}
-               sx={{ mb: 2, /* ... (estilos internos como antes) ... */ }}
+               sx={{
+                  mb: 2,
+                  '& .MuiOutlinedInput-root': {
+                     '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.23)' },
+                     '&:hover fieldset': { borderColor: mainColor },
+                     '&.Mui-focused fieldset': { borderColor: mainColor },
+                  },
+                  '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                  '& .MuiInputLabel-root.Mui-focused': { color: mainColor },
+                  '& .MuiInputBase-input': { color: 'white' }
+                }}
              />
              <TextField
                fullWidth label="Nueva Contraseña" variant="outlined" type="password" name="newPassword"
                value={passwordData.newPassword} onChange={handlePasswordChange}
-               sx={{ mb: 2, /* ... (estilos internos como antes) ... */ }}
+               sx={{
+                  mb: 2,
+                  '& .MuiOutlinedInput-root': {
+                     '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.23)' },
+                     '&:hover fieldset': { borderColor: mainColor },
+                     '&.Mui-focused fieldset': { borderColor: mainColor },
+                  },
+                  '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                  '& .MuiInputLabel-root.Mui-focused': { color: mainColor },
+                  '& .MuiInputBase-input': { color: 'white' }
+                }}
              />
              <TextField
                fullWidth label="Confirmar Nueva Contraseña" variant="outlined" type="password" name="confirmPassword"
                value={passwordData.confirmPassword} onChange={handlePasswordChange}
-               sx={{ mb: 3, /* ... (estilos internos como antes) ... */ }}
+               sx={{
+                  mb: 3,
+                  '& .MuiOutlinedInput-root': {
+                     '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.23)' },
+                     '&:hover fieldset': { borderColor: mainColor },
+                     '&.Mui-focused fieldset': { borderColor: mainColor },
+                  },
+                  '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                  '& .MuiInputLabel-root.Mui-focused': { color: mainColor },
+                  '& .MuiInputBase-input': { color: 'white' }
+                }}
              />
 
              <Button
                variant="contained" fullWidth onClick={handleChangePassword} disabled={loadingPassword}
-               sx={{ py: 1.2, backgroundImage: buttonGradient, /* ... (otros estilos como antes) ... */ }}
+               sx={{
+                 py: 1.2, backgroundImage: buttonGradient, color: 'white',
+                 fontWeight: 'bold', '&:hover': { opacity: 0.9 }
+               }}
              >
                {loadingPassword ? <CircularProgress size={24} color="inherit"/> : 'Cambiar Contraseña'}
              </Button>

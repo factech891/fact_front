@@ -1,4 +1,4 @@
-// src/layouts/DashboardLayout/Navbar.js (actualizado con NotificationsContext)
+// src/layouts/DashboardLayout/Navbar.js (actualizado con NotificationsContext y soporte para avatar)
 import React, { useState } from 'react';
 import {
   AppBar,
@@ -63,11 +63,11 @@ const Navbar = () => {
     logout();
   };
 
-  // Datos del usuario
+  // Datos del usuario (simplificado, currentUser debería tener la info)
   const user = currentUser || {
-    name: 'Invitado',
+    nombre: 'Invitado', // Usar 'nombre' consistentemente
     email: '',
-    roles: ['Invitado']
+    role: 'Invitado' // Usar 'role' consistentemente
   };
 
   // Función para obtener el título de la página
@@ -87,11 +87,11 @@ const Navbar = () => {
     return 'FactTech';
   };
 
-  // Función para obtener la inicial del usuario
+  // Función para obtener la inicial del usuario (usando optional chaining)
   const getUserInitial = () => {
-    if (currentUser?.firstName) return currentUser.firstName.charAt(0).toUpperCase();
-    if (currentUser?.name) return currentUser.name.charAt(0).toUpperCase();
-    return 'U';
+    if (currentUser?.nombre) return currentUser.nombre.charAt(0).toUpperCase();
+    if (currentUser?.name) return currentUser.name.charAt(0).toUpperCase(); // Fallback si 'nombre' no existe
+    return 'U'; // Fallback general
   }
 
   return (
@@ -146,13 +146,13 @@ const Navbar = () => {
           </Tooltip>
 
           {/* Modal de notificaciones */}
-          <NotificationsModal 
-            open={notificationsModalOpen} 
-            onClose={handleNotificationsClose} 
+          <NotificationsModal
+            open={notificationsModalOpen}
+            onClose={handleNotificationsClose}
           />
 
           {/* SECCIÓN DE USUARIO */}
-          <Tooltip title={user.name || "Cuenta"}>
+          <Tooltip title={user.nombre || "Cuenta"}>
             <IconButton
               onClick={handleClick}
               size="small"
@@ -166,18 +166,31 @@ const Navbar = () => {
                 '&:hover': { backgroundColor: theme.palette.action?.hover || 'rgba(255, 255, 255, 0.08)' }
               }}
             >
+              {/* *** INICIO CÓDIGO REEMPLAZADO *** */}
               <Avatar
+                src={currentUser?.selectedAvatarUrl || ''}
+                alt={currentUser?.nombre || currentUser?.name || 'Usuario'}
                 sx={{
-                  width: 36,
+                  width: 36, // Tamaño revertido a 36
                   height: 36,
                   bgcolor: mainColor,
                   fontWeight: 'bold',
                   color: theme.palette.getContrastText(mainColor),
-                  fontSize: '1rem'
+                  fontSize: '1rem',
+                  overflow: 'hidden', // Controla que la imagen no se salga del círculo
+                  '& img': {
+                    objectFit: 'cover', // Llena el espacio completamente
+                    transform: 'scale(2.3)', // Aplica zoom a la imagen (puedes ajustar este valor)
+                    transformOrigin: 'center', // Centra el zoom
+                    width: '100%',
+                    height: '100%'
+                  }
                 }}
               >
-                {getUserInitial()}
+                {/* Mostrar inicial solo si NO hay URL de avatar */}
+                {!currentUser?.selectedAvatarUrl && getUserInitial()}
               </Avatar>
+              {/* *** FIN CÓDIGO REEMPLAZADO *** */}
             </IconButton>
           </Tooltip>
 
@@ -203,19 +216,47 @@ const Navbar = () => {
             transformOrigin={{ horizontal: 'right', vertical: 'top' }}
             anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
           >
-            {/* Información del usuario */}
-            <Box sx={{ px: 2, pt: 2, pb: 1.5 }}>
-              <Typography variant="subtitle1" fontWeight="600" noWrap>
-                {currentUser?.firstName ? `${currentUser.firstName} ${currentUser.lastName || ''}` : user.name}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" noWrap>
-                {user.email}
-              </Typography>
-              {currentUser?.roles && currentUser.roles.length > 0 && (
-                <Typography variant="caption" display="block" sx={{ mt: 0.5, color: 'primary.main', textTransform: 'capitalize' }}>
-                  {currentUser.roles[0]}
+            {/* Información del usuario con avatar */}
+            <Box sx={{ px: 2, pt: 2, pb: 1.5, display: 'flex', alignItems: 'center' }}>
+              {/* Avatar en el menú (este NO se modificó) */}
+              <Avatar
+                 src={currentUser?.selectedAvatarUrl || ''} // Usar optional chaining
+                 alt={currentUser?.nombre || currentUser?.name || 'Usuario'} // Usar optional chaining
+                sx={{
+                  width: 45,
+                  height: 45,
+                  mr: 2,
+                  bgcolor: mainColor,
+                  fontWeight: 'bold',
+                  color: theme.palette.getContrastText(mainColor),
+                  fontSize: '1.1rem',
+                  // Añadir estilos de imagen aquí también si se desea consistencia
+                  overflow: 'hidden',
+                   '& img': {
+                       objectFit: 'cover',
+                       transform: 'scale(2.3)', // O el zoom deseado para este tamaño
+                       transformOrigin: 'center',
+                       width: '100%',
+                       height: '100%'
+                   }
+                }}
+              >
+                {!currentUser?.selectedAvatarUrl && getUserInitial()}
+              </Avatar>
+              <Box>
+                <Typography variant="subtitle1" fontWeight="600" noWrap>
+                  {currentUser?.nombre || user.nombre}
                 </Typography>
-              )}
+                <Typography variant="body2" color="text.secondary" noWrap>
+                  {user.email}
+                </Typography>
+                {currentUser?.role && (
+                  <Typography variant="caption" display="block" sx={{ mt: 0.5, color: 'primary.main', textTransform: 'capitalize' }}>
+                    {/* Mostrar el rol directamente, la función getUserRoleDisplay no se usa aquí */}
+                    {currentUser.role.replace('_', ' ')}
+                  </Typography>
+                )}
+              </Box>
             </Box>
             <Divider sx={{ borderColor: theme.palette.divider || 'rgba(0, 0, 0, 0.08)' }} />
             {/* Opción Mi Perfil */}
