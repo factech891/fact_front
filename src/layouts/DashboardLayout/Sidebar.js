@@ -1,5 +1,5 @@
-// src/layouts/DashboardLayout/Sidebar.js (modificado para admin link y Companies link)
-import React from 'react';
+// src/layouts/DashboardLayout/Sidebar.js
+import React, { useState } from 'react';
 import { useLocation, Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -11,23 +11,30 @@ import {
   ListItemText,
   Typography,
   Avatar,
-  Tooltip,
-  Chip,
-  Divider // Importar Divider si se usa
+  Tooltip, // Tooltip ya estaba importado
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-// Importar iconos específicos si se usan
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'; // Icono para Panel Admin
-import BusinessIcon from '@mui/icons-material/Business'; // Importar icono para Compañías
+// Iconos
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import BusinessIcon from '@mui/icons-material/Business';
+import SupportIcon from '@mui/icons-material/Support';
+import LogoutIcon from '@mui/icons-material/Logout';
 
 import { useCompany } from '../../hooks/useCompany';
-import { useAuth } from '../../context/AuthContext'; // Importamos el contexto de autenticación
+import { useAuth } from '../../context/AuthContext';
 
 const Sidebar = () => {
   const location = useLocation();
   const theme = useTheme();
   const navigate = useNavigate();
-  const [isHovering, setIsHovering] = React.useState(false);
+  const [isHovering, setIsHovering] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
 
   // Obtenemos los datos de la empresa y el estado de carga
   const { company, loading: companyLoading } = useCompany();
@@ -57,7 +64,12 @@ const Sidebar = () => {
   // Función para manejar el cierre de sesión
   const handleLogout = () => {
     logout();
-    // navigate('/auth/login'); // Redirigir al login
+  };
+
+  // Función para manejar click en Soporte
+  const handleSupportClick = (e) => {
+    e.preventDefault();
+    setShowSupportModal(true);
   };
 
   // Configuración de los items del menú
@@ -67,60 +79,55 @@ const Sidebar = () => {
       text: 'Dashboard',
       icon: ( <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span role="img" aria-label="home" style={{ fontSize: '20px' }}>🏠</span></Box> ),
       path: '/',
-      hidden: currentUser?.role === 'facturador' || currentUser?.role === PLATFORM_ADMIN_ROLE // Oculto para facturador y platform_admin
+      hidden: currentUser?.role === 'facturador' || currentUser?.role === PLATFORM_ADMIN_ROLE
     },
-    // --- Items del Panel de Administración ---
     {
       id: 'platformAdmin',
       text: 'Panel Admin',
-      icon: <AdminPanelSettingsIcon />, // Usar un icono adecuado
-      path: '/platform-admin', // Ruta base del panel de admin (dashboard)
-      hidden: currentUser?.role !== PLATFORM_ADMIN_ROLE // Oculto si NO es platform_admin
+      icon: <AdminPanelSettingsIcon />,
+      path: '/platform-admin',
+      hidden: currentUser?.role !== PLATFORM_ADMIN_ROLE
     },
-    // --- Inicio Modificación: Añadir item de Compañías ---
     {
-        id: 'platformAdminCompanies',
-        text: 'Compañías',
-        icon: <BusinessIcon />, // O cualquier otro icono adecuado
-        path: '/platform-admin/companies',
-        hidden: currentUser?.role !== PLATFORM_ADMIN_ROLE
+      id: 'platformAdminCompanies',
+      text: 'Compañías',
+      icon: <BusinessIcon />,
+      path: '/platform-admin/companies',
+      hidden: currentUser?.role !== PLATFORM_ADMIN_ROLE
     },
-    // --- Fin Modificación: Añadir item de Compañías ---
-    // --- Fin de items del Panel de Administración ---
     {
       id: 'invoices',
       text: 'Facturas',
       icon: ( <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span role="img" aria-label="invoice" style={{ fontSize: '20px' }}>📄</span></Box> ),
       path: '/invoices',
-      hidden: currentUser?.role === PLATFORM_ADMIN_ROLE // Oculto para platform_admin
+      hidden: currentUser?.role === PLATFORM_ADMIN_ROLE
     },
     {
       id: 'documents',
       text: 'Cotizaciones',
       icon: ( <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span role="img" aria-label="quotes" style={{ fontSize: '20px' }}>📋</span></Box> ),
       path: '/documents',
-       hidden: currentUser?.role === PLATFORM_ADMIN_ROLE // Oculto para platform_admin
+      hidden: currentUser?.role === PLATFORM_ADMIN_ROLE
     },
     {
       id: 'clients',
       text: 'Clientes',
       icon: ( <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span role="img" aria-label="clients" style={{ fontSize: '20px' }}>👥</span></Box> ),
       path: '/clients',
-       hidden: currentUser?.role === PLATFORM_ADMIN_ROLE // Oculto para platform_admin
+      hidden: currentUser?.role === PLATFORM_ADMIN_ROLE
     },
     {
       id: 'products',
       text: 'Productos',
       icon: ( <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span role="img" aria-label="products" style={{ fontSize: '20px' }}>📦</span></Box> ),
       path: '/products',
-       hidden: currentUser?.role === PLATFORM_ADMIN_ROLE // Oculto para platform_admin
+      hidden: currentUser?.role === PLATFORM_ADMIN_ROLE
     },
     {
       id: 'users',
       text: 'Usuarios',
       icon: ( <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span role="img" aria-label="users" style={{ fontSize: '20px' }}>👤</span></Box> ),
       path: '/users',
-      // Oculto si no es admin o gerente Y TAMBIÉN si es platform_admin
       hidden: !['admin', 'gerente'].includes(currentUser?.role) || currentUser?.role === PLATFORM_ADMIN_ROLE
     },
     {
@@ -128,23 +135,19 @@ const Sidebar = () => {
       text: 'Configuración',
       icon: ( <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span role="img" aria-label="settings" style={{ fontSize: '20px' }}>⚙️</span></Box> ),
       path: '/settings',
-       // Oculto si no es admin o gerente Y TAMBIÉN si es platform_admin
       hidden: !['admin', 'gerente'].includes(currentUser?.role) || currentUser?.role === PLATFORM_ADMIN_ROLE
     },
   ];
 
-  // Iconos
-  const aiAssistantIcon = ( <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span role="img" aria-label="ai-assistant" style={{ fontSize: '20px' }}>🤖</span></Box> );
+  // Iconos para el footer
   const supportIcon = ( <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span role="img" aria-label="support" style={{ fontSize: '20px' }}>❓</span></Box> );
   const logoutIcon = ( <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span role="img" aria-label="logout" style={{ fontSize: '20px' }}>🚪</span></Box> );
 
   // Función para obtener iniciales
   const getCompanyInitials = () => {
-    // Si es platform_admin, mostrar iniciales fijas o un icono
     if (currentUser?.role === PLATFORM_ADMIN_ROLE) {
-        return 'PA'; // O cualquier otra cosa que identifique al admin de plataforma
+        return 'PA';
     }
-    // Lógica existente para empresas normales
     if (!companyName || companyLoading) return "...";
     const words = companyName.split(' ');
     if (words.length > 1) {
@@ -157,40 +160,60 @@ const Sidebar = () => {
     return '??';
   };
 
-   // Lógica para el nombre y RIF/Identificador en la cabecera
-   const getHeaderText = () => {
-       if (currentUser?.role === PLATFORM_ADMIN_ROLE) {
-           return {
-               name: "Admin Plataforma", // O currentUser?.nombre si prefieres
-               identifier: "Superusuario"
-           };
-       }
-       // Lógica existente para empresas
-       return {
-           name: companyLoading ? 'Cargando...' : companyName,
-           identifier: companyLoading ? '' : (company?.rif ? `RIF: ${company.rif}` : 'Sistema de Facturación')
-       };
-   };
-   const headerInfo = getHeaderText();
+  // Lógica para el nombre y RIF/Identificador en la cabecera
+  const getHeaderText = () => {
+     if (currentUser?.role === PLATFORM_ADMIN_ROLE) {
+         return {
+             name: "Admin Plataforma",
+             identifier: "Superusuario"
+         };
+     }
+     // El identificador se usará en el Tooltip
+     return {
+         name: companyLoading ? 'Cargando...' : companyName,
+         identifier: companyLoading ? '' : (company?.rif ? `RIF: ${company.rif}` : 'Sistema de Facturación')
+     };
+  };
+  const headerInfo = getHeaderText();
 
-
-  // isActive (modificado para incluir la ruta del admin y companies)
+  // isActive
   const isActive = (path) => {
     if (!path) return false;
-    // Coincidencia exacta para la ruta raíz '/'
     if (path === '/') return location.pathname === '/';
-    // Coincidencia para platform-admin y sus subrutas (excepto la raíz)
-    // Esto asegura que '/platform-admin/companies' marque 'companies' como activo y no el dashboard '/platform-admin'
     if (path.startsWith('/platform-admin/')) return location.pathname === path || location.pathname.startsWith(path + '/');
-    // Coincidencia exacta para el dashboard de platform-admin
     if (path === '/platform-admin') return location.pathname === '/platform-admin';
-    // Coincidencia para otras rutas y sus subrutas
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 
+  // Colores y gradientes mejorados
+  const mainColor = '#4facfe';
+  const adminColor = '#9c27b0';
 
-  const mainColor = '#2196F3'; // Color principal
-  const adminColor = '#9c27b0'; // Color distintivo para el admin (morado)
+  // Gradiente mejorado para el fondo
+  const sidebarGradient = 'linear-gradient(180deg, #f8f9ff 0%, #eef2f7 100%)';
+
+  // Patrón de fondo sutil
+  const sidebarPattern = {
+    backgroundImage: `${sidebarGradient}, radial-gradient(circle at 25px 25px, rgba(200, 220, 240, 0.15) 2px, transparent 0)`,
+    backgroundSize: 'cover, 15px 15px'
+  };
+
+  const headerGradient = currentUser?.role === PLATFORM_ADMIN_ROLE
+    ? 'linear-gradient(135deg, #9c27b0 0%, #ab47bc 50%, #ba68c8 100%)'
+    : 'linear-gradient(135deg, #4facfe 0%, #00f2fe 50%, #00c6fb 100%)';
+
+  const activeItemGradient = (isAdmin) => isAdmin
+    ? 'linear-gradient(45deg, rgba(156, 39, 176, 0.1) 0%, rgba(156, 39, 176, 0.18) 100%)'
+    : 'linear-gradient(45deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.18) 100%)';
+
+  // Definir la animación de rebote
+  const bounceEffect = {
+    '@keyframes bounce': {
+      '0%': { transform: 'translateY(0)' },
+      '50%': { transform: 'translateY(-5px)' },
+      '100%': { transform: 'translateY(0)' }
+    }
+  };
 
   const drawerStyles = {
     width: open ? expandedWidth : collapsedWidth,
@@ -199,185 +222,400 @@ const Sidebar = () => {
       duration: open ? theme.transitions.duration.enteringScreen : theme.transitions.duration.leavingScreen,
     }),
     overflowX: 'hidden',
-    bgcolor: '#ffffff', // Fondo blanco
-    color: '#333333', // Color de texto principal
+    ...sidebarPattern,
+    color: '#333333',
     boxSizing: 'border-box',
     display: 'flex',
     flexDirection: 'column',
     height: '100%',
-    borderRight: '1px solid #e0e0e0', // Borde derecho sutil
+    borderRight: '1px solid rgba(224, 224, 224, 0.5)',
+    boxShadow: '0 0 20px rgba(0,0,0,0.05)',
   };
 
   // Filtrar elementos del menú que no deben ocultarse
   const filteredMenuItems = menuItems.filter(item => !item.hidden);
 
   return (
-    <Drawer
-      variant="permanent"
-      sx={{
-        width: open ? expandedWidth : collapsedWidth,
-        flexShrink: 0,
-        whiteSpace: 'nowrap',
-        transition: theme.transitions.create('width', {
-             easing: theme.transitions.easing.sharp,
-             duration: open ? theme.transitions.duration.enteringScreen : theme.transitions.duration.leavingScreen,
-        }),
-        '& .MuiDrawer-paper': drawerStyles,
-      }}
-      PaperProps={{
-        onMouseEnter: handleMouseEnter,
-        onMouseLeave: handleMouseLeave,
-      }}
-    >
-      {/* Cabecera del Sidebar (modificada para admin) */}
-       <Box sx={{
-           display: 'flex',
-           alignItems: 'center',
-           justifyContent: open ? 'flex-start' : 'center',
-           padding: theme.spacing(0, open ? 2 : 1),
-           borderBottom: '1px solid #e0e0e0',
-           height: '72px', // Altura fija
-           overflow: 'hidden'
-        }}>
-         {/* Avatar: Mostrar logo de empresa o icono/iniciales de admin */}
-         {currentUser?.role === PLATFORM_ADMIN_ROLE ? (
-             <Avatar sx={{ bgcolor: adminColor, color: 'white', width: 40, height: 40, mr: open ? 1.5 : 0, transition: theme.transitions.create(['margin', 'width', 'height']) }}>
-                 <AdminPanelSettingsIcon />
-             </Avatar>
-         ) : companyLogoUrl ? (
-           <Avatar variant="rounded" src={companyLogoUrl} alt={`${companyName} logo`} sx={{ width: 40, height: 40, mr: open ? 1.5 : 0, transition: theme.transitions.create(['margin', 'width', 'height']), bgcolor: 'transparent' }} />
-         ) : (
-           <Avatar sx={{ bgcolor: mainColor, color: 'white', width: 40, height: 40, mr: open ? 1.5 : 0, transition: theme.transitions.create(['margin', 'width', 'height']) }}>
-             {companyLoading ? '...' : getCompanyInitials()}
-           </Avatar>
-         )}
-         {/* Nombre y RIF/Identificador (visible si expandido) */}
-         {open && (
-           <Box sx={{ overflow: 'hidden', flexGrow: 1, ml: currentUser?.role === PLATFORM_ADMIN_ROLE ? 0 : 0 }}>
-             <Typography variant="subtitle1" fontWeight="bold" color="#333333" noWrap>
-               {headerInfo.name}
-             </Typography>
-             <Typography variant="caption" color="#666666" noWrap>
-               {headerInfo.identifier}
-             </Typography>
-           </Box>
-         )}
-       </Box>
+    <>
+      <style>
+        {`
+          @keyframes bounce {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0); }
+          }
+        `}
+      </style>
+      <Drawer
+        variant="permanent"
+        sx={{
+          width: open ? expandedWidth : collapsedWidth,
+          flexShrink: 0,
+          whiteSpace: 'nowrap',
+          transition: theme.transitions.create('width', {
+               easing: theme.transitions.easing.sharp,
+               duration: open ? theme.transitions.duration.enteringScreen : theme.transitions.duration.leavingScreen,
+          }),
+          '& .MuiDrawer-paper': drawerStyles,
+        }}
+        PaperProps={{
+          onMouseEnter: handleMouseEnter,
+          onMouseLeave: handleMouseLeave,
+        }}
+      >
+        {/* Cabecera mejorada del Sidebar */}
+        <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: open ? 'flex-start' : 'center',
+            padding: theme.spacing(0, open ? 2 : 1),
+            height: '90px',
+            overflow: 'hidden',
+            background: headerGradient,
+            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+            mb: 1
+          }}>
+          {/* Avatar con logo mejorado - sin bordes blancos */}
+          {currentUser?.role === PLATFORM_ADMIN_ROLE ? (
+            <Avatar sx={{
+              bgcolor: 'white',
+              color: adminColor,
+              width: 52,
+              height: 52,
+              mr: open ? 1.5 : 0,
+              transition: theme.transitions.create(['margin', 'width', 'height']),
+              boxShadow: '0 3px 10px rgba(0,0,0,0.2)',
+            }}>
+              <AdminPanelSettingsIcon fontSize="medium" />
+            </Avatar>
+          ) : companyLogoUrl ? (
+            <Avatar
+              variant="rounded"
+              src={companyLogoUrl}
+              alt={`${companyName} logo`}
+              sx={{
+                width: 52,
+                height: 52,
+                mr: open ? 1.5 : 0,
+                transition: theme.transitions.create(['margin', 'width', 'height']),
+                bgcolor: 'transparent',
+                p: 0, // Eliminar padding
+                boxShadow: '0 3px 10px rgba(0,0,0,0.2)',
+                borderRadius: '8px',
+                '& img': {
+                  objectFit: 'contain', // Ajustar el logo correctamente
+                  width: '100%',
+                  height: '100%'
+                }
+              }}
+            />
+          ) : (
+            <Avatar sx={{
+              bgcolor: 'white',
+              color: mainColor,
+              width: 52,
+              height: 52,
+              mr: open ? 1.5 : 0,
+              transition: theme.transitions.create(['margin', 'width', 'height']),
+              boxShadow: '0 3px 10px rgba(0,0,0,0.2)',
+              fontWeight: 'bold'
+            }}>
+              {companyLoading ? '...' : getCompanyInitials()}
+            </Avatar>
+          )}
 
-      {/* Menú principal */}
-      <List sx={{ px: open ? 1 : 1.5, py: 2, flexGrow: 1 }}>
-        {filteredMenuItems.map((item) => {
-          const active = isActive(item.path);
-          // Determinar color activo basado en si es admin o no
-          const itemColor = item.id.startsWith('platformAdmin') ? adminColor : mainColor;
-          return (
-            <ListItem key={item.id} disablePadding sx={{ display: 'block', position: 'relative', mb: 0.5 }} >
-              {/* Indicador activo */}
-              {active && ( <Box sx={{ position: 'absolute', left: 0, top: '15%', width: 4, height: '70%', backgroundColor: itemColor, borderRadius: '0 4px 4px 0', opacity: open ? 1 : 0, transition: theme.transitions.create('opacity') }} /> )}
-              <ListItemButton
+          {/* Nombre con RIF en tooltip (visible si expandido) */}
+          {open && (
+            <Box sx={{ overflow: 'hidden', flexGrow: 1, ml: 1 }}>
+              <Tooltip
+                title={headerInfo.identifier || ''} // Muestra el identificador en el tooltip
+                placement="bottom-start"
+                arrow
+                PopperProps={{
+                  modifiers: [
+                    {
+                      name: 'offset',
+                      options: {
+                        offset: [0, 8], // Ajusta el offset si es necesario
+                      },
+                    },
+                  ],
+                }}
+              >
+                {/* El Tooltip envuelve la tipografía */}
+                <Typography
+                  variant="subtitle1"
+                  fontWeight="bold"
+                  color="white"
+                  noWrap
+                  sx={{
+                    cursor: headerInfo.identifier ? 'help' : 'default', // Cambia cursor solo si hay identificador
+                    display: 'inline-block', // Necesario para que el tooltip funcione bien con noWrap
+                    width: '100%' // Asegura que ocupe el espacio disponible
+                 }}
+                >
+                  {headerInfo.name}
+                </Typography>
+              </Tooltip>
+            </Box>
+          )}
+        </Box>
+
+        {/* Menú principal */}
+        <List sx={{ px: open ? 1 : 1.5, py: 2, flexGrow: 1 }}>
+          {filteredMenuItems.map((item) => {
+            const active = isActive(item.path);
+            const isAdminItem = item.id.startsWith('platformAdmin');
+            const itemColor = isAdminItem ? adminColor : mainColor;
+            return (
+              <ListItem key={item.id} disablePadding sx={{ display: 'block', position: 'relative', mb: 0.7 }} >
+                {/* Indicador activo */}
+                {active && (
+                  <Box sx={{
+                    position: 'absolute',
+                    left: 0,
+                    top: '15%',
+                    width: 4,
+                    height: '70%',
+                    backgroundColor: itemColor,
+                    borderRadius: '0 4px 4px 0',
+                    opacity: open ? 1 : 0,
+                    boxShadow: `0 0 8px ${itemColor}80`,
+                    transition: theme.transitions.create('opacity')
+                  }} />
+                )}
+                <ListItemButton
                   component={RouterLink}
                   to={item.path || '#'}
                   sx={{
-                      minHeight: 48,
-                      justifyContent: 'center',
-                      px: 2,
-                      py: 1,
-                      borderRadius: 1,
-                      backgroundColor: active ? (item.id.startsWith('platformAdmin') ? 'rgba(156, 39, 176, 0.08)' : 'rgba(33, 150, 243, 0.08)') : 'transparent',
-                      '&:hover': {
-                          backgroundColor: item.id.startsWith('platformAdmin') ? 'rgba(156, 39, 176, 0.12)' : 'rgba(33, 150, 243, 0.12)',
-                      },
+                    minHeight: 48,
+                    justifyContent: 'center',
+                    px: 2,
+                    py: 1,
+                    borderRadius: 1.5,
+                    background: active ? activeItemGradient(isAdminItem) : 'transparent',
+                    boxShadow: active ? '0 2px 8px rgba(0,0,0,0.05)' : 'none',
+                    '&:hover': {
+                      background: isAdminItem
+                        ? 'linear-gradient(45deg, rgba(156, 39, 176, 0.15) 0%, rgba(156, 39, 176, 0.23) 100%)'
+                        : 'linear-gradient(45deg, rgba(79, 172, 254, 0.15) 0%, rgba(0, 242, 254, 0.23) 100%)',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                      transform: 'translateY(-1px)',
+                      transition: 'transform 0.2s',
+                      '& .icon-bounce': {
+                        animation: 'bounce 0.4s ease',
+                      }
+                    },
+                    transition: 'all 0.2s ease-in-out',
                   }}
-              >
-                  {/* Icono con Tooltip si está cerrado */}
+                >
+                  {/* Icono con Tooltip si está cerrado y efecto de rebote */}
                   {!open ? (
-                      <Tooltip title={item.text} placement="right">
-                          <ListItemIcon sx={{ minWidth: 0, justifyContent: 'center', color: active ? itemColor : 'inherit' }}>
-                              {item.icon}
-                          </ListItemIcon>
-                      </Tooltip>
-                  ) : (
-                      <ListItemIcon sx={{ minWidth: 0, mr: 2, justifyContent: 'center', transition: theme.transitions.create('margin'), color: active ? itemColor : 'inherit' }}>
-                          {item.icon}
+                    <Tooltip title={item.text} placement="right">
+                      <ListItemIcon sx={{
+                        minWidth: 0,
+                        justifyContent: 'center',
+                        color: active ? itemColor : 'inherit',
+                        fontSize: '1.1rem',
+                        '&:hover': {
+                          animation: 'bounce 0.4s ease',
+                        }
+                      }}
+                      className="icon-bounce"
+                      >
+                        {item.icon}
                       </ListItemIcon>
+                    </Tooltip>
+                  ) : (
+                    <ListItemIcon sx={{
+                      minWidth: 0,
+                      mr: 2,
+                      justifyContent: 'center',
+                      transition: theme.transitions.create('margin'),
+                      color: active ? itemColor : 'inherit',
+                      fontSize: '1.1rem',
+                      '&:hover': {
+                        animation: 'bounce 0.4s ease',
+                      }
+                    }}
+                    className="icon-bounce"
+                    >
+                      {item.icon}
+                    </ListItemIcon>
                   )}
                   {/* Texto del menú */}
                   <ListItemText
-                      primary={item.text}
-                      sx={{
-                          opacity: open ? 1 : 0,
-                          transition: theme.transitions.create('opacity', { duration: theme.transitions.duration.leavingScreen }),
-                          '& .MuiTypography-root': {
-                              fontWeight: active ? '600' : '500',
-                              color: active ? itemColor : '#333333',
-                              whiteSpace: 'nowrap',
-                          }
-                      }}
+                    primary={item.text}
+                    sx={{
+                      opacity: open ? 1 : 0,
+                      transition: theme.transitions.create('opacity', { duration: theme.transitions.duration.leavingScreen }),
+                      '& .MuiTypography-root': {
+                        fontWeight: active ? '600' : '500',
+                        color: active ? itemColor : '#333333',
+                        whiteSpace: 'nowrap',
+                      }
+                    }}
                   />
-              </ListItemButton>
-            </ListItem>
-          );
-        })}
-      </List>
-
-      {/* Asistente IA (oculto para platform_admin) */}
-      {currentUser?.role !== PLATFORM_ADMIN_ROLE && (
-          <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
-               {open ? (
-                  <Box sx={{ mx: 2, overflow: 'hidden', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid rgba(33, 150, 243, 0.1)', width: '100%' }} >
-                    <Box sx={{ bgcolor: mainColor, p: 1.5, display: 'flex', alignItems: 'center', gap: 1 }} >
-                      <Box sx={{ width: 32, height: 32, bgcolor: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} > <span role="img" aria-label="robot" style={{ fontSize: '18px' }}>🤖</span> </Box>
-                      <Typography variant="subtitle2" fontWeight="medium" color="white" noWrap> Asistente IA </Typography>
-                    </Box>
-                    <Box sx={{ bgcolor: 'white', p: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }} >
-                      <Chip label="Próximamente" size="small" sx={{ bgcolor: 'rgba(33, 150, 243, 0.08)', color: mainColor, fontWeight: 'medium', border: '1px solid rgba(33, 150, 243, 0.2)' }} />
-                    </Box>
-                  </Box>
-               ) : (
-                 <Tooltip title="Asistente IA - Próximamente" placement="right">
-                   <Avatar sx={{ width: 42, height: 42, bgcolor: mainColor, color: 'white', fontSize: 18, boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)' }} > 🤖 </Avatar>
-                 </Tooltip>
-               )}
-          </Box>
-      )}
-
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
+        </List>
 
         {/* Footer del sidebar */}
-        <Box sx={{ px: open ? 2 : 1, pb: 2, pt: 1, borderTop: '1px solid #e0e0e0' }}>
-          {/* Soporte (oculto para platform_admin) */}
+        <Box sx={{
+          px: open ? 2 : 1,
+          pb: 2,
+          pt: 1,
+          borderTop: '1px solid rgba(224, 224, 224, 0.5)',
+          background: 'linear-gradient(0deg, rgba(230,240,250,0.5) 0%, rgba(255,255,255,0) 100%)',
+        }}>
+          {/* Soporte (ahora con modal) */}
           {currentUser?.role !== PLATFORM_ADMIN_ROLE && (
-              <ListItemButton
-                sx={{ borderRadius: 1, mb: 1, justifyContent: 'center', minHeight: 42, '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' } }}
-                component={RouterLink}
-                to="/support" // Ajusta la ruta si es necesario
-              >
-                {!open ? (
-                  <Tooltip title="Soporte" placement="right">
-                    <ListItemIcon sx={{ minWidth: 0 }}> {supportIcon} </ListItemIcon>
-                  </Tooltip>
-                ) : (
-                  <ListItemIcon sx={{ minWidth: 0, mr: 2 }}> {supportIcon} </ListItemIcon>
-                )}
-                <ListItemText primary="Soporte" sx={{ opacity: open ? 1 : 0, transition: theme.transitions.create('opacity', { duration: theme.transitions.duration.leavingScreen }), '& .MuiTypography-root': { color: '#666666', whiteSpace: 'nowrap' } }} />
-              </ListItemButton>
+            <ListItemButton
+              sx={{
+                borderRadius: 1.5,
+                mb: 1,
+                justifyContent: 'center',
+                minHeight: 42,
+                '&:hover': {
+                  backgroundColor: 'rgba(79, 172, 254, 0.08)',
+                  transform: 'translateY(-1px)',
+                  transition: 'transform 0.2s',
+                  '& .icon-bounce': {
+                    animation: 'bounce 0.4s ease',
+                  }
+                }
+              }}
+              onClick={handleSupportClick}
+            >
+              {!open ? (
+                <Tooltip title="Soporte" placement="right">
+                  <ListItemIcon sx={{ minWidth: 0 }} className="icon-bounce"> {supportIcon} </ListItemIcon>
+                </Tooltip>
+              ) : (
+                <ListItemIcon sx={{ minWidth: 0, mr: 2 }} className="icon-bounce"> {supportIcon} </ListItemIcon>
+              )}
+              <ListItemText
+                primary="Soporte"
+                sx={{
+                  opacity: open ? 1 : 0,
+                  transition: theme.transitions.create('opacity'),
+                  '& .MuiTypography-root': {
+                    color: '#666666',
+                    whiteSpace: 'nowrap'
+                  }
+                }}
+              />
+            </ListItemButton>
           )}
           {/* Cerrar Sesión */}
           <ListItemButton
             onClick={handleLogout}
-            sx={{ borderRadius: 1, justifyContent: 'center', minHeight: 42, '&:hover': { backgroundColor: 'rgba(211, 47, 47, 0.08)' } }}
+            sx={{
+              borderRadius: 1.5,
+              justifyContent: 'center',
+              minHeight: 42,
+              '&:hover': {
+                backgroundColor: 'rgba(211, 47, 47, 0.08)',
+                transform: 'translateY(-1px)',
+                transition: 'transform 0.2s',
+                '& .icon-bounce': {
+                  animation: 'bounce 0.4s ease',
+                }
+              }
+            }}
           >
             {!open ? (
               <Tooltip title="Cerrar sesión" placement="right">
-                <ListItemIcon sx={{ minWidth: 0, color: '#d32f2f' }}> {logoutIcon} </ListItemIcon>
+                <ListItemIcon sx={{ minWidth: 0, color: '#d32f2f' }} className="icon-bounce"> {logoutIcon} </ListItemIcon>
               </Tooltip>
             ) : (
-              <ListItemIcon sx={{ minWidth: 0, mr: 2, color: '#d32f2f' }}> {logoutIcon} </ListItemIcon>
+              <ListItemIcon sx={{ minWidth: 0, mr: 2, color: '#d32f2f' }} className="icon-bounce"> {logoutIcon} </ListItemIcon>
             )}
-            <ListItemText primary="Cerrar sesión" sx={{ opacity: open ? 1 : 0, transition: theme.transitions.create('opacity', { duration: theme.transitions.duration.leavingScreen }), '& .MuiTypography-root': { color: '#d32f2f', whiteSpace: 'nowrap', fontWeight: '500' } }} />
+            <ListItemText
+              primary="Cerrar sesión"
+              sx={{
+                opacity: open ? 1 : 0,
+                transition: theme.transitions.create('opacity'),
+                '& .MuiTypography-root': {
+                  color: '#d32f2f',
+                  whiteSpace: 'nowrap',
+                  fontWeight: '500'
+                }
+              }}
+            />
           </ListItemButton>
         </Box>
       </Drawer>
-    );
-  };
 
-  export default Sidebar;
+      {/* Modal de Soporte */}
+      <Dialog
+        open={showSupportModal}
+        onClose={() => setShowSupportModal(false)}
+        aria-labelledby="support-dialog-title"
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle id="support-dialog-title" sx={{
+          background: headerGradient,
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1
+        }}>
+          <SupportIcon /> Soporte Técnico
+        </DialogTitle>
+        <DialogContent sx={{ py: 3 }}>
+          <DialogContentText>
+            Para obtener asistencia técnica, contáctanos a través de cualquiera de los siguientes medios:
+          </DialogContentText>
+          <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', bgcolor: 'rgba(79, 172, 254, 0.1)' }}>
+                <span role="img" aria-label="email" style={{ fontSize: '18px' }}>✉️</span>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" fontWeight="medium">Email de soporte:</Typography>
+                <Typography variant="body2">soporte@facttech.com</Typography>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', bgcolor: 'rgba(79, 172, 254, 0.1)' }}>
+                <span role="img" aria-label="phone" style={{ fontSize: '18px' }}>📞</span>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" fontWeight="medium">Teléfono:</Typography>
+                <Typography variant="body2">+58 412-123-4567</Typography>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', bgcolor: 'rgba(79, 172, 254, 0.1)' }}>
+                <span role="img" aria-label="time" style={{ fontSize: '18px' }}>🕓</span>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" fontWeight="medium">Horario de atención:</Typography>
+                <Typography variant="body2">Lunes a Viernes de 8:00 AM a 5:00 PM</Typography>
+              </Box>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setShowSupportModal(false)}
+            sx={{
+              color: mainColor,
+              '&:hover': {
+                backgroundColor: 'rgba(79, 172, 254, 0.08)',
+              }
+            }}
+          >
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+};
+
+export default Sidebar;
