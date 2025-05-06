@@ -1,16 +1,9 @@
-import React from 'react';
 // src/hooks/useDashboard.js (con Diagnósticos)
 import { useState, useEffect, useMemo } from 'react';
 import { useInvoices } from './useInvoices'; // Asegúrate que la ruta sea correcta
 import { useClients } from './useClients';   // Asegúrate que la ruta sea correcta
 import { useProducts } from './useProducts'; // Asegúrate que la ruta sea correcta
 import exchangeRateApi from '../services/exchangeRateApi'; // Asegúrate que la ruta sea correcta
-
-// Función auxiliar para truncar objetos grandes (sin cambios)
-function truncateObject(obj, maxLength = 100) {
-  const str = JSON.stringify(obj, null, 2);
-  return str.length > maxLength ? str.substring(0, maxLength) + '...' : str;
-}
 
 // Función para normalizar IDs (sin cambios)
 function normalizeId(id) {
@@ -97,7 +90,7 @@ export const useDashboard = (selectedRange = 'thisMonth', customDateRange = null
   // Obtener datos crudos de los hooks correspondientes
   const { invoices, loading: invoicesLoading, error: invoicesError } = useInvoices(); // Añadir error
   const { clients, loading: clientsLoading, error: clientsError } = useClients();   // Añadir error
-  const { products, loading: productsLoading } = useProducts(); // No necesitamos productos aquí directamente
+  const { products: _products, loading: _productsLoading } = useProducts(); // Renombrado con guión bajo
 
   const [exchangeRate, setExchangeRate] = useState(null); // Inicializar a null
   const [loadingRate, setLoadingRate] = useState(true);
@@ -326,9 +319,6 @@ export const useDashboard = (selectedRange = 'thisMonth', customDateRange = null
       selectedRange // Rango de tiempo seleccionado
   ]);
 
-  // ... resto de los useMemo para gráficos (facturasPorMes, facturasPorDia, etc.) ...
-  // Asegúrate de que estos también manejen 'loading', 'error' y 'exchangeRate' inválido si es necesario
-
   // Procesar datos para el gráfico de facturación mensual
   const facturasPorMes = useMemo(() => {
     if (loading || error || typeof exchangeRate !== 'number' || isNaN(exchangeRate) || !filteredInvoices.length) return [];
@@ -358,6 +348,67 @@ export const useDashboard = (selectedRange = 'thisMonth', customDateRange = null
     }));
   }, [filteredInvoices, loading, error, exchangeRate]);
 
+  // Añadir facturasPorMesHistorico
+  const facturasPorMesHistorico = useMemo(() => {
+    if (loading || error || typeof exchangeRate !== 'number' || isNaN(exchangeRate) || !Array.isArray(invoices)) return [];
+    
+    // Obtener fecha 6 meses atrás para mostrar histórico
+    const hoy = new Date();
+    const seisMesesAtras = new Date(hoy);
+    seisMesesAtras.setMonth(hoy.getMonth() - 6);
+    seisMesesAtras.setDate(1); // Primer día del mes
+    seisMesesAtras.setHours(0, 0, 0, 0);
+    
+    // Filtrar facturas de los últimos 6 meses (no usar filteredInvoices sino invoices completo)
+    const facturasHistoricas = invoices.filter(invoice => {
+      const fechaStr = invoice.fecha || invoice.date;
+      if (!fechaStr) return false;
+      const fecha = new Date(fechaStr);
+      return !isNaN(fecha.getTime()) && fecha >= seisMesesAtras;
+    });
+    
+    // Agrupar por mes (similar a tu código existente de facturasPorMes)
+    const mesesMap = {};
+    facturasHistoricas.forEach(invoice => {
+      const fechaStr = invoice.fecha || invoice.date;
+      if (!fechaStr) return;
+      const fecha = new Date(fechaStr);
+      if (isNaN(fecha.getTime())) return;
+      
+      // Crear clave para el mes en formato "MMM YYYY" (ej: "ene 2025")
+      const mes = fecha.toLocaleString('es', { month: 'short' });
+      const año = fecha.getFullYear();
+      const mesKey = `${mes} ${año}`;
+      
+      const moneda = invoice.moneda || 'USD';
+      const total = typeof invoice.total === 'number' && !isNaN(invoice.total) ? invoice.total : 0;
+      
+      if (!mesesMap[mesKey]) {
+        mesesMap[mesKey] = { 
+          name: mes, // Usar solo el nombre del mes para la visualización
+          periodo: mesKey, // Guardar el período completo (mes año)
+          fecha: fecha, // Guardar fecha para ordenar
+          USD: 0, 
+          VES: 0, 
+          total: 0 
+        };
+      }
+      
+      mesesMap[mesKey][moneda] = (mesesMap[mesKey][moneda] || 0) + total;
+      mesesMap[mesKey].total += convertCurrency(total, moneda, 'USD', exchangeRate);
+    });
+    
+    // Convertir a array y ordenar por fecha
+    return Object.values(mesesMap)
+      .sort((a, b) => a.fecha - b.fecha)
+      .map(item => ({
+        name: item.name,
+        periodo: item.periodo,
+        USD: Math.round(item.USD * 100) / 100,
+        VES: Math.round(item.VES * 100) / 100,
+        total: Math.round(item.total * 100) / 100
+      }));
+  }, [invoices, loading, error, exchangeRate]);
 
   // Procesar datos para el gráfico de facturación diaria
   const facturasPorDia = useMemo(() => {
@@ -547,6 +598,7 @@ export const useDashboard = (selectedRange = 'thisMonth', customDateRange = null
     error, // Devolver el estado de error combinado
     kpis,
     facturasPorMes,
+    facturasPorMesHistorico,
     facturasPorDia,
     facturasPorTipo,
     facturasPorAnio,

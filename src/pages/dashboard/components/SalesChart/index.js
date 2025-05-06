@@ -55,7 +55,8 @@ const SalesChart = ({ data = [], title = "Facturación Mensual" }) => {
           }}
         >
           <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5, borderBottom: '1px solid rgba(255, 255, 255, 0.1)', pb: 1 }}>
-            {`${label}`}
+            {/* Mostrar el período completo si existe, de lo contrario solo el label */}
+            {`${payload[0]?.payload?.periodo || label}`}
           </Typography>
           {payload.map((entry, index) => (
             <Box key={`item-${index}`} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', my: 0.5 }}>
@@ -103,25 +104,25 @@ const SalesChart = ({ data = [], title = "Facturación Mensual" }) => {
   // Personalizamos la leyenda para usar emojis
   const CustomLegend = (props) => {
     const { payload } = props;
-    
+
     return (
-      <ul style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
+      <ul style={{
+        display: 'flex',
+        justifyContent: 'center',
         padding: 0,
         margin: '10px 0 0 0',
         listStyle: 'none'
       }}>
         {payload.map((entry, index) => (
-          <li key={`item-${index}`} style={{ 
-            marginRight: 20, 
-            display: 'flex', 
+          <li key={`item-${index}`} style={{
+            marginRight: 20,
+            display: 'flex',
             alignItems: 'center',
             color: 'rgba(255, 255, 255, 0.8)'
           }}>
             <span style={{ marginRight: 5, fontSize: '16px' }}>
-              {entry.value === 'total' ? '💰' : 
-               entry.value === 'USD' ? '💵' : 
+              {entry.value === 'total' ? '💰' :
+               entry.value === 'USD' ? '💵' :
                entry.value === 'VES' ? '💸' : ''}
             </span>
             <span>{entry.value === 'total' ? 'Total' : entry.value}</span>
@@ -156,14 +157,14 @@ const SalesChart = ({ data = [], title = "Facturación Mensual" }) => {
     >
       <CardContent sx={{ p: 3, position: 'relative' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              fontSize: '1.25rem', 
-              fontWeight: 600, 
+          <Typography
+            variant="h6"
+            sx={{
+              fontSize: '1.25rem',
+              fontWeight: 600,
               color: '#fff',
-              display: 'flex', 
-              alignItems: 'center' 
+              display: 'flex',
+              alignItems: 'center'
             }}
           >
             {title}
@@ -171,15 +172,15 @@ const SalesChart = ({ data = [], title = "Facturación Mensual" }) => {
               <InfoIcon fontSize="small" sx={{ ml: 1, color: 'rgba(255, 255, 255, 0.6)', cursor: 'pointer' }} />
             </Tooltip>
           </Typography>
-          
+
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <FormControlLabel
               control={
-                <Switch 
+                <Switch
                   checked={showCombined}
                   onChange={() => setShowCombined(!showCombined)}
                   size="small"
-                  sx={{ 
+                  sx={{
                     '& .MuiSwitch-track': { backgroundColor: 'rgba(255, 255, 255, 0.2)' },
                     '& .Mui-checked + .MuiSwitch-track': { backgroundColor: '#6366F1' },
                     '& .MuiSwitch-thumb': { backgroundColor: '#fff' },
@@ -226,41 +227,41 @@ const SalesChart = ({ data = [], title = "Facturación Mensual" }) => {
                   <feComposite in="SourceGraphic" in2="blur" operator="over" />
                 </filter>
               </defs>
-              
+
               <CartesianGrid vertical={false} stroke="rgba(255, 255, 255, 0.08)" />
-              
-              <XAxis 
+
+              <XAxis
                 dataKey="name"
                 tick={{ fill: 'rgba(255, 255, 255, 0.7)', fontSize: 12 }}
                 axisLine={{ stroke: 'rgba(255, 255, 255, 0.1)' }}
                 tickLine={false}
                 dy={8}
               />
-              
-              <YAxis 
+
+              <YAxis
                 tick={{ fill: 'rgba(255, 255, 255, 0.7)', fontSize: 12 }}
                 axisLine={{ stroke: 'rgba(255, 255, 255, 0.1)' }}
                 tickLine={false}
-                tickFormatter={(value) => new Intl.NumberFormat('es-ES', { 
+                tickFormatter={(value) => new Intl.NumberFormat('es-ES', {
                   notation: 'compact',
                   compactDisplay: 'short',
                   maximumFractionDigits: 1
                 }).format(value)}
               />
-              
-              <RechartsTooltip 
-                content={<CustomTooltip />} 
+
+              <RechartsTooltip
+                content={<CustomTooltip />}
                 cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
               />
-              
-              <Legend 
+
+              <Legend
                 content={<CustomLegend />}
               />
-              
+
               {showCombined ? (
-                <Bar 
-                  dataKey="total" 
-                  name="total" 
+                <Bar
+                  dataKey="total"
+                  name="total"
                   radius={[6, 6, 0, 0]}
                   onMouseEnter={handleBarMouseEnter}
                   onMouseLeave={handleBarMouseLeave}
@@ -269,8 +270,8 @@ const SalesChart = ({ data = [], title = "Facturación Mensual" }) => {
                   animationEasing="ease-out"
                 >
                   {data.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
+                    <Cell
+                      key={`cell-${index}`}
                       fill={barColors.total}
                       filter={hoveredBar === index ? 'url(#glow)' : 'none'}
                       style={{
@@ -280,12 +281,12 @@ const SalesChart = ({ data = [], title = "Facturación Mensual" }) => {
                       }}
                     />
                   ))}
-                  <LabelList 
-                    dataKey="total" 
-                    position="top" 
+                  <LabelList
+                    dataKey="total"
+                    position="top"
                     fill="rgba(255, 255, 255, 0.7)"
                     fontSize={11}
-                    formatter={(value) => new Intl.NumberFormat('es-ES', { 
+                    formatter={(value) => new Intl.NumberFormat('es-ES', {
                       notation: 'compact',
                       compactDisplay: 'short',
                       maximumFractionDigits: 1
@@ -295,9 +296,9 @@ const SalesChart = ({ data = [], title = "Facturación Mensual" }) => {
                 </Bar>
               ) : (
                 <>
-                  <Bar 
-                    dataKey="USD" 
-                    name="USD" 
+                  <Bar
+                    dataKey="USD"
+                    name="USD"
                     radius={[6, 6, 0, 0]}
                     barSize={25}
                     onMouseEnter={handleBarMouseEnter}
@@ -307,8 +308,8 @@ const SalesChart = ({ data = [], title = "Facturación Mensual" }) => {
                     animationEasing="ease-out"
                   >
                     {data.map((entry, index) => (
-                      <Cell 
-                        key={`cell-usd-${index}`} 
+                      <Cell
+                        key={`cell-usd-${index}`}
                         fill={barColors.USD}
                         filter={hoveredBar === index ? 'url(#glow)' : 'none'}
                         style={{
@@ -319,9 +320,9 @@ const SalesChart = ({ data = [], title = "Facturación Mensual" }) => {
                       />
                     ))}
                   </Bar>
-                  <Bar 
-                    dataKey="VES" 
-                    name="VES" 
+                  <Bar
+                    dataKey="VES"
+                    name="VES"
                     radius={[6, 6, 0, 0]}
                     barSize={25}
                     onMouseEnter={handleBarMouseEnter}
@@ -331,8 +332,8 @@ const SalesChart = ({ data = [], title = "Facturación Mensual" }) => {
                     animationEasing="ease-out"
                   >
                     {data.map((entry, index) => (
-                      <Cell 
-                        key={`cell-ves-${index}`} 
+                      <Cell
+                        key={`cell-ves-${index}`}
                         fill={barColors.VES}
                         filter={hoveredBar === index ? 'url(#glow)' : 'none'}
                         style={{

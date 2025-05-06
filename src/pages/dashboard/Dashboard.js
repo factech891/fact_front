@@ -45,20 +45,22 @@ const Dashboard = () => {
 
   // Hook useDashboard para obtener datos procesados
   const {
-    loading: dashboardHookLoading, // Renombrado para claridad
-    error: dashboardHookError,     // Capturar error del hook
+    loading: dashboardHookLoading,
+    error: dashboardHookError,
     kpis,
     facturasPorMes,
+    facturasPorMesHistorico,
     facturasPorDia,
     facturasPorTipo,
     facturasPorAnio = [],
     facturasRecientes,
     clientesRecientes,
-    exchangeRate: rateFromHook // Tasa usada en los cálculos del hook
+    exchangeRate: rateFromHook,
+    timeRange // Asegúrate de extraer esta propiedad
   } = useDashboard(selectedRange, customDateRange);
 
   // --- DEBUG --- Log para ver qué devuelve el hook useDashboard
-  console.log('DEBUG Dashboard: Datos del hook useDashboard:', { dashboardHookLoading, dashboardHookError, kpis, rateFromHook });
+  console.log('DEBUG Dashboard: Datos del hook useDashboard:', { dashboardHookLoading, dashboardHookError, kpis, rateFromHook, facturasPorMesHistorico, timeRange });
 
   // Cargar datos específicos del dashboard (ej: facturación diaria)
   const fetchDashboardData = async (authToken) => {
@@ -120,10 +122,35 @@ const Dashboard = () => {
     setTimeout(() => setNotification(prev => ({ ...prev, open: false })), 3000);
   };
 
-  // Manejador para el cambio de rango de tiempo
+  // Modifica la función handleRangeChange en Dashboard.js
   const handleRangeChange = (newRange) => {
     console.log(`Dashboard: Cambiando rango a: ${newRange}`);
     setSelectedRange(newRange);
+
+    // AÑADIR ESTE BLOQUE: Para sincronizar el calendario cuando seleccionas un rango
+    const now = new Date();
+    let calendarDate = null;
+
+    // Determinar la fecha que debe mostrar el calendario según el rango seleccionado
+    if (newRange === 'lastMonth') {
+      // Si seleccionas "mes anterior", establece la fecha un mes atrás
+      calendarDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    } else if (newRange === 'thisMonth') {
+      // Si seleccionas "este mes", establece la fecha en el mes actual
+      calendarDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+    // Puedes añadir más casos para otros períodos si es necesario
+
+    // Si hemos determinado una fecha para el calendario, actualiza el customDateRange
+    if (calendarDate) {
+      const startDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), 1);
+      const endDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 0, 23, 59, 59);
+      setCustomDateRange({ startDate, endDate });
+
+      // También podrías necesitar llamar a alguna función que actualice el componente de calendario
+      // Si existe un componente separado con su propio estado interno
+    }
+
     if (newRange !== 'custom') {
       const rangeLabel = TIME_RANGES.find(r => r.value === newRange)?.label || 'Personalizado';
       setNotification({ open: true, message: `Período cambiado: ${rangeLabel}`, type: 'info' });
@@ -237,13 +264,14 @@ const Dashboard = () => {
           <DailyBillingChart
             data={dashboardData?.facturacionDiaria || []}
             title="Facturación Diaria"
-            exchangeRate={selectedRate} // Usar tasa del estado local
+            exchangeRate={selectedRate}
+            timeRange={timeRange} // Añadir esta prop
           />
         </Grid>
 
         {/* Gráfico de Facturación Mensual */}
         <Grid item xs={12}>
-          <SalesChart data={facturasPorMes || []} />
+          <SalesChart data={facturasPorMesHistorico || []} />
         </Grid>
       </Grid>
 

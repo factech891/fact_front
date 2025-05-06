@@ -4,14 +4,25 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 
-const DateRangeSelector = ({ onChange }) => {
-  // Usamos directamente la fecha local del navegador
+const DateRangeSelector = ({ onChange, selectedRange, initialDateRange }) => {
+  // Usamos el initialDateRange para sincronizar con el TimeRangeSelector
   const [currentMonth, setCurrentMonth] = useState(() => {
+    if (initialDateRange && initialDateRange.startDate) {
+      return new Date(initialDateRange.startDate.getFullYear(), initialDateRange.startDate.getMonth(), 1);
+    }
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
 
   const isInitialMount = useRef(true);
+  
+  // Efecto para sincronizar cuando cambia selectedRange o initialDateRange
+  useEffect(() => {
+    if (initialDateRange && initialDateRange.startDate) {
+      setCurrentMonth(new Date(initialDateRange.startDate.getFullYear(), 
+                               initialDateRange.startDate.getMonth(), 1));
+    }
+  }, [initialDateRange]);
 
   useEffect(() => {
     if (isInitialMount.current) {
@@ -28,7 +39,7 @@ const DateRangeSelector = ({ onChange }) => {
       
       onChange({ startDate, endDate });
     }
-  }, [currentMonth]);
+  }, [currentMonth, onChange]);
 
   const prevMonth = () => {
     setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
