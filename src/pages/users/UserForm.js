@@ -1,5 +1,5 @@
 // src/pages/users/UserForm.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react'; // Añadir useMemo aquí
 import {
   Dialog,
   DialogTitle,
@@ -17,21 +17,21 @@ import {
   Grid,
   IconButton,
   Box,
-  CircularProgress // Para indicar carga en botón
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 // Quitado useUsers ya que las funciones vienen por props
 
 const UserForm = ({ open, onClose, user, onSave, isSubmitting }) => { // Recibir isSubmitting
-  // Estado inicial del formulario con nuevo rol por defecto
-  const initialState = {
+  // CORRECCIÓN: Usar useMemo para memorizar initialState
+  const initialState = useMemo(() => ({
     name: '',
     email: '',
     password: '',
-    // *** CAMBIO: Rol por defecto a 'facturador' ***
     role: 'facturador',
     active: true
-  };
+  }), []); // Array de dependencias vacío para que nunca cambie
 
   const [formData, setFormData] = useState(initialState);
   const [formErrors, setFormErrors] = useState({});
@@ -76,7 +76,7 @@ const UserForm = ({ open, onClose, user, onSave, isSubmitting }) => { // Recibir
       }
       setFormErrors({}); // Limpiar errores de validación
     }
-  }, [user, open]); // Depender de user y open
+  }, [user, open, initialState]); // Mantener initialState como dependencia es seguro ahora
 
   // Manejo de cambios en el formulario
   const handleChange = (e) => {

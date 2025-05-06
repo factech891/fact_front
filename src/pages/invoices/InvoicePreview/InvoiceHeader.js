@@ -117,9 +117,7 @@ const getStyles = (theme, logoOpacity) => ({
 });
 
 export const InvoiceHeader = ({ invoice, empresa, theme, documentType }) => {
-  if (!invoice) return null;
-
-  // Usar el estado para cargar la opacidad del localStorage
+  // CORRECCIÓN: Mover todos los hooks al inicio, antes de cualquier retorno condicional
   const [logoOpacity, setLogoOpacity] = useState(0.25); // Valor por defecto
 
   // Cargar la opacidad guardada cuando el componente se monta
@@ -130,13 +128,16 @@ export const InvoiceHeader = ({ invoice, empresa, theme, documentType }) => {
     }
   }, []);
 
+  // Ahora el retorno condicional
+  if (!invoice) return null;
+
   // Pasar la opacidad al getStyles
   const styles = getStyles(theme, logoOpacity);
   console.log("EMPRESA EN INVOICE HEADER:", empresa);
 
   const formatDate = (date) => {
     if (!date) return 'Sin fecha';
-    
+
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
     try {
       return new Date(date).toLocaleDateString('es-ES', options);
@@ -189,7 +190,7 @@ export const InvoiceHeader = ({ invoice, empresa, theme, documentType }) => {
               />
             </Box>
           )}
-          
+
           {/* Contenido de la factura */}
           <Box sx={styles.invoiceContent}>
             <Box sx={styles.invoiceHeader}>
