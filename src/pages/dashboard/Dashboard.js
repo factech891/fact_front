@@ -42,6 +42,9 @@ const Dashboard = () => {
   const [customDateRange, setCustomDateRange] = useState(null);
   const [dashboardData, setDashboardData] = useState({ facturacionDiaria: [] });
   const [dataLoadingError, setDataLoadingError] = useState(null);
+  // 1. Añade estado para los datos transformados
+  const [datosGraficoVentas, setDatosGraficoVentas] = useState([]);
+
 
   // Hook useDashboard para obtener datos procesados
   const {
@@ -105,6 +108,84 @@ const Dashboard = () => {
       setIsLoadingRate(false); // Marcar como cargada la tasa local
     }
   }, [rateFromHook, dashboardHookLoading]);
+
+  // 2. Añade este useEffect para transformar los datos con depuración
+  useEffect(() => {
+    if (facturasPorMesHistorico && facturasPorMesHistorico.length > 0) {
+      console.log("Datos originales:", facturasPorMesHistorico);
+      
+      // Ejemplo del primer item para ver su estructura
+      console.log("Estructura del primer ítem:", facturasPorMesHistorico[0]);
+      
+      // Transformación con todas las posibles propiedades para encontrar los datos correctos
+      const datosTransformados = facturasPorMesHistorico.map(item => {
+        // Crear un objeto con los datos para facturación
+        const datosMes = {
+          name: item.mes || item.month || item.nombre || '', 
+          periodo: item.periodo || item.period || item.mes || '',
+          
+          // Intentar todas las posibles propiedades para montos USD
+          facturacionUSD: 
+            item.facturacionUSD || 
+            item.montoUSD || 
+            item.usd || 
+            item.totalUSD || 
+            item.USD || 
+            item.facturas?.usd || 
+            item.monto?.usd || 
+            (item.montos?.USD) || 
+            0,
+          
+          // Intentar todas las posibles propiedades para montos VES
+          facturacionVES: 
+            item.facturacionVES || 
+            item.montoVES || 
+            item.ves || 
+            item.totalVES || 
+            item.VES || 
+            item.facturas?.ves || 
+            item.monto?.ves || 
+            (item.montos?.VES) || 
+            0,
+          
+          // Intentar todas las posibles propiedades para metas USD
+          metasUSD: 
+            item.metasUSD || 
+            item.metaUSD || 
+            item.objetivoUSD || 
+            item.targetUSD || 
+            (item.metas?.USD) || 
+            (item.meta?.USD) || 
+            1200, // Valor predeterminado para pruebas
+          
+          // Intentar todas las posibles propiedades para metas VES
+          metasVES: 
+            item.metasVES || 
+            item.metaVES || 
+            item.objetivoVES || 
+            item.targetVES || 
+            (item.metas?.VES) || 
+            (item.meta?.VES) || 
+            42000, // Valor predeterminado para pruebas
+        };
+        
+        console.log("Dato transformado:", datosMes);
+        return datosMes;
+      });
+      
+      console.log("Datos finales transformados:", datosTransformados);
+      setDatosGraficoVentas(datosTransformados);
+    } else {
+      // Si no hay datos, usar datos de demostración para probar el gráfico
+      const datosDemostración = [
+        { name: 'Ene', periodo: 'Enero 2023', facturacionUSD: 800, facturacionVES: 28000, metasUSD: 820, metasVES: 29000 },
+        { name: 'Feb', periodo: 'Febrero 2023', facturacionUSD: 950, facturacionVES: 33000, metasUSD: 940, metasVES: 33500 },
+        { name: 'Mar', periodo: 'Marzo 2023', facturacionUSD: 1100, facturacionVES: 37000, metasUSD: 1150, metasVES: 39000 }
+      ];
+      console.log("Usando datos de demostración:", datosDemostración);
+      setDatosGraficoVentas(datosDemostración);
+    }
+  }, [facturasPorMesHistorico]);
 
 
   // Handler para actualizar la tasa de cambio (llamado desde KPICards)
@@ -270,8 +351,14 @@ const Dashboard = () => {
         </Grid>
 
         {/* Gráfico de Facturación Mensual */}
+        {/* 3. Y luego, en la sección del JSX donde tienes el SalesChart: */}
         <Grid item xs={12}>
-          <SalesChart data={facturasPorMesHistorico || []} />
+          <SalesChart 
+            title="Facturación Mensual vs Metas"
+            data={datosGraficoVentas}
+            isLoading={dashboardHookLoading}
+            error={dashboardHookError}
+          />
         </Grid>
       </Grid>
 
