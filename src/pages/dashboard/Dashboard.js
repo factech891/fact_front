@@ -26,9 +26,9 @@ import AuthContext from '../../context/AuthContext';
 
 // Componente principal del Dashboard
 const Dashboard = () => {
-  // Obtener datos de autenticación - CORREGIDO: Obtenemos currentUser, token del contexto
+  // Obtener datos de autenticación
   const { currentUser, token } = useContext(AuthContext);
-  const { company } = useCompany(); // Utilizamos el hook useCompany para obtener datos de la empresa
+  const { company } = useCompany(); 
 
   // Estados locales del Dashboard
   const [selectedRate, setSelectedRate] = useState(null);
@@ -39,7 +39,7 @@ const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState({ facturacionDiaria: [] });
   const [dataLoadingError, setDataLoadingError] = useState(null);
   const [datosGraficoVentas, setDatosGraficoVentas] = useState([]);
-  const [currentDateTime, setCurrentDateTime] = useState(''); // Para la fecha actual
+  const [currentDateTime, setCurrentDateTime] = useState(''); 
 
   // Hook useDashboard para obtener datos procesados
   const {
@@ -82,7 +82,7 @@ const Dashboard = () => {
       if (responseData.success === false) throw new Error(responseData.message || 'Error API');
       return responseData;
     } catch (error) {
-      console.error('Error fetchDashboardData:', error);
+      console.error('Error fetchDashboardData:', error); 
       setDataLoadingError(error.message || 'Error cargando datos específicos.');
       return { facturacionDiaria: [] };
     }
@@ -92,10 +92,9 @@ const Dashboard = () => {
     const loadDashboardData = async () => {
       if (token) {
         const data = await fetchDashboardData(token);
-        console.log('Datos recibidos del endpoint dashboard-data:', data);
         setDashboardData(data || { facturacionDiaria: [] });
       } else {
-        console.warn('Dashboard: Token no disponible para fetchDashboardData.');
+        console.warn('Dashboard: Token no disponible para fetchDashboardData.'); 
       }
     };
     loadDashboardData();
@@ -111,74 +110,53 @@ const Dashboard = () => {
 
   // Transformar datos para el gráfico de ventas
   useEffect(() => {
-    if (!dashboardHookLoading && facturasPorMesHistorico && facturasPorMesHistorico.length > 0) {
-      console.log("Datos originales:", facturasPorMesHistorico);
-      
-      const datosTransformados = facturasPorMesHistorico.map(item => {
-        // Crear un objeto con los datos para facturación
-        const datosMes = {
-          name: item.mes || item.month || item.nombre || '', 
-          periodo: item.periodo || item.period || item.mes || '',
-          
-          // Intentar todas las posibles propiedades para montos USD
-          facturacionUSD: 
-            item.facturacionUSD || 
-            item.montoUSD || 
-            item.usd || 
-            item.totalUSD || 
-            item.USD || 
-            item.facturas?.usd || 
-            item.monto?.usd || 
-            (item.montos?.USD) || 
-            0,
-          
-          // Intentar todas las posibles propiedades para montos VES
-          facturacionVES: 
-            item.facturacionVES || 
-            item.montoVES || 
-            item.ves || 
-            item.totalVES || 
-            item.VES || 
-            item.facturas?.ves || 
-            item.monto?.ves || 
-            (item.montos?.VES) || 
-            0,
-          
-          // Intentar todas las posibles propiedades para metas USD
-          metasUSD: 
-            item.metasUSD || 
-            item.metaUSD || 
-            item.objetivoUSD || 
-            item.targetUSD || 
-            (item.metas?.USD) || 
-            (item.meta?.USD) || 
-            1200, // Valor predeterminado para pruebas
-          
-          // Intentar todas las posibles propiedades para metas VES
-          metasVES: 
-            item.metasVES || 
-            item.metaVES || 
-            item.objetivoVES || 
-            item.targetVES || 
-            (item.metas?.VES) || 
-            (item.meta?.VES) || 
-            42000, // Valor predeterminado para pruebas
-        };
-        
-        return datosMes;
-      });
-      
-      console.log("Datos finales transformados:", datosTransformados);
+    if (dashboardHookLoading) {
+      setDatosGraficoVentas([]); // Limpiar datos mientras se está cargando nueva información
+    } else if (facturasPorMesHistorico && facturasPorMesHistorico.length > 0) {
+      const datosTransformados = facturasPorMesHistorico.map(item => ({
+        name: item.mes || item.month || item.nombre || '', 
+        periodo: item.periodo || item.period || item.mes || '',
+        facturacionUSD: 
+          item.facturacionUSD || 
+          item.montoUSD || 
+          item.usd || 
+          item.totalUSD || 
+          item.USD || 
+          item.facturas?.usd || 
+          item.monto?.usd || 
+          (item.montos?.USD) || 
+          0,
+        facturacionVES: 
+          item.facturacionVES || 
+          item.montoVES || 
+          item.ves || 
+          item.totalVES || 
+          item.VES || 
+          item.facturas?.ves || 
+          item.monto?.ves || 
+          (item.montos?.VES) || 
+          0,
+        metasUSD: 
+          item.metasUSD || 
+          item.metaUSD || 
+          item.objetivoUSD || 
+          item.targetUSD || 
+          (item.metas?.USD) || 
+          (item.meta?.USD) || 
+          0, // Eliminado valor hardcodeado (antes 1200)
+        metasVES: 
+          item.metasVES || 
+          item.metaVES || 
+          item.objetivoVES || 
+          item.targetVES || 
+          (item.metas?.VES) || 
+          (item.meta?.VES) || 
+          0, // Eliminado valor hardcodeado (antes 42000)
+      }));
       setDatosGraficoVentas(datosTransformados);
-    } else if (!dashboardHookLoading) {
-      // Si no hay datos o ya terminó de cargar pero no hay datos
-      console.log("No hay datos de facturas por mes histórico, usando datos de demostración");
-      const datosDemostración = [
-        { name: 'Ene', periodo: 'Enero 2023', facturacionUSD: 800, facturacionVES: 28000, metasUSD: 820, metasVES: 29000 },
-        { name: 'Feb', periodo: 'Febrero 2023', facturacionUSD: 950, facturacionVES: 33000, metasUSD: 940, metasVES: 33500 },
-        { name: 'Mar', periodo: 'Marzo 2023', facturacionUSD: 1100, facturacionVES: 37000, metasUSD: 1150, metasVES: 39000 }
-      ];
-      setDatosGraficoVentas(datosDemostración);
+    } else {
+      // No está cargando y no hay datos (o están vacíos), así que mostrar gráfico vacío
+      setDatosGraficoVentas([]); // Eliminados datos de demostración hardcodeados
     }
   }, [facturasPorMesHistorico, dashboardHookLoading]);
 
@@ -195,7 +173,6 @@ const Dashboard = () => {
 
   // Manejador para cambiar el rango de tiempo
   const handleRangeChange = (newRange) => {
-    console.log(`Dashboard: Cambiando rango a: ${newRange}`);
     setSelectedRange(newRange);
 
     const now = new Date();
@@ -222,9 +199,8 @@ const Dashboard = () => {
 
   // Manejador para el cambio de rango personalizado
   const handleCustomRangeChange = (range) => {
-    console.log("Dashboard: Rango personalizado:", range);
     setCustomDateRange(range);
-    setSelectedRange('custom'); // Asegurar que se actualice el rango seleccionado
+    setSelectedRange('custom'); 
     const startDate = range.startDate.toLocaleDateString('es-ES');
     const endDate = range.endDate.toLocaleDateString('es-ES');
     setNotification({ open: true, message: `Período: ${startDate} al ${endDate}`, type: 'info' });
@@ -277,7 +253,7 @@ const Dashboard = () => {
   const totalUSD = safeKpis.totalPorMoneda?.find(m => m.moneda === 'USD')?.total || 0;
   const totalVES = safeKpis.totalPorMoneda?.find(m => m.moneda === 'VES')?.total || 0;
   const totalFacturas = safeKpis.totalFacturas || 0;
-  const totalClientes = safeKpis.totalClientes || 0; // Valor para clientes activos
+  const totalClientes = safeKpis.totalClientes || 0; 
   const cambioIngresos = safeKpis.cambioIngresos || 0;
   const cambioFacturas = safeKpis.cambioFacturas || 0;
   const cambioClientes = safeKpis.cambioClientes || 0;
@@ -301,10 +277,10 @@ const Dashboard = () => {
         </Box>
       )}
 
-      {/* WelcomeHeaderIntegrated - Este componente ahora incluye la selección de rango de tiempo */}
+      {/* WelcomeHeaderIntegrated */}
       <WelcomeHeaderIntegrated
         userName={currentUser?.name || currentUser?.nombre || currentUser?.username || 'Usuario'} 
-        companyName={company?.name} // Usamos el nombre de la empresa del hook useCompany
+        companyName={company?.name} 
         userRole={currentUser?.role ? getUserRoleDisplay(currentUser.role) : undefined}
         currentDateTime={currentDateTime}
         selectedRange={selectedRange}
@@ -318,7 +294,7 @@ const Dashboard = () => {
         totalUSD={totalUSD}
         totalVES={totalVES}
         totalFacturas={totalFacturas}
-        totalClientes={totalClientes} // Pasamos el valor de clientes activos
+        totalClientes={totalClientes} 
         cambioIngresos={cambioIngresos}
         cambioFacturas={cambioFacturas}
         cambioClientes={cambioClientes}
@@ -343,7 +319,7 @@ const Dashboard = () => {
           <SalesChart 
             title="Facturación Mensual vs Metas"
             data={datosGraficoVentas}
-            isLoading={dashboardHookLoading}
+            isLoading={dashboardHookLoading} // Podría usarse para mostrar un loader específico en SalesChart
             error={dashboardHookError}
           />
         </Grid>
@@ -352,7 +328,7 @@ const Dashboard = () => {
       {/* Facturación Anual */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12}>
-          <AnnualBillingChart data={Array.isArray(facturasPorAnio) ? facturasPorAnio : []} />
+          <AnnualBillingChart data={facturasPorAnio} />
         </Grid>
       </Grid>
 

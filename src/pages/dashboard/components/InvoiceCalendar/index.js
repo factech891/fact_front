@@ -1,27 +1,17 @@
 import React, { useState } from 'react';
 import { MONTHS, DAYS_OF_WEEK, EXAMPLE_INVOICES } from './config';
 
-const InvoiceCalendar = ({ invoices = EXAMPLE_INVOICES }) => {
+const InvoiceCalendar = ({ invoices = EXAMPLE_INVOICES, selectedMonth: propSelectedMonth, selectedYear: propSelectedYear }) => {
   const today = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(today.getMonth());
-  const [selectedYear, setSelectedYear] = useState(today.getFullYear());
-
-  // Función para cambiar de mes
-  const changeMonth = (offset) => {
-    let newMonth = selectedMonth + offset;
-    let newYear = selectedYear;
-    
-    if (newMonth > 11) {
-      newMonth = 0;
-      newYear += 1;
-    } else if (newMonth < 0) {
-      newMonth = 11;
-      newYear -= 1;
-    }
-    
-    setSelectedMonth(newMonth);
-    setSelectedYear(newYear);
-  };
+  // Usar los valores proporcionados por props o los actuales como fallback
+  const [selectedMonth, setSelectedMonth] = useState(propSelectedMonth !== undefined ? propSelectedMonth : today.getMonth());
+  const [selectedYear, setSelectedYear] = useState(propSelectedYear !== undefined ? propSelectedYear : today.getFullYear());
+  
+  // Actualizar si las props cambian
+  React.useEffect(() => {
+    if (propSelectedMonth !== undefined) setSelectedMonth(propSelectedMonth);
+    if (propSelectedYear !== undefined) setSelectedYear(propSelectedYear);
+  }, [propSelectedMonth, propSelectedYear]);
   
   // Obtener el primer día del mes seleccionado
   const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1).getDay();
@@ -79,15 +69,10 @@ const InvoiceCalendar = ({ invoices = EXAMPLE_INVOICES }) => {
   return (
     <div className="invoice-calendar-container">
       <div className="calendar-header">
-        <button className="month-nav-button" onClick={() => changeMonth(-1)}>
-          &lt;
-        </button>
+        {/* Eliminamos los botones de navegación y dejamos solo el título del mes */}
         <div className="current-month">
           {MONTHS[selectedMonth]} {selectedYear}
         </div>
-        <button className="month-nav-button" onClick={() => changeMonth(1)}>
-          &gt;
-        </button>
       </div>
       
       <div className="calendar-grid">

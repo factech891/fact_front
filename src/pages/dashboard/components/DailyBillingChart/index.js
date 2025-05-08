@@ -9,22 +9,19 @@ import {
   Grid,
   Paper,
   Chip,
-  Fade,
   Badge,
   Popover
 } from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 
 // Componente DailyBillingChart optimizado para trabajar con useDashboard
 const DailyBillingChart = ({
   data = [],
   title = "Facturación Diaria",
-  exchangeRate = 40, // Tasa de cambio por defecto
-  timeRange = null, // Nueva prop para recibir el período seleccionado
+  exchangeRate = 40,
+  timeRange = null,
 }) => {
   // Inicializar al mes actual
   const currentDate = new Date();
@@ -37,9 +34,11 @@ const DailyBillingChart = ({
   const [anchorEl, setAnchorEl] = useState(null);
   const [popoverDay, setPopoverDay] = useState(null);
 
-  // AÑADIR ESTE NUEVO useEffect después de las declaraciones de estado
+  // Colores de gradiente para los días de aumento (mismo que botones)
+  const increaseGradient = 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)';
+  
+  // Sincronizar con el período seleccionado desde el Dashboard
   useEffect(() => {
-    // Sincronizar con el período seleccionado desde el Dashboard
     if (timeRange && timeRange.startDate) {
       const date = new Date(timeRange.startDate);
       // Solo actualizar si realmente es un mes/año diferente
@@ -48,7 +47,7 @@ const DailyBillingChart = ({
         setCurrentYear(date.getFullYear());
       }
     }
-  }, [timeRange, currentMonth, currentYear]); // Observar cambios en timeRange
+  }, [timeRange, currentMonth, currentYear]);
 
   // Procesar datos para el calendario
   useEffect(() => {
@@ -79,10 +78,7 @@ const DailyBillingChart = ({
       const month = monthMap[monthAbbr];
 
       // Solo procesar si el mes/año coincide con el seleccionado
-      // CORRECCIÓN: El año también debe coincidir con currentYear si la data de 'item' incluyera el año.
-      // Dado que 'item.name' es "20 mar", asumimos que la data ya está pre-filtrada por año o es para el año actual.
-      // Para una sincronización completa con timeRange, el `data` que llega debería ser del `currentYear` que `timeRange` indica.
-      if (month === currentMonth) { // Podríamos añadir && (item.year === currentYear) si el item lo tuviera
+      if (month === currentMonth) {
         if (!diasMap[day]) {
           diasMap[day] = {
             day,
@@ -102,15 +98,15 @@ const DailyBillingChart = ({
         const vesInUsd = (item.VES || 0) / exchangeRate;
         diasMap[day].total = diasMap[day].USD + vesInUsd;
 
-        // IMPORTANTE: Incrementar contador de facturas
+        // Incrementar contador de facturas
         diasMap[day].facturas = (item.facturas || 1);
 
-        // Información de la factura para detalles (si necesitas guardar detalles adicionales)
+        // Información de la factura para detalles
         diasMap[day].invoiceList.push({
           id: item.id || `Factura-${diasMap[day].invoiceList.length + 1}`,
           USD: item.USD || 0,
           VES: item.VES || 0,
-          total: (item.USD || 0) + ((item.VES || 0) / exchangeRate) // Total en USD
+          total: (item.USD || 0) + ((item.VES || 0) / exchangeRate)
         });
       }
     });
@@ -165,28 +161,6 @@ const DailyBillingChart = ({
   // Nombres abreviados de los días
   const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
-  // Navegar al mes anterior
-  const goToPrevMonth = () => {
-    if (currentMonth === 0) {
-      setCurrentMonth(11);
-      setCurrentYear(currentYear - 1);
-    } else {
-      setCurrentMonth(currentMonth - 1);
-    }
-    handlePopoverClose();
-  };
-
-  // Navegar al mes siguiente
-  const goToNextMonth = () => {
-    if (currentMonth === 11) {
-      setCurrentMonth(0);
-      setCurrentYear(currentYear + 1);
-    } else {
-      setCurrentMonth(currentMonth + 1);
-    }
-    handlePopoverClose();
-  };
-
   // Manejar clic en un día (abrir popover)
   const handleDayClick = (event, day) => {
     if (day.hasData) {
@@ -234,10 +208,10 @@ const DailyBillingChart = ({
       i--;
     }
 
-    // Si no hay día anterior, usar color neutro
+    // Si no hay día anterior, usar color azul (gradiente)
     if (!prevDay) {
       return {
-        bg: '#2E7D32',
+        bg: increaseGradient,
         border: 'none',
         isUp: null
       };
@@ -248,7 +222,7 @@ const DailyBillingChart = ({
 
     if (isUp) {
       return {
-        bg: '#2E7D32',
+        bg: increaseGradient,
         border: 'none',
         isUp: true
       };
@@ -295,27 +269,13 @@ const DailyBillingChart = ({
           </IconButton>
         </Box>
 
-        {/* Control de navegación del mes */}
+        {/* Título del mes - Sin flechas de navegación */}
         <Box sx={{
           display: 'flex',
-          justifyContent: 'space-between',
+          justifyContent: 'center',
           alignItems: 'center',
           mb: 2
         }}>
-          <IconButton
-            size="small"
-            sx={{
-              color: '#AAA',
-              bgcolor: 'rgba(255,255,255,0.05)',
-              '&:hover': {
-                bgcolor: 'rgba(255,255,255,0.1)'
-              }
-            }}
-            onClick={goToPrevMonth}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-
           <Typography
             variant="h6"
             color="white"
@@ -326,20 +286,6 @@ const DailyBillingChart = ({
           >
             {monthNames[currentMonth]} {currentYear}
           </Typography>
-
-          <IconButton
-            size="small"
-            sx={{
-              color: '#AAA',
-              bgcolor: 'rgba(255,255,255,0.05)',
-              '&:hover': {
-                bgcolor: 'rgba(255,255,255,0.1)'
-              }
-            }}
-            onClick={goToNextMonth}
-          >
-            <ArrowForwardIcon />
-          </IconButton>
         </Box>
 
         {/* Calendario optimizado */}
@@ -365,7 +311,6 @@ const DailyBillingChart = ({
             {/* Celdas del calendario */}
             {calendarData.map((day, index) => {
               const { bg, isUp } = day.hasData ? getDayColor(day, index) : { bg: '#333', isUp: null };
-              const hasMultipleInvoices = day.facturas > 1;
 
               return (
                 <Grid item xs={12/7} key={`day-${index}`}>
@@ -388,7 +333,7 @@ const DailyBillingChart = ({
                         borderRadius: 1,
                         cursor: day.hasData ? 'pointer' : 'default',
                         position: 'relative',
-                        bgcolor: day.hasData ? bg : '#333',
+                        background: day.hasData ? bg : '#333', // Usar background para permitir gradientes
                         opacity: day.hasData ? 1 : 0.6,
                         boxShadow: day.hasData ? '0 2px 4px rgba(0,0,0,0.2)' : 'none',
                         overflow: 'visible',
@@ -446,7 +391,7 @@ const DailyBillingChart = ({
                                   height: 16,
                                   minWidth: 16,
                                   padding: '0 4px',
-                                  bgcolor: '#1976D2', // Azul más estándar
+                                  bgcolor: '#1976D2',
                                   fontWeight: 'bold'
                                 }
                               }}
@@ -580,14 +525,12 @@ const DailyBillingChart = ({
                     {formatCurrency(popoverDay.total, 'USD')}
                   </Typography>
                 </Grid>
-
-                {/* IMPORTANTE: He eliminado completamente la sección que mostraba la lista de facturas */}
               </Grid>
             </Box>
           )}
         </Popover>
 
-        {/* Leyenda */}
+        {/* Leyenda - Actualizada con el gradiente azul */}
         <Box sx={{
           display: 'flex',
           justifyContent: 'center',
@@ -601,7 +544,7 @@ const DailyBillingChart = ({
                 width: 12,
                 height: 12,
                 borderRadius: '2px',
-                bgcolor: '#2E7D32',
+                background: increaseGradient, // Usar el gradiente azul
                 mr: 1
               }}
             />
