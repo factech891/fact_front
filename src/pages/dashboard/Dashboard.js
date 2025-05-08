@@ -1,4 +1,4 @@
-// src/pages/dashboard/Dashboard.js (Props Corregidas para KPICards)
+// src/pages/dashboard/Dashboard.js
 import React, { useState, useEffect, useContext } from 'react';
 import {
   Box,
@@ -10,62 +10,63 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 
-// Importamos los componentes personalizados
+// Componentes
 import SalesChart from './components/SalesChart';
 import DailyBillingChart from './components/DailyBillingChart';
 import AnnualBillingChart from './components/AnnualBillingChart';
 import LatestTransactions from './components/LatestTransactions';
-import KPICards from './components/KPICards'; // Asegúrate que la ruta sea correcta
-import TimeRangeSelector from './components/TimeRangeSelector';
+import KPICards from './components/KPICards';
+import WelcomeHeaderIntegrated from './components/WelcomeHeaderIntegrated';
 
-// Importamos nuestro hook personalizado
-import { useDashboard } from '../../hooks/useDashboard'; // Asegúrate que la ruta sea correcta
-
-// Importamos el servicio para la tasa de cambio
-import exchangeRateApi from '../../services/exchangeRateApi'; // Asegúrate que la ruta sea correcta
-
-// Importar constantes para las opciones de tiempo
-import { TIME_RANGES } from './constants/dashboardConstants'; // Asegúrate que la ruta sea correcta
-
-// Importar el contexto de autenticación para obtener el token
-import AuthContext from '../../context/AuthContext'; // Ajusta la ruta si es necesario
+// Hooks y servicios
+import { useDashboard } from '../../hooks/useDashboard';
+import { useCompany } from '../../hooks/useCompany';
+import { TIME_RANGES } from './constants/dashboardConstants';
+import AuthContext from '../../context/AuthContext';
 
 // Componente principal del Dashboard
 const Dashboard = () => {
-  const { token } = useContext(AuthContext);
+  // Obtener datos de autenticación - CORREGIDO: Obtenemos currentUser, token del contexto
+  const { currentUser, token } = useContext(AuthContext);
+  const { company } = useCompany(); // Utilizamos el hook useCompany para obtener datos de la empresa
 
   // Estados locales del Dashboard
-  const [selectedRate, setSelectedRate] = useState(null); // Inicializar a null hasta que se cargue
-  const [isLoadingRate, setIsLoadingRate] = useState(true); // Estado específico para carga de tasa
+  const [selectedRate, setSelectedRate] = useState(null);
+  const [isLoadingRate, setIsLoadingRate] = useState(true);
   const [notification, setNotification] = useState({ open: false, message: '', type: 'info' });
   const [selectedRange, setSelectedRange] = useState('thisMonth');
   const [customDateRange, setCustomDateRange] = useState(null);
   const [dashboardData, setDashboardData] = useState({ facturacionDiaria: [] });
   const [dataLoadingError, setDataLoadingError] = useState(null);
-  // 1. Añade estado para los datos transformados
   const [datosGraficoVentas, setDatosGraficoVentas] = useState([]);
-
+  const [currentDateTime, setCurrentDateTime] = useState(''); // Para la fecha actual
 
   // Hook useDashboard para obtener datos procesados
   const {
     loading: dashboardHookLoading,
     error: dashboardHookError,
     kpis,
-    facturasPorMes,
     facturasPorMesHistorico,
-    facturasPorDia,
-    facturasPorTipo,
     facturasPorAnio = [],
     facturasRecientes,
     clientesRecientes,
     exchangeRate: rateFromHook,
-    timeRange // Asegúrate de extraer esta propiedad
+    timeRange
   } = useDashboard(selectedRange, customDateRange);
 
-  // --- DEBUG --- Log para ver qué devuelve el hook useDashboard
-  console.log('DEBUG Dashboard: Datos del hook useDashboard:', { dashboardHookLoading, dashboardHookError, kpis, rateFromHook, facturasPorMesHistorico, timeRange });
+  // Actualizar la fecha y hora actual
+  useEffect(() => {
+    const updateDateTime = () => {
+      const now = new Date();
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+      setCurrentDateTime(now.toLocaleDateString('es-ES', options));
+    };
+    updateDateTime();
+    const interval = setInterval(updateDateTime, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
-  // Cargar datos específicos del dashboard (ej: facturación diaria)
+  // Cargar datos específicos del dashboard
   const fetchDashboardData = async (authToken) => {
     setDataLoadingError(null);
     try {
@@ -95,7 +96,6 @@ const Dashboard = () => {
         setDashboardData(data || { facturacionDiaria: [] });
       } else {
         console.warn('Dashboard: Token no disponible para fetchDashboardData.');
-        // setDataLoadingError('No autenticado.'); // Opcional: mostrar error si no hay token
       }
     };
     loadDashboardData();
@@ -105,19 +105,15 @@ const Dashboard = () => {
   useEffect(() => {
     if (rateFromHook !== null && !dashboardHookLoading) {
       setSelectedRate(rateFromHook);
-      setIsLoadingRate(false); // Marcar como cargada la tasa local
+      setIsLoadingRate(false);
     }
   }, [rateFromHook, dashboardHookLoading]);
 
-  // 2. Añade este useEffect para transformar los datos con depuración
+  // Transformar datos para el gráfico de ventas
   useEffect(() => {
-    if (facturasPorMesHistorico && facturasPorMesHistorico.length > 0) {
+    if (!dashboardHookLoading && facturasPorMesHistorico && facturasPorMesHistorico.length > 0) {
       console.log("Datos originales:", facturasPorMesHistorico);
       
-      // Ejemplo del primer item para ver su estructura
-      console.log("Estructura del primer ítem:", facturasPorMesHistorico[0]);
-      
-      // Transformación con todas las posibles propiedades para encontrar los datos correctos
       const datosTransformados = facturasPorMesHistorico.map(item => {
         // Crear un objeto con los datos para facturación
         const datosMes = {
@@ -169,67 +165,52 @@ const Dashboard = () => {
             42000, // Valor predeterminado para pruebas
         };
         
-        console.log("Dato transformado:", datosMes);
         return datosMes;
       });
       
       console.log("Datos finales transformados:", datosTransformados);
       setDatosGraficoVentas(datosTransformados);
-    } else {
-      // Si no hay datos, usar datos de demostración para probar el gráfico
+    } else if (!dashboardHookLoading) {
+      // Si no hay datos o ya terminó de cargar pero no hay datos
+      console.log("No hay datos de facturas por mes histórico, usando datos de demostración");
       const datosDemostración = [
         { name: 'Ene', periodo: 'Enero 2023', facturacionUSD: 800, facturacionVES: 28000, metasUSD: 820, metasVES: 29000 },
         { name: 'Feb', periodo: 'Febrero 2023', facturacionUSD: 950, facturacionVES: 33000, metasUSD: 940, metasVES: 33500 },
         { name: 'Mar', periodo: 'Marzo 2023', facturacionUSD: 1100, facturacionVES: 37000, metasUSD: 1150, metasVES: 39000 }
       ];
-      console.log("Usando datos de demostración:", datosDemostración);
       setDatosGraficoVentas(datosDemostración);
     }
-  }, [facturasPorMesHistorico]);
+  }, [facturasPorMesHistorico, dashboardHookLoading]);
 
-
-  // Handler para actualizar la tasa de cambio (llamado desde KPICards)
+  // Manejador para actualizar la tasa de cambio
   const handleRateChange = (newRate) => {
-    // Actualizar la tasa en el estado local para reflejar en el selector
     setSelectedRate(newRate);
-    // Aquí NO llamamos a exchangeRateApi.setManualRate directamente,
-    // KPICards > CompactExchangeRateSelector ya se encarga de eso.
-    // Solo necesitamos actualizar el estado para que el resto de la UI lo use.
     setNotification({
         open: true,
         message: `Tasa actualizada localmente: ${newRate.toFixed(2)} VES/USD`,
-        type: 'info' // O 'success' si prefieres
+        type: 'info'
     });
     setTimeout(() => setNotification(prev => ({ ...prev, open: false })), 3000);
   };
 
-  // Modifica la función handleRangeChange en Dashboard.js
+  // Manejador para cambiar el rango de tiempo
   const handleRangeChange = (newRange) => {
     console.log(`Dashboard: Cambiando rango a: ${newRange}`);
     setSelectedRange(newRange);
 
-    // AÑADIR ESTE BLOQUE: Para sincronizar el calendario cuando seleccionas un rango
     const now = new Date();
     let calendarDate = null;
 
-    // Determinar la fecha que debe mostrar el calendario según el rango seleccionado
     if (newRange === 'lastMonth') {
-      // Si seleccionas "mes anterior", establece la fecha un mes atrás
       calendarDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     } else if (newRange === 'thisMonth') {
-      // Si seleccionas "este mes", establece la fecha en el mes actual
       calendarDate = new Date(now.getFullYear(), now.getMonth(), 1);
     }
-    // Puedes añadir más casos para otros períodos si es necesario
 
-    // Si hemos determinado una fecha para el calendario, actualiza el customDateRange
     if (calendarDate) {
       const startDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), 1);
       const endDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 0, 23, 59, 59);
       setCustomDateRange({ startDate, endDate });
-
-      // También podrías necesitar llamar a alguna función que actualice el componente de calendario
-      // Si existe un componente separado con su propio estado interno
     }
 
     if (newRange !== 'custom') {
@@ -243,6 +224,7 @@ const Dashboard = () => {
   const handleCustomRangeChange = (range) => {
     console.log("Dashboard: Rango personalizado:", range);
     setCustomDateRange(range);
+    setSelectedRange('custom'); // Asegurar que se actualice el rango seleccionado
     const startDate = range.startDate.toLocaleDateString('es-ES');
     const endDate = range.endDate.toLocaleDateString('es-ES');
     setNotification({ open: true, message: `Período: ${startDate} al ${endDate}`, type: 'info' });
@@ -254,10 +236,22 @@ const Dashboard = () => {
     setNotification({ open: false, message: '', type: 'info' });
   };
 
-  // Estado de carga general (solo del hook principal por ahora)
+  // Función auxiliar para mostrar el rol en formato legible
+  const getUserRoleDisplay = (role) => { 
+    if (!role) return null;
+    const roleMap = { 
+      'admin': 'Administrador', 
+      'user': 'Usuario',
+      'facturador': 'Facturador',
+      'platform_admin': 'Administrador de Plataforma'
+    };
+    return roleMap[role.toLowerCase()] || role.charAt(0).toUpperCase() + role.slice(1);
+  };
+
+  // Estado de carga general
   const combinedLoading = dashboardHookLoading || isLoadingRate;
 
-  // Mostrar error si falló la carga de datos del hook o la específica del dashboard
+  // Mostrar error si falló la carga de datos
   if (dashboardHookError || dataLoadingError) {
     return (
       <Box sx={{ p: 3 }}>
@@ -278,20 +272,15 @@ const Dashboard = () => {
     );
   }
 
-  // --- Extracción de datos de KPIs ---
-  // Usar valores por defecto (0) si kpis es undefined o null
+  // Extracción de datos de KPIs
   const safeKpis = kpis || {};
   const totalUSD = safeKpis.totalPorMoneda?.find(m => m.moneda === 'USD')?.total || 0;
   const totalVES = safeKpis.totalPorMoneda?.find(m => m.moneda === 'VES')?.total || 0;
   const totalFacturas = safeKpis.totalFacturas || 0;
-  const totalClientes = safeKpis.totalClientes || 0;
+  const totalClientes = safeKpis.totalClientes || 0; // Valor para clientes activos
   const cambioIngresos = safeKpis.cambioIngresos || 0;
   const cambioFacturas = safeKpis.cambioFacturas || 0;
   const cambioClientes = safeKpis.cambioClientes || 0;
-
-  // --- DEBUG --- Log para ver los valores que se pasarán a KPICards
-  console.log('DEBUG Dashboard: Props para KPICards:', { totalUSD, totalVES, totalFacturas, totalClientes, cambioIngresos, cambioFacturas, cambioClientes, selectedRate });
-
 
   return (
     <Box sx={{ p: 3 }}>
@@ -312,30 +301,29 @@ const Dashboard = () => {
         </Box>
       )}
 
-      {/* Selector de Período */}
-      <TimeRangeSelector
+      {/* WelcomeHeaderIntegrated - Este componente ahora incluye la selección de rango de tiempo */}
+      <WelcomeHeaderIntegrated
+        userName={currentUser?.name || currentUser?.nombre || currentUser?.username || 'Usuario'} 
+        companyName={company?.name} // Usamos el nombre de la empresa del hook useCompany
+        userRole={currentUser?.role ? getUserRoleDisplay(currentUser.role) : undefined}
+        currentDateTime={currentDateTime}
         selectedRange={selectedRange}
         customDateRange={customDateRange}
         onRangeChange={handleRangeChange}
         onCustomRangeChange={handleCustomRangeChange}
       />
 
-      {/* --- Tarjetas KPI - CORREGIDO --- */}
+      {/* Tarjetas KPI */}
       <KPICards
-        // Pasar los valores extraídos del objeto kpis
         totalUSD={totalUSD}
         totalVES={totalVES}
         totalFacturas={totalFacturas}
-        totalClientes={totalClientes}
+        totalClientes={totalClientes} // Pasamos el valor de clientes activos
         cambioIngresos={cambioIngresos}
         cambioFacturas={cambioFacturas}
         cambioClientes={cambioClientes}
-        // Pasar la tasa de cambio del estado local y el handler
-        exchangeRate={selectedRate} // Usar la tasa del estado local
-        onRateChange={handleRateChange} // Pasar el handler para actualizar estado local
-        // Pasar otros KPIs si los necesitas (ej: ventasAyerUSD, etc.)
-        // ventasAyerUSD={safeKpis.ventasAyerUSD || 0}
-        // ventasMesPasadoUSD={safeKpis.ventasMesPasadoUSD || 0}
+        exchangeRate={selectedRate}
+        onRateChange={handleRateChange}
       />
 
       {/* Gráficos */}
@@ -346,12 +334,11 @@ const Dashboard = () => {
             data={dashboardData?.facturacionDiaria || []}
             title="Facturación Diaria"
             exchangeRate={selectedRate}
-            timeRange={timeRange} // Añadir esta prop
+            timeRange={timeRange}
           />
         </Grid>
 
         {/* Gráfico de Facturación Mensual */}
-        {/* 3. Y luego, en la sección del JSX donde tienes el SalesChart: */}
         <Grid item xs={12}>
           <SalesChart 
             title="Facturación Mensual vs Metas"
