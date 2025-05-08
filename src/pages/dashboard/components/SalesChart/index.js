@@ -15,8 +15,6 @@ import InfoIcon from '@mui/icons-material/Info';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import GridOnIcon from '@mui/icons-material/GridOn';
 import GridOffIcon from '@mui/icons-material/GridOff';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import BarChartIcon from '@mui/icons-material/BarChart';
 
@@ -28,9 +26,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip as RechartsTooltip,
-  Legend,
-  ResponsiveContainer,
-  BarChart
+  ResponsiveContainer
 } from 'recharts';
 
 // Colores principales
@@ -41,7 +37,7 @@ const USD_LINE_COLOR = "#FFF59D"; // Amarillo para líneas USD
 const VES_LINE_COLOR = "#00f2fe"; // Azul más claro del degradado para las líneas
 
 const SalesChart = ({
-  title = "Facturación Mensual (USD y VES)",
+  title = "Facturación Mensual",
   data = [],
   isLoading = false,
   error = null
@@ -49,10 +45,25 @@ const SalesChart = ({
   const [showGrid, setShowGrid] = useState(true);
   const [seriesVisibility, setSeriesVisibility] = useState({
     facturacionUSD: true,
-    metasUSD: true,
+    lineaUSD: true,
     facturacionVES: true,
-    metasVES: true
+    lineaVES: true
   });
+  
+  // Preparar datos con líneas que siguen a las barras
+  const prepareChartData = (inputData) => {
+    if (!inputData || !Array.isArray(inputData) || inputData.length === 0) return [];
+    
+    return inputData.map(item => ({
+      ...item,
+      // Añadir propiedades para líneas que siguen valores de las barras
+      lineaUSD: item.facturacionUSD || 0,
+      lineaVES: item.facturacionVES || 0
+    }));
+  };
+  
+  // Preparar datos para el gráfico
+  const chartData = prepareChartData(data);
 
   const cardBackgroundColor = '#1e1e1e';
 
@@ -130,113 +141,55 @@ const SalesChart = ({
     );
   }
 
-  // Tooltip personalizado
+  // Tooltip personalizado mejorado
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
+      // Encontrar los valores de facturación
+      const usdValue = payload.find(p => p.dataKey === 'lineaUSD' || p.dataKey === 'facturacionUSD')?.value || 0;
+      const vesValue = payload.find(p => p.dataKey === 'lineaVES' || p.dataKey === 'facturacionVES')?.value || 0;
+      
       return (
         <Box
           sx={{
-            backgroundColor: alpha(cardBackgroundColor, 0.95),
+            backgroundColor: 'rgba(40, 40, 40, 0.9)',
             padding: '12px 16px',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            borderRadius: '10px',
-            boxShadow: '0 6px 20px rgba(0, 0, 0, 0.35)',
-            color: '#e0e0e0',
-            fontSize: '0.875rem'
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            borderRadius: '8px',
+            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.4)',
+            minWidth: '150px',
+            maxWidth: '250px'
           }}
         >
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.2, pb: 0.8, borderBottom: '1px solid rgba(255, 255, 255, 0.25)', color: '#fff' }}>
+          <Typography 
+            variant="subtitle2" 
+            sx={{ 
+              color: 'white', 
+              fontWeight: 600, 
+              mb: 1.5, 
+              pb: 0.5, 
+              borderBottom: '1px solid rgba(255, 255, 255, 0.15)' 
+            }}
+          >
             {payload[0]?.payload?.periodo || label}
           </Typography>
-
-          {/* Mostrar total si tenemos ambos tipos de facturación */}
-          {seriesVisibility.facturacionUSD && seriesVisibility.facturacionVES && (
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', my: 0.8, py: 0.2, borderBottom: '1px dashed rgba(255, 255, 255, 0.15)', pb: 1 }}>
-              <Typography variant="body2" sx={{ color: '#fff', fontWeight: 700 }}>
-                Total Facturación:
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 700, color: '#fff' }}>
-                {payload.find(p => p.dataKey === 'facturacionUSD')?.value &&
-                 payload.find(p => p.dataKey === 'facturacionVES')?.value ?
-                  `$${(payload.find(p => p.dataKey === 'facturacionUSD').value +
-                      payload.find(p => p.dataKey === 'facturacionVES').value / 35).toFixed(2)}` : ''}
+          
+          {seriesVisibility.facturacionUSD && (
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+              <Typography variant="body2" sx={{ color: '#aaa', fontWeight: 500 }}>USD:</Typography>
+              <Typography variant="body2" sx={{ color: 'white', fontWeight: 600 }}>
+                ${usdValue.toLocaleString('en-US', { maximumFractionDigits: 2 })}
               </Typography>
             </Box>
           )}
-
-          {/* Mostrar el porcentaje de cumplimiento de metas si ambas están visibles */}
-          {seriesVisibility.facturacionUSD && seriesVisibility.metasUSD && (
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', my: 0.8, py: 0.2, borderBottom: '1px dashed rgba(255, 255, 255, 0.15)', pb: 1 }}>
-              <Typography variant="body2" sx={{ color: '#fff', fontWeight: 700 }}>
-                Cumplimiento Meta USD:
-              </Typography>
-              <Typography variant="body2" sx={{
-                fontWeight: 700,
-                color: payload.find(p => p.dataKey === 'facturacionUSD')?.value >= payload.find(p => p.dataKey === 'metasUSD')?.value ? '#4caf50' : '#ff9800'
-              }}>
-                {payload.find(p => p.dataKey === 'facturacionUSD')?.value &&
-                 payload.find(p => p.dataKey === 'metasUSD')?.value ?
-                  `${Math.round((payload.find(p => p.dataKey === 'facturacionUSD').value /
-                      payload.find(p => p.dataKey === 'metasUSD').value) * 100)}%` : ''}
+          
+          {seriesVisibility.facturacionVES && (
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2" sx={{ color: '#aaa', fontWeight: 500 }}>VES:</Typography>
+              <Typography variant="body2" sx={{ color: 'white', fontWeight: 600 }}>
+                {vesValue.toLocaleString('es-VE', { maximumFractionDigits: 0 })} VES
               </Typography>
             </Box>
           )}
-
-          {seriesVisibility.facturacionVES && seriesVisibility.metasVES && (
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', my: 0.8, py: 0.2, borderBottom: '1px dashed rgba(255, 255, 255, 0.15)', pb: 1 }}>
-              <Typography variant="body2" sx={{ color: '#fff', fontWeight: 700 }}>
-                Cumplimiento Meta VES:
-              </Typography>
-              <Typography variant="body2" sx={{
-                fontWeight: 700,
-                color: payload.find(p => p.dataKey === 'facturacionVES')?.value >= payload.find(p => p.dataKey === 'metasVES')?.value ? '#4caf50' : '#ff9800'
-              }}>
-                {payload.find(p => p.dataKey === 'facturacionVES')?.value &&
-                 payload.find(p => p.dataKey === 'metasVES')?.value ?
-                  `${Math.round((payload.find(p => p.dataKey === 'facturacionVES').value /
-                      payload.find(p => p.dataKey === 'metasVES').value) * 100)}%` : ''}
-              </Typography>
-            </Box>
-          )}
-
-          {/* Mostrar cada serie individual */}
-          {payload.map((entry, index) => {
-            if (!entry.dataKey || !seriesVisibility[entry.dataKey]) return null;
-
-            let seriesColor;
-            if (entry.dataKey === "metasUSD") seriesColor = USD_LINE_COLOR;
-            else if (entry.dataKey === "metasVES") seriesColor = VES_LINE_COLOR;
-            else if (entry.dataKey === "facturacionUSD") seriesColor = USD_COLOR;
-            else if (entry.dataKey === "facturacionVES") seriesColor = "#4facfe"; // Color principal del gradiente
-
-            return (
-              <Box key={`item-${index}`} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', my: 0.8, py: 0.2 }}>
-                <Box sx={{display: 'flex', alignItems: 'center'}}>
-                    <Box component="span" sx={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: '50%',
-                      backgroundColor: seriesColor,
-                      mr: 1.2,
-                      border: `1px solid ${entry.dataKey === "facturacionUSD" ? 'rgba(150, 150, 150, 0.7)' : alpha(seriesColor, 0.7)}`,
-                      background: entry.dataKey === "facturacionVES" ? 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)' : seriesColor
-                    }} />
-                    <Typography variant="body2" sx={{ color: alpha('#fff', 0.9), fontWeight: 500, mr: 1.5 }}>
-                      {entry.dataKey === "facturacionUSD" ? "Facturación (USD)" :
-                       entry.dataKey === "facturacionVES" ? "Facturación (VES)" :
-                       entry.dataKey === "metasUSD" ? "Meta (USD)" :
-                       entry.dataKey === "metasVES" ? "Meta (VES)" : entry.name}:
-                    </Typography>
-                </Box>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: '#fff' }}>
-                  {entry.dataKey.includes('VES')
-                    ? `${entry.value.toLocaleString('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: 0})} VES`
-                    : `${entry.value.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2})}`
-                  }
-                </Typography>
-              </Box>
-            );
-          })}
         </Box>
       );
     }
@@ -265,7 +218,7 @@ const SalesChart = ({
             }}
           >
             {title}
-            <Tooltip title="Muestra facturación mensual en USD y VES. Las barras indican facturación real y las líneas muestran las metas establecidas.">
+            <Tooltip title="Muestra facturación mensual en USD y VES. Las barras indican facturación real y las líneas muestran la tendencia.">
               <InfoIcon fontSize="small" sx={{ ml: 1, color: 'rgba(255, 255, 255, 0.65)', '&:hover': {color: '#fff'} }} />
             </Tooltip>
           </Typography>
@@ -306,8 +259,8 @@ const SalesChart = ({
         <Box sx={{ width: '100%', height: 330, position: 'relative' }}>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
-              data={data}
-              margin={{ top: 10, right: 25, left: 5, bottom: 10 }}
+              data={chartData}
+              margin={{ top: 20, right: 25, left: 5, bottom: 10 }}
             >
               {/* Definir el gradiente para las barras VES */}
               <defs>
@@ -353,36 +306,10 @@ const SalesChart = ({
                 label={{ value: 'VES', angle: -90, position: 'insideRight', fill: alpha(VES_LINE_COLOR,0.9), fontSize:12, offset: -15, dy:5}}
               />
 
-              <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: alpha(cardBackgroundColor, 0.4) }}/>
-
-              {/* Líneas de metas mensuales */}
-              {seriesVisibility.metasUSD && (
-                <Line
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="metasUSD"
-                  stroke={USD_LINE_COLOR}
-                  strokeWidth={2.5}
-                  name="Meta (USD)"
-                  dot={{ fill: cardBackgroundColor, stroke: USD_LINE_COLOR, strokeWidth: 2, r: 4.5 }}
-                  activeDot={{ r: 6, fill: USD_LINE_COLOR, stroke: cardBackgroundColor, strokeWidth: 2 }}
-                  animationDuration={600}
-                />
-              )}
-
-              {seriesVisibility.metasVES && (
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="metasVES"
-                  stroke={VES_LINE_COLOR}
-                  strokeWidth={2.5}
-                  name="Meta (VES)"
-                  dot={{ fill: cardBackgroundColor, stroke: VES_LINE_COLOR, strokeWidth: 2, r: 4.5 }}
-                  activeDot={{ r: 6, fill: VES_LINE_COLOR, stroke: cardBackgroundColor, strokeWidth: 2 }}
-                  animationDuration={600}
-                />
-              )}
+              <RechartsTooltip 
+                content={<CustomTooltip />} 
+                cursor={false} // Eliminar cursor para un aspecto más limpio
+              />
 
               {/* BARRAS APILADAS */}
               {/* Primero dibujamos barras VES con gradiente */}
@@ -416,6 +343,53 @@ const SalesChart = ({
                   barSize={32}
                   animationDuration={600}
                   fillOpacity={0.95}
+                />
+              )}
+              
+              {/* Líneas que siguen los valores de las barras - con puntos para interacción */}
+              {seriesVisibility.lineaUSD && (
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="lineaUSD"
+                  stroke={USD_LINE_COLOR}
+                  strokeWidth={2.5}
+                  dot={{ 
+                    r: 5, 
+                    fill: USD_LINE_COLOR,
+                    stroke: '#222', 
+                    strokeWidth: 1 
+                  }}
+                  activeDot={{ 
+                    r: 7, 
+                    fill: USD_LINE_COLOR,
+                    stroke: '#fff', 
+                    strokeWidth: 2 
+                  }}
+                  animationDuration={800}
+                />
+              )}
+              
+              {seriesVisibility.lineaVES && (
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="lineaVES"
+                  stroke={VES_LINE_COLOR}
+                  strokeWidth={2.5}
+                  dot={{ 
+                    r: 5, 
+                    fill: VES_LINE_COLOR, 
+                    stroke: '#222', 
+                    strokeWidth: 1 
+                  }}
+                  activeDot={{ 
+                    r: 7, 
+                    fill: VES_LINE_COLOR,
+                    stroke: '#fff', 
+                    strokeWidth: 2 
+                  }}
+                  animationDuration={800}
                 />
               )}
             </ComposedChart>
@@ -458,23 +432,23 @@ const SalesChart = ({
             size="small"
           />
           <Chip
-            label="Meta (USD)"
-            icon={<ShowChartIcon sx={{ fontSize: '1rem', opacity: seriesVisibility.metasUSD ? 1 : 0.6 }}/>}
+            label="Línea (USD)"
+            icon={<ShowChartIcon sx={{ fontSize: '1rem', opacity: seriesVisibility.lineaUSD ? 1 : 0.6 }}/>}
             clickable
-            onClick={() => toggleSeries('metasUSD')}
+            onClick={() => toggleSeries('lineaUSD')}
             sx={{
-              backgroundColor: seriesVisibility.metasUSD ? alpha(USD_LINE_COLOR, 0.75) : 'rgba(255, 255, 255, 0.08)',
-              color: seriesVisibility.metasUSD ? '#333333' : 'rgba(255, 255, 255, 0.5)',
-              border: `1.5px solid ${seriesVisibility.metasUSD ? alpha(USD_LINE_COLOR, 0.9) : 'rgba(255, 255, 255, 0.2)'}`,
+              backgroundColor: seriesVisibility.lineaUSD ? alpha(USD_LINE_COLOR, 0.75) : 'rgba(255, 255, 255, 0.08)',
+              color: seriesVisibility.lineaUSD ? '#333333' : 'rgba(255, 255, 255, 0.5)',
+              border: `1.5px solid ${seriesVisibility.lineaUSD ? alpha(USD_LINE_COLOR, 0.9) : 'rgba(255, 255, 255, 0.2)'}`,
               '& .MuiChip-icon': {
-                color: seriesVisibility.metasUSD ? '#333333' : 'rgba(255, 255, 255, 0.5)',
+                color: seriesVisibility.lineaUSD ? '#333333' : 'rgba(255, 255, 255, 0.5)',
               },
               '&:hover': {
-                backgroundColor: seriesVisibility.metasUSD ? alpha(USD_LINE_COLOR, 0.85) : 'rgba(255, 255, 255, 0.12)',
-                borderColor: seriesVisibility.metasUSD ? alpha(USD_LINE_COLOR, 1) : 'rgba(255, 255, 255, 0.3)',
+                backgroundColor: seriesVisibility.lineaUSD ? alpha(USD_LINE_COLOR, 0.85) : 'rgba(255, 255, 255, 0.12)',
+                borderColor: seriesVisibility.lineaUSD ? alpha(USD_LINE_COLOR, 1) : 'rgba(255, 255, 255, 0.3)',
               },
               transition: 'all 0.2s ease-in-out',
-              fontWeight: seriesVisibility.metasUSD ? 600 : 500,
+              fontWeight: seriesVisibility.lineaUSD ? 600 : 500,
               fontSize: '0.75rem',
               padding: '0px 10px',
               height: '30px',
@@ -511,23 +485,23 @@ const SalesChart = ({
             size="small"
           />
           <Chip
-            label="Meta (VES)"
-            icon={<ShowChartIcon sx={{ fontSize: '1rem', opacity: seriesVisibility.metasVES ? 1 : 0.6 }}/>}
+            label="Línea (VES)"
+            icon={<ShowChartIcon sx={{ fontSize: '1rem', opacity: seriesVisibility.lineaVES ? 1 : 0.6 }}/>}
             clickable
-            onClick={() => toggleSeries('metasVES')}
+            onClick={() => toggleSeries('lineaVES')}
             sx={{
-              backgroundColor: seriesVisibility.metasVES ? alpha(VES_LINE_COLOR, 0.75) : 'rgba(255, 255, 255, 0.08)',
-              color: seriesVisibility.metasVES ? '#333333' : 'rgba(255, 255, 255, 0.5)',
-              border: `1.5px solid ${seriesVisibility.metasVES ? alpha(VES_LINE_COLOR, 0.9) : 'rgba(255, 255, 255, 0.2)'}`,
+              backgroundColor: seriesVisibility.lineaVES ? alpha(VES_LINE_COLOR, 0.75) : 'rgba(255, 255, 255, 0.08)',
+              color: seriesVisibility.lineaVES ? '#333333' : 'rgba(255, 255, 255, 0.5)',
+              border: `1.5px solid ${seriesVisibility.lineaVES ? alpha(VES_LINE_COLOR, 0.9) : 'rgba(255, 255, 255, 0.2)'}`,
               '& .MuiChip-icon': {
-                color: seriesVisibility.metasVES ? '#333333' : 'rgba(255, 255, 255, 0.5)',
+                color: seriesVisibility.lineaVES ? '#333333' : 'rgba(255, 255, 255, 0.5)',
               },
               '&:hover': {
-                backgroundColor: seriesVisibility.metasVES ? alpha(VES_LINE_COLOR, 0.85) : 'rgba(255, 255, 255, 0.12)',
-                borderColor: seriesVisibility.metasVES ? alpha(VES_LINE_COLOR, 1) : 'rgba(255, 255, 255, 0.3)',
+                backgroundColor: seriesVisibility.lineaVES ? alpha(VES_LINE_COLOR, 0.85) : 'rgba(255, 255, 255, 0.12)',
+                borderColor: seriesVisibility.lineaVES ? alpha(VES_LINE_COLOR, 1) : 'rgba(255, 255, 255, 0.3)',
               },
               transition: 'all 0.2s ease-in-out',
-              fontWeight: seriesVisibility.metasVES ? 600 : 500,
+              fontWeight: seriesVisibility.lineaVES ? 600 : 500,
               fontSize: '0.75rem',
               padding: '0px 10px',
               height: '30px',
