@@ -299,9 +299,26 @@ export const usersApi = {
       console.error('Error fatal al actualizar avatar de usuario:', error);
       throw error; // Relanzar para manejo superior
     }
-  }
+  },
 
-
+  // Añadir este método al objeto usersApi
+  updateMyTimezone: async (timezone) => {
+    try {
+      console.log('Actualizando zona horaria del usuario...');
+      const response = await fetch(`${API_BASE_URL}/users/me/timezone`, {
+        method: 'PATCH',
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ timezone })
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error('Error al actualizar zona horaria:', error);
+      throw error;
+    }
+  },
 };
 
 // Para mantener compatibilidad con las funciones que hemos creado antes
@@ -318,3 +335,5 @@ export const updateProfileApi = usersApi.updateProfile; // Exportar el de aquí
 // --- INICIO: Exportar nueva función ---
 export const updateMyAvatarApi = usersApi.updateMyAvatar;
 // --- FIN: Exportar nueva función ---
+// Añadir esta exportación junto a las demás
+export const updateMyTimezoneApi = usersApi.updateMyTimezone;

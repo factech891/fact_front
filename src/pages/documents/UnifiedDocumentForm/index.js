@@ -1,5 +1,4 @@
 // src/pages/documents/UnifiedDocumentForm/index.js
-// (Importaciones como estaban)
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -14,18 +13,18 @@ import {
   Divider,
   CircularProgress,
   Paper,
-  Alert // Importar Alert para mostrar advertencias/errores
+  Alert
 } from '@mui/material';
 import {
   Close as CloseIcon,
   Save as SaveIcon,
   RestartAlt as ResetIcon,
-  WarningAmberRounded as WarningIcon // Icono para advertencia/error
+  WarningAmberRounded as WarningIcon
 } from '@mui/icons-material';
 
 import DocumentTypeSection from './DocumentTypeSection';
 import ClientSection from './ClientSection';
-import ItemsSection from './ItemsSection'; // Importamos ItemsSection
+import ItemsSection from './ItemsSection';
 import NotesSection from './NotesSection';
 
 import { calculateTotals } from './utils/calculations';
@@ -36,31 +35,32 @@ import {
   DOCUMENT_TYPE_NAMES
 } from '../constants/documentTypes';
 
-// Función auxiliar para formatear fechas (sin cambios)
-const formatLocalDate = (dateInput) => {
+// Importar las utilidades de zonas horarias y el contexto de autenticación
+import { formatForDateInput, utcToLocalTime, localTimeToUtc } from '../../../utils/dateUtils';
+import { useAuth } from '../../../context/AuthContext';
+
+// Función auxiliar para formatear fechas (modificada para usar zona horaria)
+const formatLocalDate = (dateInput, timezone) => {
   if (!dateInput) {
-    return new Date().toISOString().split('T')[0];
+    return formatForDateInput(new Date(), timezone);
   }
+  
   if (typeof dateInput === 'string') {
-    if (dateInput.includes('T')) {
-      return dateInput.split('T')[0];
-    }
-    if (dateInput.includes('-')) {
-      return dateInput.split(' ')[0];
-    }
-    console.warn('Formato de fecha desconocido:', dateInput);
-    return new Date().toISOString().split('T')[0];
-  }
-  try {
+    // Convertir a un objeto Date primero
     const date = new Date(dateInput);
     if (isNaN(date.getTime())) {
       console.warn('Fecha inválida:', dateInput);
-      return new Date().toISOString().split('T')[0];
+      return formatForDateInput(new Date(), timezone);
     }
-    return date.toISOString().split('T')[0];
+    // Convertir a zona horaria local y formatear para input de tipo fecha
+    return formatForDateInput(date, timezone);
+  }
+  
+  try {
+    return formatForDateInput(dateInput, timezone);
   } catch (error) {
     console.error('Error al procesar fecha:', error);
-    return new Date().toISOString().split('T')[0];
+    return formatForDateInput(new Date(), timezone);
   }
 };
 
@@ -70,9 +70,13 @@ const UnifiedDocumentForm = ({
   initialData = null,
   onSave,
   clients = [],
-  products = [], // Lista completa de productos/servicios disponibles
+  products = [],
   isInvoice = false
 }) => {
+  // Obtener el usuario actual para acceder a su zona horaria
+  const { currentUser } = useAuth();
+  const userTimezone = currentUser?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  
   // Estilo para botones de acción principal (sin cambios)
   const actionButtonStyle = {
     borderRadius: '50px',
@@ -107,19 +111,19 @@ const UnifiedDocumentForm = ({
   const [errors, setErrors] = useState({});
   const [submitStockErrors, setSubmitStockErrors] = useState([]);
 
-  // --- CORRECCIÓN: Mover definición de getInitialFormState ANTES de su uso ---
+  // Calcular fecha de vencimiento basada en la zona horaria
   const calculateExpiryDate = (docType) => {
     if (isInvoice || docType !== DOCUMENT_TYPES.QUOTE) return null;
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + 30);
-    return formatLocalDate(expiryDate);
+    return formatLocalDate(expiryDate, userTimezone);
   };
 
   const getInitialFormState = () => ({
     type: isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE,
     documentType: isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE,
     documentNumber: '',
-    date: formatLocalDate(new Date()),
+    date: formatLocalDate(new Date(), userTimezone),
     expiryDate: calculateExpiryDate(isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE),
     status: isInvoice ? 'DRAFT' : DOCUMENT_STATUS.DRAFT,
     client: null,
@@ -137,14 +141,12 @@ const UnifiedDocumentForm = ({
     notes: '',
     terms: ''
   });
-  // --- FIN CORRECCIÓN ---
 
   // Ahora inicializamos el estado usando la función ya definida
   const [formData, setFormData] = useState(getInitialFormState());
-  const [selectedProducts, setSelectedProducts] = useState([]); // Estado para el Autocomplete
+  const [selectedProducts, setSelectedProducts] = useState([]);
 
-
-  // useEffect para cargar initialData (sin cambios respecto a la versión anterior)
+  // useEffect para cargar initialData (modificado para timezone)
   useEffect(() => {
     setProductWarnings([]);
     setSubmitStockErrors([]);
@@ -189,13 +191,17 @@ const UnifiedDocumentForm = ({
              };
         });
 
+        // Convertir fechas de UTC a zona horaria local
         let dateValue = initialData.date;
-        if (dateValue && typeof dateValue === 'string' && dateValue.includes('T')) {
-          dateValue = dateValue.split('T')[0];
+        if (dateValue) {
+          // Convertir la fecha UTC a zona horaria local
+          dateValue = formatLocalDate(dateValue, userTimezone);
         }
+        
         let expiryDateValue = initialData.expiryDate;
-        if (expiryDateValue && typeof expiryDateValue === 'string' && expiryDateValue.includes('T')) {
-          expiryDateValue = expiryDateValue.split('T')[0];
+        if (expiryDateValue) {
+          // Convertir la fecha UTC a zona horaria local
+          expiryDateValue = formatLocalDate(expiryDateValue, userTimezone);
         }
 
         const totals = calculateTotals(loadedItems);
@@ -206,7 +212,7 @@ const UnifiedDocumentForm = ({
           type: initialData.type || (isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE),
           documentType: initialData.documentType || initialData.type || (isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE),
           documentNumber: initialData.documentNumber || initialData.number || '',
-          date: dateValue || formatLocalDate(new Date()),
+          date: dateValue || formatLocalDate(new Date(), userTimezone),
           expiryDate: expiryDateValue || calculateExpiryDate(initialData.type),
           status: (isInvoice ? (initialData.status || 'DRAFT') : initialData.status || DOCUMENT_STATUS.DRAFT).toUpperCase(),
           client: clients.find(c => c._id === (initialData.client?._id || initialData.client)) || initialData.client || null,
@@ -231,7 +237,7 @@ const UnifiedDocumentForm = ({
         resetForm();
       }
     }
-  }, [open, initialData, products, clients, isInvoice]); // Dependencias actualizadas
+  }, [open, initialData, products, clients, isInvoice, userTimezone]);
 
   // La función resetForm ahora usa getInitialFormState que ya está definida arriba
   const resetForm = () => {
@@ -301,7 +307,6 @@ const UnifiedDocumentForm = ({
     setSubmitStockErrors([]);
   };
 
-
   // handleItemChange (sin cambios)
   const handleItemChange = (index, field, value) => {
     const updatedItems = [...formData.items];
@@ -323,7 +328,7 @@ const UnifiedDocumentForm = ({
     setSubmitStockErrors([]);
   };
 
-  // handleSubmit con validación de stock (sin cambios)
+  // handleSubmit modificado para convertir fechas a UTC antes de guardar
   const handleSubmit = () => {
     setErrors({});
     setSubmitStockErrors([]);
@@ -363,14 +368,44 @@ const UnifiedDocumentForm = ({
 
     setSaving(true);
     const statusToSend = isInvoice ? formData.status.toLowerCase() : formData.status;
+    
+    // Convertir fechas de la zona horaria local a UTC antes de guardar
+    let utcDate;
+    try {
+      // Primero convertir a objeto Date si es string
+      const localDate = typeof formData.date === 'string' 
+        ? new Date(formData.date) 
+        : formData.date;
+      
+      // Convertir a UTC
+      utcDate = localTimeToUtc(localDate, userTimezone);
+    } catch (error) {
+      console.error("Error al convertir fecha a UTC:", error);
+      utcDate = new Date(); // Fallback a fecha actual
+    }
+    
+    // Procesar fecha de vencimiento si existe
+    let utcExpiryDate = null;
+    if (formData.expiryDate) {
+      try {
+        const localExpiryDate = typeof formData.expiryDate === 'string'
+          ? new Date(formData.expiryDate)
+          : formData.expiryDate;
+        
+        utcExpiryDate = localTimeToUtc(localExpiryDate, userTimezone);
+      } catch (error) {
+        console.error("Error al convertir fecha de vencimiento a UTC:", error);
+      }
+    }
+    
     const documentToSave = {
       _id: initialData?._id,
       type: formData.type,
       documentType: formData.documentType,
       number: formData.documentNumber || undefined,
       documentNumber: formData.documentNumber || undefined,
-      date: formData.date,
-      expiryDate: formData.expiryDate,
+      date: utcDate.toISOString().split('T')[0], // Formato YYYY-MM-DD en UTC
+      expiryDate: utcExpiryDate ? utcExpiryDate.toISOString().split('T')[0] : null,
       status: statusToSend,
       client: formData.client?._id || formData.client,
       currency: formData.currency,

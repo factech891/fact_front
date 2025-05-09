@@ -24,6 +24,7 @@ import {
 } from '@mui/icons-material';
 import InvoiceActions from './components/InvoiceActions';
 import AuthContext from '../../context/AuthContext'; // Asegúrate que la ruta sea correcta
+import { formatDate } from '../../utils/dateUtils'; // 1. Agregar importación de utilidades de fecha
 
 // Componentes estilizados para el tema oscuro (sin cambios)
 const StyledTableHead = styled(TableHead)(({ theme }) => ({
@@ -103,10 +104,12 @@ const StyledTablePagination = styled(TablePagination)(({ theme }) => ({
 }));
 
 export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDownload, onStatusChange }) => {
-  // --- MODIFICACIÓN: Obtener hasRole del contexto ---
-  const { hasRole } = useContext(AuthContext);
+  // --- MODIFICACIÓN: Obtener usuario completo del contexto ---
+  const { hasRole, currentUser } = useContext(AuthContext);
   // Determinar si el usuario actual es visor
   const isViewer = hasRole('visor');
+  // Obtener la zona horaria del usuario
+  const userTimezone = currentUser?.timezone;
   // --- FIN MODIFICACIÓN ---
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -165,18 +168,12 @@ export const InvoiceTable = ({ invoices = [], onEdit, onDelete, onPreview, onDow
     }
   };
 
+  // Modificar la función formatDisplayDate para usar nuestras utilidades
   const formatDisplayDate = (dateString) => {
     if (!dateString) return '—';
     try {
-      if (dateString.includes('T')) {
-        const d = new Date(dateString);
-        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-      }
-      const parts = dateString.split('-');
-      if (parts.length === 3) {
-        return `${parts[2]}/${parts[1]}/${parts[0]}`;
-      }
-      return dateString;
+      // Usar nuestra utilidad formatDate que maneja zonas horarias
+      return formatDate(dateString, 'dd/MM/yyyy', userTimezone);
     } catch (e) {
       console.error('Error formateando fecha:', e);
       return dateString || '—';

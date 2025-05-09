@@ -13,15 +13,23 @@ import {
   IconButton,
   Alert,
   Snackbar,
-  Tooltip
+  Tooltip,
+  FormControl, // Added
+  InputLabel,  // Added
+  Select,      // Added
+  MenuItem     // Added
 } from '@mui/material';
 import { useAuth } from '../../context/AuthContext';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import AccessTimeIcon from '@mui/icons-material/AccessTime'; // Added
 
 // --- API Imports ---
 import { authApi } from '../../services/AuthApi';
 import { usersApi } from '../../services/UsersApi';
+
+// --- Utils Imports ---
+import { detectBrowserTimezone, commonTimezones } from '../../utils/dateUtils'; // Added
 
 // --- URLs de Avatares Disponibles ---
 const availableAvatarUrls = [
@@ -58,6 +66,13 @@ const ProfilePage = () => {
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState(null);
   const [loadingAvatar, setLoadingAvatar] = useState(false);
 
+  // Añadir estado para timezone
+  const [timezoneData, setTimezoneData] = useState({
+    timezone: '',
+    loading: false,
+    error: null
+  });
+
   // --- useEffect para inicializar datos del perfil y avatar al cargar ---
   useEffect(() => {
     if (currentUser) {
@@ -65,6 +80,12 @@ const ProfilePage = () => {
         nombre: currentUser.nombre || currentUser.name || '',
         email: currentUser.email || ''
       });
+
+      // Añadir esta línea para la zona horaria
+      setTimezoneData(prev => ({
+        ...prev,
+        timezone: currentUser.timezone || detectBrowserTimezone()
+      }));
       
       // Usar el avatar guardado en el backend, o el primero de la lista como fallback
       let avatarToSet = currentUser.selectedAvatarUrl; // Prioridad 1: Backend
@@ -192,6 +213,64 @@ const ProfilePage = () => {
       setShowAlert(true);
     } finally {
       setLoadingAvatar(false);
+    }
+  };
+
+  // Añadir estas funciones para manejar la zona horaria
+  const handleTimezoneChange = (e) => {
+    setTimezoneData(prev => ({
+      ...prev,
+      timezone: e.target.value
+    }));
+  };
+
+  const handleSaveTimezone = async () => {
+    if (timezoneData.loading) return;
+    
+    setTimezoneData(prev => ({
+      ...prev,
+      loading: true,
+      error: null
+    }));
+    
+    try {
+      const response = await usersApi.updateMyTimezone(timezoneData.timezone);
+      
+      if (response && response.success) {
+        // Actualizar el contexto
+        if (updateUserContext && currentUser) {
+          const updatedUser = {
+            ...currentUser,
+            timezone: timezoneData.timezone
+          };
+          updateUserContext(updatedUser);
+        }
+        
+        // Mostrar mensaje de éxito
+        setAlertInfo({
+          severity: 'success',
+          message: 'Zona horaria actualizada correctamente'
+        });
+        setShowAlert(true);
+      } else {
+        throw new Error(response?.message || 'Error al actualizar la zona horaria');
+      }
+    } catch (error) {
+      console.error("Error al guardar zona horaria:", error);
+      setTimezoneData(prev => ({
+        ...prev,
+        error: error.message
+      }));
+      setAlertInfo({
+        severity: 'error',
+        message: `Error: ${error.message}`
+      });
+      setShowAlert(true);
+    } finally {
+      setTimezoneData(prev => ({
+        ...prev,
+        loading: false
+      }));
     }
   };
 
@@ -355,6 +434,7 @@ const ProfilePage = () => {
                 fullWidth label="Email" variant="outlined" name="email"
                 value={profileData.email} disabled={true}
                 sx={{
+                  // mb: 2, // Original mb was here, moved to timezone section if it replaces this block's bottom margin
                   '& .MuiOutlinedInput-root': {
                     '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.23)' },
                   },
@@ -364,6 +444,69 @@ const ProfilePage = () => {
                 }}
               />
             </Tooltip>
+            
+            {/* Añadir después de los campos de nombre y email */}
+            <Box sx={{ mt: 4, pt: 2, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+              <Typography variant="subtitle2" color="rgba(255,255,255,0.7)" gutterBottom>
+                Zona Horaria
+              </Typography>
+              
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <FormControl fullWidth sx={{ 
+                  mb: 2,
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.23)' },
+                    '&:hover fieldset': { borderColor: mainColor },
+                    '&.Mui-focused fieldset': { borderColor: mainColor },
+                  },
+                  '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                  '& .MuiInputLabel-root.Mui-focused': { color: mainColor },
+                  '& .MuiSelect-icon': { color: 'rgba(255, 255, 255, 0.7)' },
+                  '& .MuiInputBase-input': { color: 'white' }
+                }}>
+                  <InputLabel>Zona Horaria</InputLabel>
+                  <Select
+                    value={timezoneData.timezone}
+                    onChange={handleTimezoneChange}
+                    label="Zona Horaria"
+                    // Posible conflicto: `startAdornment` no es una prop directa de `Select`.
+                    // Debería estar en un `Input` o `OutlinedInput` usado como `inputComponent` del `Select`
+                    // o como parte del InputLabel. Se mantiene como solicitado.
+                    startAdornment={ 
+                      <AccessTimeIcon sx={{ mr: 1, color: 'rgba(255, 255, 255, 0.7)' }} />
+                    }
+                  >
+                    {commonTimezones.map((tz) => (
+                      <MenuItem key={tz.value} value={tz.value}>
+                        {tz.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                
+                <Button
+                  variant="contained"
+                  onClick={handleSaveTimezone}
+                  disabled={timezoneData.loading}
+                  sx={{
+                    height: 40,
+                    mb: 2,
+                    backgroundImage: buttonGradient,
+                    color: 'white',
+                    fontWeight: 'bold',
+                    '&:hover': { opacity: 0.9 }
+                  }}
+                >
+                  {timezoneData.loading ? <CircularProgress size={24} color="inherit"/> : 'Guardar'}
+                </Button>
+              </Box>
+              
+              {timezoneData.error && (
+                <Alert severity="error" sx={{ mb: 2, bgcolor: 'rgba(211,47,47,0.1)', color: '#f44336' }}>
+                  {timezoneData.error}
+                </Alert>
+              )}
+            </Box>
 
             {/* Información de la Empresa */}
             {company && (
