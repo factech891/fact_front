@@ -1,4 +1,4 @@
-// src/context/AuthContext.js (actualizado con manejo de avatares específicos por usuario)
+// src/context/AuthContext.js (actualizado con manejo de avatares específicos por usuario y funciones de verificación de email)
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { authApi } from '../services/AuthApi';
 import { useNavigate } from 'react-router-dom';
@@ -85,6 +85,13 @@ export const AuthProvider = ({ children }) => {
         
         return { user, company, subscription };
       } else {
+        // Si la API devuelve un error específico de verificación, lanzarlo
+        if (response.needsVerification) {
+            const error = new Error(response.message || 'Email no verificado');
+            // @ts-ignore // Suprimir advertencia de TypeScript si 'response' no tiene 'data'
+            error.response = { data: { needsVerification: true } }; 
+            throw error;
+        }
         throw new Error(response.message || 'Error al iniciar sesión');
       }
     } catch (error) {
@@ -121,6 +128,11 @@ export const AuthProvider = ({ children }) => {
 
   // Función para cerrar sesión
   const logout = () => {
+    // Sugerencia de refactor: Considerar limpiar localStorage específico del avatar al cerrar sesión si es apropiado.
+    // Ejemplo: if (currentUser && (currentUser.id || currentUser._id)) {
+    //   const userId = currentUser.id || currentUser._id;
+    //   localStorage.removeItem(`userAvatar_${userId}`);
+    // }
     localStorage.removeItem('token');
     setToken(null);
     setCurrentUser(null);
@@ -176,14 +188,12 @@ export const AuthProvider = ({ children }) => {
 
   // Función para actualizar los datos del usuario en el contexto
   const updateUserContext = (updatedUserData) => {
-    // Actualizar solo en el contexto
     setCurrentUser(prevUser => {
       const newUserData = {
         ...prevUser,
         ...updatedUserData
       };
       
-      // Si actualizamos el avatar, guardarlo en localStorage específico para este usuario
       if (updatedUserData.selectedAvatarUrl && prevUser && (prevUser.id || prevUser._id)) {
         const userId = prevUser.id || prevUser._id;
         const avatarKey = `userAvatar_${userId}`;
@@ -199,12 +209,10 @@ export const AuthProvider = ({ children }) => {
   const hasRole = (role) => {
     if (!currentUser) return false;
     
-    // Si el usuario tiene propiedad 'roles' como array
     if (currentUser.roles && Array.isArray(currentUser.roles)) {
       return currentUser.roles.includes(role);
     }
     
-    // Si el usuario tiene propiedad 'role' como string
     if (currentUser.role) {
       return currentUser.role === role;
     }
@@ -216,13 +224,46 @@ export const AuthProvider = ({ children }) => {
   const getHomePageByRole = () => {
     if (!currentUser) return '/auth/login';
     
-    // Si es facturador, va directo a facturas
     if (hasRole('facturador')) {
       return '/invoices';
     }
     
-    // Para el resto de roles, mostrar dashboard
     return '/';
+  };
+
+  // Función para solicitar verificación de correo
+  const requestEmailVerification = async (email) => {
+    try {
+      setError(null);
+      // Asumimos que authApi.requestEmailVerification existe y está implementada
+      const response = await authApi.requestEmailVerification(email);
+      // Devolver la respuesta completa para que el componente pueda manejar 'success' u otros datos.
+      return response; 
+    } catch (error) {
+      // @ts-ignore // Suprimir advertencia de TypeScript si error no tiene message
+      setError(error.message);
+      throw error;
+    }
+  };
+
+  // Función para verificar correo con token
+  const verifyEmail = async (verificationToken) => { // Renombrado el parámetro para evitar colisión con el 'token' del estado.
+    try {
+      setError(null);
+      // Asumimos que authApi.verifyEmail existe y está implementada
+      const response = await authApi.verifyEmail(verificationToken);
+      // Devolver la respuesta completa para que el componente pueda manejar 'success' u otros datos.
+      // Si la verificación es exitosa y devuelve datos del usuario, podríamos actualizar el contexto aquí.
+      // Ejemplo: if (response.success && response.user) {
+      //   setCurrentUser(response.user);
+      //   // Considerar también actualizar 'company' y 'subscription' si aplica.
+      // }
+      return response;
+    } catch (error) {
+      // @ts-ignore // Suprimir advertencia de TypeScript si error no tiene message
+      setError(error.message);
+      throw error;
+    }
   };
 
   // Proporcionar el contexto
@@ -241,7 +282,9 @@ export const AuthProvider = ({ children }) => {
     changePassword,
     hasRole,
     getHomePageByRole,
-    updateUserContext  // Actualizado para manejar avatares específicos por usuario
+    updateUserContext,
+    requestEmailVerification, // Añadida la nueva función
+    verifyEmail               // Añadida la nueva función
   };
 
   return (

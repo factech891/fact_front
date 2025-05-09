@@ -98,24 +98,35 @@ const Register = () => {
       setActiveStep((prev) => prev - 1);
       setError(''); // Clear error on going back
   };
-  const handleSubmit = async (e) => {
-      e.preventDefault();
-      if (!validateStep()) return;
 
-      setLoading(true);
-      setError('');
-      try {
-          const registrationData = { company: companyData, user: userData };
-          console.log("Submitting registration:", registrationData); // Log para debug
-          await register(registrationData); // Llama a la función del contexto
-          navigate('/dashboard', { replace: true });
-      } catch (err) {
-          console.error("Registration failed:", err);
-          setError(err.message || 'Error en el registro.');
-      } finally {
-          setLoading(false);
-      }
+  // --- Modificación de handleSubmit ---
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateStep()) return;
+
+    setLoading(true);
+    setError('');
+    try {
+        const registrationData = { company: companyData, user: userData };
+        console.log("Submitting registration:", registrationData);
+        // @ts-ignore // Suprimir advertencia si `register` no tiene un tipo de retorno explícito que se use aquí.
+        const result = await register(registrationData); // Guardar resultado por si se necesita
+        
+        // Guardar el email para usarlo en la página de verificación
+        localStorage.setItem('pendingVerificationEmail', userData.email);
+        
+        // Redirigir a la página de verificación en lugar del dashboard
+        navigate('/auth/verify-email-notice', { replace: true });
+    } catch (err) {
+        console.error("Registration failed:", err);
+        // @ts-ignore // Suprimir advertencia si `err` no tiene `message`
+        setError(err.message || 'Error en el registro.');
+    } finally {
+        setLoading(false);
+    }
   };
+  // --- Fin de Modificación de handleSubmit ---
+
 
   // --- Renderizado ---
   return (

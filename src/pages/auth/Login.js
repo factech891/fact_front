@@ -10,7 +10,6 @@ import EmailIcon from '@mui/icons-material/Email';
 import LockIcon from '@mui/icons-material/Lock';
 import { useAuth } from '../../context/AuthContext';
 
-// ... (GradientText y BACKGROUND_IMAGE_URL sin cambios) ...
 const BACKGROUND_IMAGE_URL = 'https://pub-c37b7a23aa9c49239d088e3e0a3ba275.r2.dev/q.svg';
 
 const GradientText = styled(Typography)(({ theme }) => ({
@@ -33,9 +32,9 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [needsVerification, setNeedsVerification] = useState(false); // Estado para identificar si se necesita verificación
 
   // Hooks
-  // Quitamos currentUser de aquí, nos basaremos en el resultado de login()
   const { login, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -48,15 +47,11 @@ const Login = () => {
   // Destino fallback
   const from = location.state?.from?.pathname || '/';
 
-  // --- Efecto MÍNIMO: Solo para mostrar carga inicial ---
-  // Ya no maneja redirección, solo evita mostrar el form mientras auth carga
   useEffect(() => {
       console.log("[Login useEffect] Verificando estado inicial de authLoading:", authLoading);
-      // No hacemos nada más aquí, la redirección se hará en handleSubmit
   }, [authLoading]);
 
 
-  // --- Manejador del Envío del Formulario ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) {
@@ -65,13 +60,12 @@ const Login = () => {
     }
     try {
       setError('');
-      setLoading(true); // Iniciar carga del formulario
+      setNeedsVerification(false); // Resetear estado de verificación en cada intento
+      setLoading(true);
 
-      // Llamar a login y esperar los datos del usuario logueado
       const loggedInUserData = await login(email, password);
       console.log('[Login handleSubmit] Login API call successful. User data received:', loggedInUserData);
 
-      // --- REDIRECCIÓN EXPLÍCITA BASADA EN EL RESULTADO DE LOGIN ---
       if (loggedInUserData?.user?.role === PLATFORM_ADMIN_ROLE) {
         console.log('[Login handleSubmit] Redirigiendo a /platform-admin');
         navigate('/platform-admin', { replace: true });
@@ -82,28 +76,34 @@ const Login = () => {
         console.log(`[Login handleSubmit] Redirigiendo a ${from} (u otro rol)`);
         navigate(from, { replace: true });
       }
-      // ---------------------------------------------------------
-
-      // Nota: No ponemos setLoading(false) aquí porque la navegación desmontará el componente.
 
     } catch (err) {
       console.error('Error de login:', err);
-      setError(err.message || 'Correo electrónico o contraseña incorrectos. Por favor, inténtalo de nuevo.');
-      setLoading(false); // Detener carga SOLO en caso de error
+      // Detectar si es un error de verificación de correo
+      if (err.response?.data?.needsVerification) {
+        setNeedsVerification(true);
+        localStorage.setItem('pendingVerificationEmail', email);
+        setError('Por favor, verifica tu correo electrónico antes de iniciar sesión.');
+      } else {
+        setError(err.message || 'Correo electrónico o contraseña incorrectos.');
+      }
+      setLoading(false);
     }
   };
 
-  // --- Renderizado Condicional ---
-  // Mostrar carga solo si la autenticación inicial está en progreso
+  // --- Manejador para el botón de reenviar verificación ---
+  const handleResendVerification = () => {
+    localStorage.setItem('pendingVerificationEmail', email); // Asegurar que el email actual esté en localStorage
+    navigate('/auth/verify-email-notice');
+  };
+
   if (authLoading) {
       console.log('[Login Render] Esperando carga inicial de auth...');
       return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><CircularProgress /></div>;
   }
 
-  // Si la carga inicial de auth terminó, mostrar el formulario
   console.log('[Login Render] Mostrando formulario de login.');
   return (
-    // --- JSX del formulario (sin cambios) ---
     <Box
       sx={{
         display: 'flex',
@@ -138,7 +138,21 @@ const Login = () => {
             </GradientText>
 
             {error && (
-              <Alert severity="error" sx={{ mb: 2, width: '100%', backgroundColor: 'rgba(30, 30, 30, 0.85)' }}>
+              <Alert
+                severity="error"
+                sx={{ mb: 2, width: '100%', backgroundColor: 'rgba(30, 30, 30, 0.85)' }}
+                action={
+                  needsVerification ? (
+                    <Button
+                      color="inherit"
+                      size="small"
+                      onClick={handleResendVerification}
+                    >
+                      Verificar
+                    </Button>
+                  ) : null
+                }
+              >
                 {error}
               </Alert>
             )}
@@ -155,7 +169,7 @@ const Login = () => {
                 autoFocus
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={loading} // Usar el loading del formulario
+                disabled={loading}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -175,7 +189,7 @@ const Login = () => {
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                disabled={loading} // Usar el loading del formulario
+                disabled={loading}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -205,7 +219,7 @@ const Login = () => {
                     pointerEvents: 'auto',
                   }
                 }}
-                disabled={loading} // Usar el loading del formulario
+                disabled={loading}
               >
                 {loading ? <CircularProgress size={24} color="inherit" /> : 'Iniciar Sesión'}
               </Button>

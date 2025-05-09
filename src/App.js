@@ -11,6 +11,8 @@ import PlatformAdminLayout from './layouts/PlatformAdminLayout'; // Importar el 
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import ForgotPassword from './pages/auth/ForgotPassword';
+import VerifyEmailNotice from './pages/auth/VerifyEmailNotice'; // Añadido desde la modificación
+import VerifyEmailConfirm from './pages/auth/VerifyEmailConfirm'; // Añadido desde la modificación
 
 // Pages - Aplicación Principal
 import Dashboard from './pages/dashboard/Dashboard';
@@ -93,6 +95,8 @@ function App() {
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/register" element={<Register />} />
             <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+            <Route path="/auth/verify-email-notice" element={<VerifyEmailNotice />} /> {/* Añadido desde la modificación */}
+            <Route path="/auth/verify-email/:token" element={<VerifyEmailConfirm />} /> {/* Añadido desde la modificación */}
 
             {/* Ruta para acceso no autorizado */}
             <Route path="/unauthorized" element={<Unauthorized />} />
