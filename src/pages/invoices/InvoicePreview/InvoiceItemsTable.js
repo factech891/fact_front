@@ -15,7 +15,6 @@ import {
 export const InvoiceItemsTable = ({ items = [], moneda = 'VES', theme = {} }) => {
   if (!items || items.length === 0) return null;
 
-  // Estilos para la tabla (sin cambios)
   const tableStyles = {
     root: {
       width: '100%',
@@ -26,52 +25,55 @@ export const InvoiceItemsTable = ({ items = [], moneda = 'VES', theme = {} }) =>
       overflow: 'hidden',
       boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
     },
+    // Modificación 1: Mejorar los estilos del encabezado de tabla
     header: {
       backgroundColor: theme.primary || '#003366',
       '& th': {
         color: '#FFFFFF',
-        padding: '12px 8px',
+        padding: '12px 15px', // Aumentar padding
         fontWeight: '600',
-        fontSize: '13px',
+        fontSize: '14px', // Aumentar tamaño
         textTransform: 'uppercase',
         letterSpacing: '0.5px',
         textAlign: 'left',
-        borderBottom: 'none'
+        borderBottom: 'none',
+        whiteSpace: 'nowrap' // Evitar que se rompa el texto
       }
     },
     cell: {
       padding: '10px 8px',
       borderBottom: '1px solid #eaeaea',
-      color: theme.text?.primary || '#333333', // Usar color primario del tema o fallback
+      color: theme.text?.primary || '#333333',
       fontSize: '13px',
       fontWeight: '400'
     },
     evenRow: {
-      backgroundColor: theme.background?.secondary || '#f9f9f9', // Usar color secundario del tema o fallback
+      backgroundColor: theme.background?.secondary || '#f9f9f9',
     },
     oddRow: {
-      backgroundColor: theme.background?.primary || '#FFFFFF', // Usar color primario del tema o fallback
+      backgroundColor: theme.background?.primary || '#FFFFFF',
     },
     exentoColumn: {
-      width: '120px',
+      width: '120px', 
       textAlign: 'center'
     },
-    exentoTag: {
-      padding: '4px 8px',
-      borderRadius: '12px',
-      fontWeight: '600',
-      fontSize: '11px',
+    exentoTag: { 
+      padding: '6px 12px',
+      borderRadius: '4px',
+      fontWeight: '500',
+      fontSize: '12px',
       display: 'inline-block',
-      width: '80px',
+      width: 'auto',
+      minWidth: '80px',
       textAlign: 'center',
       boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
     },
-    exentoTrue: {
-      backgroundColor: theme.success || '#4caf50', // Usar color de éxito del tema o fallback
+    exentoTrue: { 
+      backgroundColor: theme.success || '#4caf50',
       color: 'white'
     },
-    exentoFalse: {
-      backgroundColor: theme.error || '#f44336', // Usar color de error del tema o fallback
+    exentoFalse: { 
+      backgroundColor: theme.error || '#f44336',
       color: 'white'
     },
     numeric: {
@@ -89,7 +91,6 @@ export const InvoiceItemsTable = ({ items = [], moneda = 'VES', theme = {} }) =>
     }
   };
 
-  // Formatear valores numéricos (sin cambios)
   const formatCurrency = (value) => {
     if (typeof value !== 'number') return '0.00';
     return value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -100,9 +101,7 @@ export const InvoiceItemsTable = ({ items = [], moneda = 'VES', theme = {} }) =>
     return value.toFixed(2);
   };
 
-  // Calcular el total de cada ítem (sin cambios)
   const calculateItemTotal = (item) => {
-    // Usar ?? para manejar valores 0 correctamente
     const cantidad = item.cantidad ?? item.quantity ?? 1;
     const precio = item.precioUnitario ?? item.price ?? 0;
     return cantidad * precio;
@@ -120,37 +119,33 @@ export const InvoiceItemsTable = ({ items = [], moneda = 'VES', theme = {} }) =>
               <TableCell sx={{ ...tableStyles.quantity, width: '10%' }}>Cantidad</TableCell>
               <TableCell sx={{ ...tableStyles.numeric, width: '15%' }}>Precio Unit.</TableCell>
               <TableCell sx={{ ...tableStyles.numeric, width: '15%' }}>Total</TableCell>
-              <TableCell sx={{ ...tableStyles.exentoColumn, width: '10%' }}>Exento IVA</TableCell>
+              {/* El título de la columna ya es "TIPO FISCAL" desde la modificación anterior */}
+              <TableCell sx={{ ...tableStyles.exentoColumn, width: '10%' }}>TIPO FISCAL</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {items.map((item, index) => {
-              // Determinar si la propiedad de exento es 'exentoIva' o 'taxExempt'
               const isExempt = item.exentoIva === true || item.taxExempt === true;
-              // Obtener cantidad y precio usando ?? para manejar diferentes nombres de propiedad y valores 0
               const quantity = item.cantidad ?? item.quantity ?? 1;
               const unitPrice = item.precioUnitario ?? item.price ?? 0;
               const itemTotal = calculateItemTotal({ cantidad: quantity, precioUnitario: unitPrice });
 
               return (
                 <TableRow
-                  key={item.product || item._id || index} // Usar ID si está disponible
+                  key={item.product || item._id || index}
                   sx={index % 2 === 0 ? tableStyles.evenRow : tableStyles.oddRow}
                 >
                   <TableCell sx={{ ...tableStyles.cell, ...tableStyles.code }}>
                     {item.codigo || ''}
                   </TableCell>
                   <TableCell sx={{ ...tableStyles.cell }}>
-                    {/* --- MODIFICACIÓN AQUÍ --- */}
                     <Typography variant="body2" sx={{
                         fontWeight: 500,
-                        // Asegurar que el color sea el primario del texto definido en el tema
                         color: theme.text?.primary || '#333333'
                       }}
                     >
-                      {item.descripcion || item.nombre || ''} {/* Usar 'nombre' como fallback */}
+                      {item.descripcion || item.nombre || ''}
                     </Typography>
-                    {/* --- FIN MODIFICACIÓN --- */}
                   </TableCell>
                   <TableCell sx={{ ...tableStyles.cell, ...tableStyles.quantity }}>
                     {formatQuantity(quantity)}
@@ -164,11 +159,19 @@ export const InvoiceItemsTable = ({ items = [], moneda = 'VES', theme = {} }) =>
                   <TableCell sx={{ ...tableStyles.cell, ...tableStyles.exentoColumn }}>
                     <Box
                       sx={{
-                        ...tableStyles.exentoTag,
-                        ...(isExempt ? tableStyles.exentoTrue : tableStyles.exentoFalse)
+                        padding: '6px 10px',
+                        borderRadius: '4px',
+                        fontWeight: '600',
+                        fontSize: '12px',
+                        color: 'white',
+                        backgroundColor: theme.primary || '#003366',
+                        display: 'inline-block',
+                        width: 'auto',
+                        minWidth: '80px',
+                        textAlign: 'center'
                       }}
                     >
-                      {isExempt ? 'EXENTO' : 'NO'}
+                      {isExempt ? 'Exento' : 'Gravado'}
                     </Box>
                   </TableCell>
                 </TableRow>
