@@ -1,5 +1,5 @@
 // src/pages/documents/UnifiedDocumentForm/index.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -10,10 +10,10 @@ import {
   Grid,
   Button,
   IconButton,
-  Divider,
   CircularProgress,
   Paper,
-  Alert
+  Alert,
+  Divider // Añadido para la nueva renderTotalsBar
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -36,7 +36,7 @@ import {
 } from '../constants/documentTypes';
 
 // Importar las utilidades de zonas horarias y el contexto de autenticación
-import { formatForDateInput, utcToLocalTime, localTimeToUtc } from '../../../utils/dateUtils';
+import { formatForDateInput, localTimeToUtc } from '../../../utils/dateUtils';
 import { useAuth } from '../../../context/AuthContext';
 
 // Función auxiliar para formatear fechas (modificada para usar zona horaria)
@@ -46,22 +46,27 @@ const formatLocalDate = (dateInput, timezone) => {
   }
   
   if (typeof dateInput === 'string') {
-    // Convertir a un objeto Date primero
-    const date = new Date(dateInput);
+    // Intentar parsear la fecha. Si es solo YYYY-MM-DD, agregar hora para evitar problemas de zona horaria en el parseo.
+    const dateStr = dateInput.includes('T') ? dateInput : `${dateInput}T00:00:00`;
+    const date = new Date(dateStr);
     if (isNaN(date.getTime())) {
-      console.warn('Fecha inválida:', dateInput);
-      return formatForDateInput(new Date(), timezone);
+      console.warn('Fecha inválida en formatLocalDate (string):', dateInput);
+      return formatForDateInput(new Date(), timezone); // Fallback a fecha actual
     }
-    // Convertir a zona horaria local y formatear para input de tipo fecha
     return formatForDateInput(date, timezone);
   }
   
-  try {
-    return formatForDateInput(dateInput, timezone);
-  } catch (error) {
-    console.error('Error al procesar fecha:', error);
-    return formatForDateInput(new Date(), timezone);
+  // Si ya es un objeto Date
+  if (dateInput instanceof Date) {
+      if (isNaN(dateInput.getTime())) {
+          console.warn('Fecha inválida en formatLocalDate (Date object):', dateInput);
+          return formatForDateInput(new Date(), timezone); // Fallback
+      }
+      return formatForDateInput(dateInput, timezone);
   }
+
+  console.error('Tipo de fecha no manejado en formatLocalDate:', dateInput);
+  return formatForDateInput(new Date(), timezone); // Fallback a fecha actual
 };
 
 const UnifiedDocumentForm = ({
@@ -73,11 +78,9 @@ const UnifiedDocumentForm = ({
   products = [],
   isInvoice = false
 }) => {
-  // Obtener el usuario actual para acceder a su zona horaria
   const { currentUser } = useAuth();
   const userTimezone = currentUser?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
   
-  // Estilo para botones de acción principal (sin cambios)
   const actionButtonStyle = {
     borderRadius: '50px',
     color: 'white',
@@ -111,15 +114,14 @@ const UnifiedDocumentForm = ({
   const [errors, setErrors] = useState({});
   const [submitStockErrors, setSubmitStockErrors] = useState([]);
 
-  // Calcular fecha de vencimiento basada en la zona horaria
-  const calculateExpiryDate = (docType) => {
+  const calculateExpiryDate = useCallback((docType) => {
     if (isInvoice || docType !== DOCUMENT_TYPES.QUOTE) return null;
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + 30);
     return formatLocalDate(expiryDate, userTimezone);
-  };
+  }, [isInvoice, userTimezone]);
 
-  const getInitialFormState = () => ({
+  const getInitialFormState = useCallback(() => ({
     type: isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE,
     documentType: isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE,
     documentNumber: '',
@@ -135,27 +137,34 @@ const UnifiedDocumentForm = ({
     diasCredito: 0,
     items: [],
     subtotal: 0,
+    subtotalGravado: 0,
+    subtotalExento: 0,
+    subtotalNoGravado: 0,
     tax: 0,
     taxAmount: 0,
     total: 0,
     notes: '',
     terms: ''
-  });
+  }), [isInvoice, userTimezone, calculateExpiryDate]);
 
-  // Ahora inicializamos el estado usando la función ya definida
   const [formData, setFormData] = useState(getInitialFormState());
   const [selectedProducts, setSelectedProducts] = useState([]);
+  
+  const resetForm = useCallback(() => {
+    setFormData(getInitialFormState());
+    setSelectedProducts([]);
+    setErrors({});
+    setProductWarnings([]);
+    setSubmitStockErrors([]);
+  }, [getInitialFormState]);
 
-  // useEffect para cargar initialData (modificado para timezone)
+
   useEffect(() => {
     setProductWarnings([]);
     setSubmitStockErrors([]);
 
     if (open) {
       if (initialData) {
-        console.log('Cargando initialData:', initialData);
-        console.log('Lista de productos disponibles:', products);
-
         const warnings = [];
         const documentProductsForAutocomplete = (initialData.items || [])
           .map(item => {
@@ -164,9 +173,8 @@ const UnifiedDocumentForm = ({
             if (fullProduct) {
               return fullProduct;
             } else {
-              console.warn(`Producto con ID ${productId} (desc: ${item.descripcion}) no encontrado en la lista general.`);
               warnings.push(`El producto "${item.descripcion || productId}" no se encontró en la lista actual y podría no mostrarse correctamente.`);
-              return null;
+              return null; // O un objeto placeholder si es necesario para Autocomplete
             }
           })
           .filter(p => p !== null);
@@ -180,40 +188,48 @@ const UnifiedDocumentForm = ({
         const loadedItems = (initialData.items || []).map(item => {
              const productId = item.product?._id || item.product;
              const fullProduct = products.find(p => p._id === productId);
+             
+             let taxType = item.taxType;
+             let taxExempt = item.taxExempt || false;
+
+             if (!taxType) { // Si taxType no está definido
+               taxType = taxExempt ? 'exento' : 'gravado';
+             } else { // Si taxType está definido, asegurar que taxExempt sea consistente
+               taxExempt = taxType === 'exento';
+             }
+             
              return {
                 product: productId,
                 codigo: fullProduct?.codigo || item.codigo || 'N/A',
                 descripcion: fullProduct?.nombre || item.descripcion || 'Producto Desconocido',
                 quantity: item.quantity || 1,
                 price: item.price ?? fullProduct?.precio ?? 0,
-                taxExempt: item.taxExempt || false,
-                subtotal: (item.quantity || 1) * (item.price ?? fullProduct?.precio ?? 0)
+                taxExempt: taxExempt,
+                taxType: taxType,
+                // El subtotal del ítem se recalcula con calculateTotals, no es necesario aquí
              };
         });
+        
+        const totals = calculateTotals(loadedItems, initialData.taxRate); // Asumir que calculateTotals puede usar taxRate
 
-        // Convertir fechas de UTC a zona horaria local
         let dateValue = initialData.date;
-        if (dateValue) {
-          // Convertir la fecha UTC a zona horaria local
+        if (dateValue) { // Asegurar que la fecha se formatee correctamente para el input
           dateValue = formatLocalDate(dateValue, userTimezone);
         }
         
         let expiryDateValue = initialData.expiryDate;
         if (expiryDateValue) {
-          // Convertir la fecha UTC a zona horaria local
           expiryDateValue = formatLocalDate(expiryDateValue, userTimezone);
         }
 
-        const totals = calculateTotals(loadedItems);
-
         const loadedData = {
-          ...getInitialFormState(),
-          ...initialData,
+          ...getInitialFormState(), // Base para campos no presentes en initialData
+          ...initialData, // Sobrescribir con datos iniciales
           type: initialData.type || (isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE),
           documentType: initialData.documentType || initialData.type || (isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE),
           documentNumber: initialData.documentNumber || initialData.number || '',
           date: dateValue || formatLocalDate(new Date(), userTimezone),
-          expiryDate: expiryDateValue || calculateExpiryDate(initialData.type),
+          expiryDate: expiryDateValue || calculateExpiryDate(initialData.type || (isInvoice ? 'INVOICE' : DOCUMENT_TYPES.QUOTE)),
           status: (isInvoice ? (initialData.status || 'DRAFT') : initialData.status || DOCUMENT_STATUS.DRAFT).toUpperCase(),
           client: clients.find(c => c._id === (initialData.client?._id || initialData.client)) || initialData.client || null,
           currency: initialData.currency || initialData.moneda || 'VES',
@@ -222,33 +238,26 @@ const UnifiedDocumentForm = ({
           condicionesPago: initialData.condicionesPago || initialData.paymentTerms || 'Contado',
           creditDays: initialData.creditDays || initialData.diasCredito || 0,
           diasCredito: initialData.diasCredito || initialData.creditDays || 0,
-          items: loadedItems,
+          items: loadedItems, // Usar los items procesados
+          // Los totales se establecen desde 'totals'
           subtotal: totals.subtotal,
-          tax: totals.taxAmount,
+          subtotalGravado: totals.subtotalGravado,
+          subtotalExento: totals.subtotalExento,
+          subtotalNoGravado: totals.subtotalNoGravado,
+          tax: totals.taxAmount, // o initialData.tax si se prefiere el valor guardado y no el calculado
           taxAmount: totals.taxAmount,
           total: totals.total,
           notes: initialData.notes || '',
           terms: initialData.terms || ''
         };
-
         setFormData(loadedData);
-
       } else {
         resetForm();
       }
     }
-  }, [open, initialData, products, clients, isInvoice, userTimezone]);
+  }, [open, initialData, products, clients, isInvoice, userTimezone, calculateExpiryDate, getInitialFormState, resetForm]);
 
-  // La función resetForm ahora usa getInitialFormState que ya está definida arriba
-  const resetForm = () => {
-    setFormData(getInitialFormState());
-    setSelectedProducts([]);
-    setErrors({});
-    setProductWarnings([]);
-    setSubmitStockErrors([]);
-  };
 
-  // handleFieldChange (sin cambios)
   const handleFieldChange = (field, value) => {
     if (errors.submit) {
         setErrors(prev => ({...prev, submit: undefined}));
@@ -265,8 +274,7 @@ const UnifiedDocumentForm = ({
       if (field === 'condicionesPago') updated.paymentTerms = value;
       if (field === 'creditDays') updated.diasCredito = value;
       if (field === 'diasCredito') updated.creditDays = value;
-      if (field === 'tax') updated.taxAmount = value;
-      if (field === 'taxAmount') updated.tax = value;
+      
       if ((field === 'paymentTerms' || field === 'condicionesPago') && value !== 'Crédito') {
         updated.creditDays = 0;
         updated.diasCredito = 0;
@@ -278,57 +286,89 @@ const UnifiedDocumentForm = ({
     });
   };
 
-  // handleProductSelect (sin cambios)
-   const handleProductSelect = (event, values) => {
-    const safeValues = values || [];
+  const handleProductSelect = (event, values) => {
+    const safeValues = Array.isArray(values) ? values : []; 
+
     const newItems = safeValues.map(product => {
       const existingItem = formData.items.find(item => item.product === product._id);
+      
+      let taxType = product.taxType;
+      let taxExempt = product.isExempt || false;
+
+      if (taxType) {
+        taxExempt = taxType === 'exento';
+      } else {
+        taxType = taxExempt ? 'exento' : 'gravado';
+      }
+
       return {
-        product: product._id,
+        product: product._id, 
         codigo: product.codigo || '',
         descripcion: product.nombre || '',
-        quantity: existingItem?.quantity || 1,
-        price: product.precio || 0,
-        taxExempt: product.isExempt || false,
-        subtotal: (existingItem?.quantity || 1) * (product.precio || 0)
+        quantity: existingItem?.quantity || 1, 
+        price: product.precio ?? 0, 
+        taxExempt: taxExempt,
+        taxType: taxType,
       };
     });
 
-    setSelectedProducts(safeValues);
-    const totals = calculateTotals(newItems);
+    setSelectedProducts(safeValues); 
+    
+    const totals = calculateTotals(newItems, formData.taxRate); 
     setFormData(prev => ({
       ...prev,
       items: newItems,
       subtotal: totals.subtotal,
-      tax: totals.taxAmount,
+      subtotalGravado: totals.subtotalGravado,
+      subtotalExento: totals.subtotalExento,
+      subtotalNoGravado: totals.subtotalNoGravado,
+      tax: totals.taxAmount, 
       taxAmount: totals.taxAmount,
       total: totals.total
     }));
-    setSubmitStockErrors([]);
+    setSubmitStockErrors([]); 
   };
 
-  // handleItemChange (sin cambios)
   const handleItemChange = (index, field, value) => {
-    const updatedItems = [...formData.items];
-    const item = { ...updatedItems[index] };
-    item[field] = value;
-    if (field === 'quantity' || field === 'price') {
-      item.subtotal = (item.quantity || 0) * (item.price || 0);
+    console.log(`UnifiedDocumentForm - handleItemChange: index=${index}, field=${field}, value=`, value);
+  
+    const currentItems = formData.items || [];
+    const updatedItems = JSON.parse(JSON.stringify(currentItems));
+  
+    if (index < 0 || index >= updatedItems.length) {
+      console.error("Índice de item inválido en handleItemChange:", index);
+      return;
     }
-    updatedItems[index] = item;
-    const totals = calculateTotals(updatedItems);
+  
+    updatedItems[index][field] = value;
+
+    if (field === 'taxType') {
+        updatedItems[index].taxExempt = value === 'exento';
+    }
+    if (field === 'taxExempt') {
+        if (updatedItems[index].taxType !== 'no_gravado') { 
+            updatedItems[index].taxType = value ? 'exento' : 'gravado';
+        }
+    }
+  
+    const totals = calculateTotals(updatedItems, formData.taxRate); 
+  
     setFormData(prev => ({
       ...prev,
       items: updatedItems,
       subtotal: totals.subtotal,
-      tax: totals.taxAmount,
+      subtotalGravado: totals.subtotalGravado,
+      subtotalExento: totals.subtotalExento,
+      subtotalNoGravado: totals.subtotalNoGravado,
+      tax: totals.taxAmount, 
       taxAmount: totals.taxAmount,
       total: totals.total
     }));
-    setSubmitStockErrors([]);
+  
+    setSubmitStockErrors([]); 
   };
+  
 
-  // handleSubmit modificado para convertir fechas a UTC antes de guardar
   const handleSubmit = () => {
     setErrors({});
     setSubmitStockErrors([]);
@@ -336,13 +376,12 @@ const UnifiedDocumentForm = ({
     const formErrors = validateForm(formData, isInvoice);
     if (Object.keys(formErrors).length > 0) {
       setErrors(formErrors);
-      console.log("Errores de validación básicos:", formErrors);
       return;
     }
 
     const stockValidationErrors = [];
     let hasStockError = false;
-    formData.items.forEach((item, index) => {
+    (formData.items || []).forEach((item) => { 
         const productId = item.product;
         const fullProduct = products.find(p => p._id === productId);
 
@@ -352,9 +391,7 @@ const UnifiedDocumentForm = ({
 
             if (requestedQuantity > availableStock) {
                 hasStockError = true;
-                const errorMsg = `Stock insuficiente para "${fullProduct.nombre}" (Código: ${fullProduct.codigo || 'N/A'}). Solicitado: ${requestedQuantity}, Disponible: ${availableStock}.`;
-                stockValidationErrors.push(errorMsg);
-                console.warn(errorMsg);
+                stockValidationErrors.push(`Stock insuficiente para "${fullProduct.nombre}" (Código: ${fullProduct.codigo || 'N/A'}). Solicitado: ${requestedQuantity}, Disponible: ${availableStock}.`);
             }
         }
     });
@@ -362,39 +399,34 @@ const UnifiedDocumentForm = ({
     if (hasStockError) {
         setSubmitStockErrors(stockValidationErrors);
         setErrors(prev => ({...prev, submit: 'No se puede guardar: hay productos con stock insuficiente.'}));
-        console.log("Errores de validación de stock:", stockValidationErrors);
         return;
     }
 
     setSaving(true);
-    const statusToSend = isInvoice ? formData.status.toLowerCase() : formData.status;
+    const statusToSend = isInvoice ? (formData.status || 'DRAFT').toLowerCase() : (formData.status || DOCUMENT_STATUS.DRAFT);
     
-    // Convertir fechas de la zona horaria local a UTC antes de guardar
     let utcDate;
     try {
-      // Primero convertir a objeto Date si es string
-      const localDate = typeof formData.date === 'string' 
-        ? new Date(formData.date) 
-        : formData.date;
-      
-      // Convertir a UTC
+      const dateStr = typeof formData.date === 'string' ? formData.date : formatForDateInput(formData.date, userTimezone);
+      const localDate = new Date(dateStr.replace(/-/g, '/')); 
+      if (isNaN(localDate.getTime())) throw new Error('Invalid date object from formData.date');
       utcDate = localTimeToUtc(localDate, userTimezone);
     } catch (error) {
-      console.error("Error al convertir fecha a UTC:", error);
-      utcDate = new Date(); // Fallback a fecha actual
+      console.error("Error al convertir fecha a UTC:", error, "formData.date:", formData.date);
+      setErrors({ submit: `Error al procesar la fecha del documento: ${error.message}. Verifique la fecha.` });
+      setSaving(false);
+      return;
     }
     
-    // Procesar fecha de vencimiento si existe
     let utcExpiryDate = null;
     if (formData.expiryDate) {
       try {
-        const localExpiryDate = typeof formData.expiryDate === 'string'
-          ? new Date(formData.expiryDate)
-          : formData.expiryDate;
-        
+        const expiryDateStr = typeof formData.expiryDate === 'string' ? formData.expiryDate : formatForDateInput(formData.expiryDate, userTimezone);
+        const localExpiryDate = new Date(expiryDateStr.replace(/-/g, '/'));
+        if (isNaN(localExpiryDate.getTime())) throw new Error('Invalid date object from formData.expiryDate');
         utcExpiryDate = localTimeToUtc(localExpiryDate, userTimezone);
       } catch (error) {
-        console.error("Error al convertir fecha de vencimiento a UTC:", error);
+        console.error("Error al convertir fecha de vencimiento a UTC:", error, "formData.expiryDate:", formData.expiryDate);
       }
     }
     
@@ -402,39 +434,43 @@ const UnifiedDocumentForm = ({
       _id: initialData?._id,
       type: formData.type,
       documentType: formData.documentType,
-      number: formData.documentNumber || undefined,
+      number: formData.documentNumber || undefined, 
       documentNumber: formData.documentNumber || undefined,
-      date: utcDate.toISOString().split('T')[0], // Formato YYYY-MM-DD en UTC
+      date: utcDate.toISOString().split('T')[0], 
       expiryDate: utcExpiryDate ? utcExpiryDate.toISOString().split('T')[0] : null,
       status: statusToSend,
-      client: formData.client?._id || formData.client,
+      client: formData.client?._id || formData.client, 
       currency: formData.currency,
-      moneda: formData.moneda,
+      moneda: formData.moneda, 
       paymentTerms: formData.paymentTerms,
       condicionesPago: formData.condicionesPago,
       creditDays: parseInt(formData.creditDays, 10) || 0,
       diasCredito: parseInt(formData.diasCredito, 10) || 0,
-      items: formData.items.map(item => ({
-        product: item.product,
+      items: (formData.items || []).map(item => ({ 
+        product: item.product, 
         quantity: item.quantity,
         price: item.price,
-        taxExempt: item.taxExempt || false
+        taxExempt: item.taxExempt || false,
+        taxType: item.taxType 
       })),
       subtotal: formData.subtotal,
-      tax: formData.tax,
+      subtotalGravado: formData.subtotalGravado,
+      subtotalExento: formData.subtotalExento,
+      subtotalNoGravado: formData.subtotalNoGravado,
+      tax: formData.taxAmount, 
       taxAmount: formData.taxAmount,
       total: formData.total,
       notes: formData.notes || '',
       terms: formData.terms || '',
-      usePrefix: isInvoice ? 'INV' : undefined
+      usePrefix: isInvoice ? 'INV' : undefined 
     };
 
-    console.log('Guardando documento (sin errores de stock):', documentToSave);
     onSave(documentToSave)
       .then(() => {
-        onClose();
+        onClose(); 
       })
       .catch(error => {
+        console.error('Error al guardar el documento:', error);
         setErrors({ submit: 'Error al guardar: ' + (error?.response?.data?.message || error.message) });
       })
       .finally(() => {
@@ -448,32 +484,7 @@ const UnifiedDocumentForm = ({
       ? `${action} Factura`
       : `${action} ${DOCUMENT_TYPE_NAMES[formData.type] || 'Documento'}`;
   };
-
-  // renderTotalsBar (sin cambios)
-  const renderTotalsBar = () => {
-    if (formData.items.length === 0) return null;
-    const totals = calculateTotals(formData.items);
-    return (
-      <Box sx={{ width: '100%', mb: 2, bgcolor: '#2a2a2a', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
-        <Grid container alignItems="center" sx={{ p: 2 }}>
-          <Grid item xs={12} sm={4} sx={{ textAlign: { xs: 'left', sm: 'center' }, mb: { xs: 1, sm: 0 } }}>
-            <Typography variant="subtitle2" color="text.secondary">Subtotal:</Typography>
-            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{getCurrencySymbol()} {totals.subtotal.toFixed(2)}</Typography>
-          </Grid>
-          <Grid item xs={12} sm={4} sx={{ textAlign: { xs: 'left', sm: 'center' }, mb: { xs: 1, sm: 0 } }}>
-            <Typography variant="subtitle2" color="text.secondary">IVA (16%):</Typography>
-            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{getCurrencySymbol()} {totals.taxAmount.toFixed(2)}</Typography>
-          </Grid>
-          <Grid item xs={12} sm={4} sx={{ textAlign: { xs: 'left', sm: 'center' } }}>
-            <Typography variant="subtitle2" color="text.secondary">Total:</Typography>
-            <Typography variant="h6" color="primary.main" sx={{ fontWeight: 'bold' }}>{getCurrencySymbol()} {totals.total.toFixed(2)}</Typography>
-          </Grid>
-        </Grid>
-      </Box>
-    );
-  };
-
-  // Obtener símbolo de moneda (sin cambios)
+  
   const getCurrencySymbol = () => {
     switch (formData.currency) {
       case 'USD': return '$';
@@ -482,6 +493,37 @@ const UnifiedDocumentForm = ({
     }
   };
 
+  // --- INICIO FUNCIÓN renderTotalsBar MODIFICADA ---
+  const renderTotalsBar = () => {
+    if (!formData.items || formData.items.length === 0) return null;
+    const currencySymbol = getCurrencySymbol(); // Asegurarse que getCurrencySymbol está accesible
+    return (
+      <Box sx={{ width: '100%', mb: 2, bgcolor: '#2a2a2a', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+        <Grid container alignItems="center" sx={{ p: 2 }}>
+          <Grid item xs={12} sm={4} sx={{ textAlign: { xs: 'left', sm: 'center' }, mb: { xs: 1, sm: 0 } }}>
+            <Typography variant="subtitle2" color="text.secondary">Base Imponible:</Typography>
+            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{currencySymbol} {(formData.subtotalGravado || 0).toFixed(2)}</Typography>
+          </Grid>
+          <Grid item xs={12} sm={4} sx={{ textAlign: { xs: 'left', sm: 'center' }, mb: { xs: 1, sm: 0 } }}>
+            <Typography variant="subtitle2" color="text.secondary">Exento:</Typography>
+            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{currencySymbol} {(formData.subtotalExento || 0).toFixed(2)}</Typography>
+          </Grid>
+          <Grid item xs={12} sm={4} sx={{ textAlign: { xs: 'left', sm: 'center' } }}>
+            <Typography variant="subtitle2" color="text.secondary">IVA (16%):</Typography>
+            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{currencySymbol} {(formData.tax || formData.taxAmount || 0).toFixed(2)}</Typography>
+          </Grid>
+          <Grid item xs={12}>
+            <Divider sx={{ my: 1, bgcolor: 'rgba(255, 255, 255, 0.1)' }} />
+          </Grid>
+          <Grid item xs={12} sx={{ textAlign: 'right' }}>
+            <Typography variant="subtitle2" color="text.secondary" display="inline" sx={{ mr: 2 }}>Total:</Typography>
+            <Typography variant="h6" color="primary.main" display="inline" sx={{ fontWeight: 'bold' }}>{currencySymbol} {(formData.total || 0).toFixed(2)}</Typography>
+          </Grid>
+        </Grid>
+      </Box>
+    );
+  };
+  // --- FIN FUNCIÓN renderTotalsBar MODIFICADA ---
 
   return (
     <Dialog
@@ -490,14 +532,16 @@ const UnifiedDocumentForm = ({
       maxWidth="lg"
       fullWidth
       disableEscapeKeyDown={saving}
-      PaperProps={{ sx: { bgcolor: '#1e1e1e', backgroundImage: 'none' } }}
+      PaperProps={{ sx: { bgcolor: '#1e1e1e', backgroundImage: 'none', colorScheme: 'dark' } }} 
     >
       <DialogTitle sx={{
         backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
         color: 'white',
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'center'
+        alignItems: 'center',
+        py: 1.5, 
+        px: 2
       }}>
         {getDocumentTitle()}
         <IconButton onClick={onClose} sx={{ color: 'white' }} disabled={saving}>
@@ -505,9 +549,8 @@ const UnifiedDocumentForm = ({
         </IconButton>
       </DialogTitle>
 
-      {/* Mostrar advertencias de productos no encontrados */}
       {productWarnings.length > 0 && (
-          <Box sx={{ p: 2, pt: 0 }}>
+          <Box sx={{ px: 2, pt: 1, pb: 0 }}> 
               {productWarnings.map((warning, index) => (
                   <Alert severity="warning" key={index} icon={<WarningIcon fontSize="inherit" />} sx={{ mb: 1 }}>
                       {warning}
@@ -519,7 +562,6 @@ const UnifiedDocumentForm = ({
       {renderTotalsBar()}
 
       <DialogContent sx={{ p: 2, bgcolor: '#1e1e1e', color: 'white' }}>
-        {/* Mostrar errores de stock al intentar guardar */}
         {submitStockErrors.length > 0 && (
              <Alert severity="error" sx={{ mb: 2 }}>
                 <Typography fontWeight="bold">Error de Stock:</Typography>
@@ -530,15 +572,13 @@ const UnifiedDocumentForm = ({
                 </ul>
              </Alert>
         )}
-        {/* Mostrar error general de submit (si existe) */}
-        {errors.submit && !submitStockErrors.length > 0 && (
+        {errors.submit && !submitStockErrors.length > 0 && ( 
           <Alert severity="error" sx={{ mb: 2 }}>{errors.submit}</Alert>
         )}
 
         <Grid container spacing={2}>
-          {/* DocumentTypeSection */}
           <Grid item xs={12}>
-            <Paper elevation={3} sx={{ p: 2, mb: 2, bgcolor: 'rgba(45, 45, 45, 0.7)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+            <Paper elevation={0} sx={{ p: 2, mb: 2, bgcolor: 'rgba(45, 45, 45, 0.7)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
               <DocumentTypeSection
                 formData={formData}
                 errors={errors}
@@ -547,9 +587,8 @@ const UnifiedDocumentForm = ({
               />
             </Paper>
           </Grid>
-          {/* ClientSection */}
           <Grid item xs={12}>
-            <Paper elevation={3} sx={{ p: 2, mb: 2, bgcolor: 'rgba(45, 45, 45, 0.7)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+            <Paper elevation={0} sx={{ p: 2, mb: 2, bgcolor: 'rgba(45, 45, 45, 0.7)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
               <ClientSection
                 formData={formData}
                 clients={clients}
@@ -558,9 +597,8 @@ const UnifiedDocumentForm = ({
               />
             </Paper>
           </Grid>
-          {/* ItemsSection */}
           <Grid item xs={12}>
-            <Paper elevation={3} sx={{ p: 2, mb: 2, bgcolor: 'rgba(45, 45, 45, 0.7)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+            <Paper elevation={0} sx={{ p: 2, mb: 2, bgcolor: 'rgba(45, 45, 45, 0.7)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
               <ItemsSection
                 formData={formData}
                 selectedProducts={selectedProducts}
@@ -571,9 +609,8 @@ const UnifiedDocumentForm = ({
               />
             </Paper>
           </Grid>
-          {/* NotesSection */}
           <Grid item xs={12}>
-            <Paper elevation={3} sx={{ p: 2, mb: 2, bgcolor: 'rgba(45, 45, 45, 0.7)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+            <Paper elevation={0} sx={{ p: 2, mb:0, bgcolor: 'rgba(45, 45, 45, 0.7)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
               <NotesSection
                 notes={formData.notes}
                 terms={formData.terms}
@@ -588,11 +625,17 @@ const UnifiedDocumentForm = ({
       <DialogActions sx={{ p: 2, display: 'flex', justifyContent: 'space-between', bgcolor: '#2a2a2a', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
         <Button
           variant="outlined"
-          color="error"
           onClick={resetForm}
           startIcon={<ResetIcon />}
           disabled={saving}
-          sx={{ borderColor: 'rgba(255, 77, 77, 0.5)', '&:hover': { borderColor: 'error.main', bgcolor: 'rgba(255, 77, 77, 0.1)' } }}
+          sx={{ 
+            color: '#ff4d4d', 
+            borderColor: 'rgba(255, 77, 77, 0.5)', 
+            '&:hover': { 
+              borderColor: '#ff4d4d', 
+              bgcolor: 'rgba(255, 77, 77, 0.1)' 
+            } 
+          }}
         >
           Limpiar
         </Button>
@@ -600,10 +643,10 @@ const UnifiedDocumentForm = ({
           variant="contained"
           onClick={handleSubmit}
           startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
-          disabled={saving}
+          disabled={saving || !!submitStockErrors.length} 
           sx={{ ...actionButtonStyle }}
         >
-          {saving ? 'GUARDANDO...' : 'GUARDAR'}
+          {saving ? 'GUARDANDO...' : (initialData ? 'ACTUALIZAR' : 'GUARDAR')}
         </Button>
       </DialogActions>
     </Dialog>

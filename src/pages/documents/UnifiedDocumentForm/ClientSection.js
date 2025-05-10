@@ -6,14 +6,12 @@ import {
   Grid,
   TextField,
   FormControl,
-  FormHelperText,
   InputLabel,
   Select,
   MenuItem,
   Autocomplete,
   Divider,
   Paper,
-  Chip,
   Collapse,
   IconButton
 } from '@mui/material';
@@ -57,8 +55,8 @@ const ClientSection = ({ formData, clients, errors, onFieldChange }) => {
   // Opciones de moneda
   const currencyOptions = [
     { value: 'VES', label: 'Bolívares (VES)' },
-    { value: 'USD', label: 'Dólares (USD)' },
-    { value: 'EUR', label: 'Euros (EUR)' }
+    { value: 'USD', label: 'Dólares (USD)' }
+    
   ];
   
   // Opciones de condiciones de pago

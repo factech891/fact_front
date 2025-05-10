@@ -12,46 +12,47 @@ import {
   TableRow,
   IconButton,
   TextField,
-  Switch,
   Autocomplete,
   Paper,
   Divider,
   InputAdornment,
   Tooltip,
-  FormHelperText // Importar para mostrar errores
+  FormControl,
+  Select,
+  MenuItem
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
   ShoppingCart as ProductIcon,
-  Edit as EditIcon,
-  Inventory2Outlined as StockIcon, // Icono para stock (opcional)
-  WarningAmberRounded as WarningIcon // Icono para advertencia
+  Inventory2Outlined as StockIcon,
+  WarningAmberRounded as WarningIcon
 } from '@mui/icons-material';
 
 import { formatCurrency } from './utils/calculations';
 
-/**
- * Sección para gestionar los productos/servicios
- */
+const FISCAL_TYPES = {
+  GRAVADO: 'gravado',
+  EXENTO: 'exento',
+  NO_GRAVADO: 'no_gravado'
+};
+
 const ItemsSection = ({
   formData,
   selectedProducts,
-  products, // Lista completa de productos/servicios con su stock
+  products,
   errors,
   onProductSelect,
   onItemChange
 }) => {
-  // Estado para control de edición
-  const [editingRowIndex, setEditingRowIndex] = useState(null);
-  // --- NUEVO: Estado para errores de stock en la fila ---
-  const [stockErrors, setStockErrors] = useState({}); // { index: "Mensaje de error" }
+  const [stockErrors, setStockErrors] = useState({});
 
-  // Manejar eliminación de item
   const handleDeleteItem = (index) => {
-    const updatedProducts = [...selectedProducts];
-    updatedProducts.splice(index, 1);
-    onProductSelect(null, updatedProducts);
-    // Limpiar error de stock si se elimina la fila
+    const currentItems = formData.items ? [...formData.items] : [];
+    currentItems.splice(index, 1);
+
+    const productsToReselect = selectedProducts.filter((_, i) => i !== index);
+    onProductSelect(null, productsToReselect);
+
     setStockErrors(prev => {
       const newErrors = {...prev};
       delete newErrors[index];
@@ -59,67 +60,40 @@ const ItemsSection = ({
     });
   };
 
-  // --- MODIFICACIÓN: Validar stock al cambiar cantidad ---
   const handleQuantityChange = (index, value) => {
     const newQuantity = Math.max(1, parseInt(value) || 1);
     const currentItem = formData.items[index];
-    const productId = currentItem.product; // ID del producto en el item actual
-
-    // Encontrar el producto completo en la lista general para obtener su stock y tipo
+    const productId = currentItem.product;
     const fullProduct = products.find(p => p._id === productId);
 
-    // Limpiar error previo para esta fila
     setStockErrors(prev => {
       const newErrors = {...prev};
       delete newErrors[index];
       return newErrors;
     });
 
-    // Validar solo si es un producto y tenemos la información completa
     if (fullProduct && fullProduct.tipo === 'producto' && typeof fullProduct.stock === 'number') {
       const availableStock = fullProduct.stock;
-
       if (newQuantity > availableStock) {
-        // --- Hay stock insuficiente ---
-        console.warn(`Stock insuficiente para ${fullProduct.nombre}. Solicitado: ${newQuantity}, Disponible: ${availableStock}`);
-        // Mostrar error en la fila
         setStockErrors(prev => ({
             ...prev,
             [index]: `Stock insuficiente. Disponible: ${availableStock}`
         }));
-        // Opcional: Limitar la cantidad al stock disponible en lugar de solo mostrar error
-        // onItemChange(index, 'quantity', availableStock);
-        // Por ahora, solo mostramos el error y dejamos que el usuario corrija
-         onItemChange(index, 'quantity', newQuantity); // Aún así actualizamos para que vea el número que puso
-      } else {
-        // --- Hay stock suficiente ---
-        onItemChange(index, 'quantity', newQuantity);
       }
-    } else {
-      // Si no es tipo 'producto' o no se encontró info, simplemente actualiza
-      onItemChange(index, 'quantity', newQuantity);
     }
+    onItemChange(index, 'quantity', newQuantity);
   };
-  // --- FIN MODIFICACIÓN ---
 
-  // Manejar cambio de precio (sin cambios)
   const handlePriceChange = (index, value) => {
     const price = Math.max(0, parseFloat(value) || 0);
     onItemChange(index, 'price', price);
-     // Limpiar error de stock si se edita el precio (puede que cambie de producto luego)
-     setStockErrors(prev => {
-        const newErrors = {...prev};
-        delete newErrors[index];
-        return newErrors;
-      });
+    setStockErrors(prev => {
+      const newErrors = {...prev};
+      delete newErrors[index];
+      return newErrors;
+    });
   };
 
-  // Manejar cambio en exención de impuesto (sin cambios)
-  const handleTaxExemptChange = (index, event) => {
-    onItemChange(index, 'taxExempt', event.target.checked);
-  };
-
-  // Obtener símbolo de moneda (sin cambios)
   const getCurrencySymbol = () => {
     switch (formData.currency) {
       case 'USD':
@@ -140,7 +114,6 @@ const ItemsSection = ({
       </Typography>
       <Divider sx={{ mb: 3, opacity: 0.2 }} />
 
-      {/* Selector de productos (sin cambios) */}
       <Box sx={{ mb: 3 }}>
         <Autocomplete
           multiple
@@ -149,7 +122,6 @@ const ItemsSection = ({
           value={selectedProducts}
           onChange={(event, newValue) => {
             onProductSelect(event, newValue);
-            // Limpiar todos los errores de stock al cambiar la selección general
             setStockErrors({});
           }}
           isOptionEqualToValue={(option, value) => option._id === value._id}
@@ -175,7 +147,7 @@ const ItemsSection = ({
             />
           )}
           renderOption={(props, option) => {
-            const isProduct = option.tipo === 'producto'; // Verificar si es producto
+            const isProduct = option.tipo === 'producto';
             const showStock = isProduct && typeof option.stock === 'number';
             const stockColor = showStock && option.stock <= 0 ? 'error.main' : (showStock && option.stock <= 5 ? 'warning.main' : 'text.secondary');
 
@@ -206,8 +178,7 @@ const ItemsSection = ({
         />
       </Box>
 
-      {/* Tabla de productos seleccionados */}
-      {formData.items.length > 0 ? (
+      {formData.items && formData.items.length > 0 ? (
         <TableContainer
           component={Paper}
           sx={{
@@ -225,7 +196,7 @@ const ItemsSection = ({
                 <TableCell sx={{ bgcolor: '#333', color: 'white', fontWeight: 'bold' }}>Descripción</TableCell>
                 <TableCell align="center" sx={{ bgcolor: '#333', color: 'white', fontWeight: 'bold' }}>Cantidad</TableCell>
                 <TableCell align="right" sx={{ bgcolor: '#333', color: 'white', fontWeight: 'bold' }}>Precio Unit.</TableCell>
-                <TableCell align="center" sx={{ bgcolor: '#333', color: 'white', fontWeight: 'bold' }}>Exento</TableCell>
+                <TableCell align="center" sx={{ bgcolor: '#333', color: 'white', fontWeight: 'bold' }}>Tipo Fiscal</TableCell>
                 <TableCell align="right" sx={{ bgcolor: '#333', color: 'white', fontWeight: 'bold' }}>Subtotal</TableCell>
                 <TableCell align="center" sx={{ bgcolor: '#333', color: 'white', fontWeight: 'bold' }}>Acciones</TableCell>
               </TableRow>
@@ -233,80 +204,101 @@ const ItemsSection = ({
             <TableBody>
               {formData.items.map((item, index) => (
                 <TableRow
-                  key={item.product || index} // Usar ID de producto si existe, sino index
+                  key={`item-row-${item.product || index}`}
                   sx={{
                     '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.05)' },
-                    bgcolor: item.taxExempt ? 'rgba(25, 118, 210, 0.05)' : 'transparent',
-                    // --- NUEVO: Resaltar fila con error de stock ---
+                    bgcolor: item.taxType === FISCAL_TYPES.EXENTO ? 'rgba(25, 118, 210, 0.08)' : 'transparent',
                     ...(stockErrors[index] && { bgcolor: 'rgba(255, 0, 0, 0.1)' })
                   }}
                 >
                   <TableCell>{item.codigo}</TableCell>
                   <TableCell>{item.descripcion}</TableCell>
                   <TableCell align="center">
-                    {/* --- MODIFICACIÓN: Mostrar TextField con error si existe --- */}
                     <TextField
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => handleQuantityChange(index, e.target.value)}
-                        variant="outlined"
-                        size="small"
-                        inputProps={{ min: 1, style: { textAlign: 'center' } }}
-                        sx={{ width: '100px' }} // Un poco más ancho para el helper
-                        error={!!stockErrors[index]} // Marcar como error si hay mensaje
-                        // helperText={stockErrors[index]} // Mostrar mensaje debajo (opcional)
-                        onFocus={() => setEditingRowIndex(index)} // Entrar en modo edición al enfocar
-                        onBlur={() => {
-                           // Opcional: podrías quitar el modo edición al desenfocar si no hay error
-                           // if (!stockErrors[index]) setEditingRowIndex(null);
-                        }}
-                      />
-                     {/* Mostrar mensaje de error como tooltip o debajo */}
-                     {stockErrors[index] && (
-                         <Tooltip title={stockErrors[index]} placement="top">
-                             <WarningIcon color="error" sx={{ fontSize: '1rem', verticalAlign: 'middle', ml: 0.5 }} />
-                         </Tooltip>
-                        // O mostrar como texto:
-                        // <FormHelperText error sx={{ textAlign: 'center', width: '100px' }}>
-                        //     {stockErrors[index]}
-                        // </FormHelperText>
-                     )}
-                     {/* --- FIN MODIFICACIÓN --- */}
+                      type="number"
+                      value={item.quantity}
+                      onChange={(e) => handleQuantityChange(index, e.target.value)}
+                      variant="outlined"
+                      size="small"
+                      inputProps={{ min: 1, style: { textAlign: 'center' } }}
+                      sx={{ width: '100px' }}
+                      error={!!stockErrors[index]}
+                    />
+                    {stockErrors[index] && (
+                      <Tooltip title={stockErrors[index]} placement="top">
+                        <WarningIcon color="error" sx={{ fontSize: '1rem', verticalAlign: 'middle', ml: 0.5 }} />
+                      </Tooltip>
+                    )}
                   </TableCell>
                   <TableCell align="right">
-                     {/* --- MODIFICACIÓN: Usar TextField siempre visible para precio --- */}
-                     <TextField
-                        type="number"
-                        value={item.price}
-                        onChange={(e) => handlePriceChange(index, e.target.value)}
-                        variant="outlined"
-                        size="small"
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              {getCurrencySymbol()}
-                            </InputAdornment>
-                          )
-                        }}
-                        sx={{ width: '140px' }}
-                        onFocus={() => setEditingRowIndex(index)}
-                      />
-                     {/* --- FIN MODIFICACIÓN --- */}
+                    <TextField
+                      type="number"
+                      value={item.price}
+                      onChange={(e) => handlePriceChange(index, e.target.value)}
+                      variant="outlined"
+                      size="small"
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            {getCurrencySymbol()}
+                          </InputAdornment>
+                        )
+                      }}
+                      sx={{ width: '140px' }}
+                    />
                   </TableCell>
                   <TableCell align="center">
-                    <Switch
-                      checked={item.taxExempt || false}
-                      onChange={(e) => handleTaxExemptChange(index, e)}
-                      color="primary"
-                      size="small"
-                    />
+                    <FormControl size="small" sx={{ minWidth: 120 }}>
+                      <Select
+                        value={item.taxType || (item.taxExempt ? 'exento' : 'gravado')}
+                        onChange={(e) => {
+                          const newValue = e.target.value;
+                          console.log(`Cambiando tipo fiscal en índice ${index} a ${newValue}`);
+                          
+                          onItemChange(index, 'taxType', newValue);
+                          onItemChange(index, 'taxExempt', newValue === 'exento');
+                        }}
+                        size="small"
+                        sx={{
+                          bgcolor: 'rgba(255, 255, 255, 0.05)',
+                          color: 'white',
+                          '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)' },
+                          '& .MuiSelect-icon': { color: 'rgba(255, 255, 255, 0.7)' },
+                           '& .MuiOutlinedInput-notchedOutline': {
+                            borderColor: 'rgba(255, 255, 255, 0.23)',
+                          },
+                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                            borderColor: 'primary.main',
+                          },
+                          '& .MuiSelect-select': { paddingY: 1 }
+                        }}
+                        MenuProps={{
+                          PaperProps: {
+                            sx: {
+                              bgcolor: '#2a2a2a',
+                              color: 'white',
+                              '& .MuiMenuItem-root:hover': {
+                                bgcolor: 'rgba(79, 172, 254, 0.1)'
+                              },
+                              '& .MuiMenuItem-root.Mui-selected': {
+                                bgcolor: 'rgba(79, 172, 254, 0.2)',
+                                '&:hover': {
+                                  bgcolor: 'rgba(79, 172, 254, 0.3)'
+                                }
+                              }
+                            }
+                          }
+                        }}
+                      >
+                        <MenuItem value={'gravado'}>Gravado</MenuItem>
+                        <MenuItem value={'exento'}>Exento</MenuItem>
+                      </Select>
+                    </FormControl>
                   </TableCell>
                   <TableCell align="right" sx={{ fontWeight: 'bold' }}>
                     {formatCurrency(item.quantity * item.price, formData.currency)}
                   </TableCell>
                   <TableCell align="center">
-                    {/* Ya no necesitamos el botón de editar explícito */}
-                    {/* <Tooltip title="Editar">...</Tooltip> */}
                     <Tooltip title="Eliminar">
                       <IconButton
                         size="small"
@@ -323,8 +315,7 @@ const ItemsSection = ({
           </Table>
         </TableContainer>
       ) : (
-         // (Mensaje "No hay productos agregados" sin cambios)
-         <Box
+        <Box
           sx={{
             py: 5,
             textAlign: 'center',
@@ -347,8 +338,8 @@ const ItemsSection = ({
         </Box>
       )}
 
-      {/* Resumen rápido (sin cambios) */}
-      {formData.items.length > 0 && (
+      {/* INICIO DE SECCIÓN DE RESUMEN DE TOTALES MODIFICADA */}
+      {formData.items && formData.items.length > 0 && (
         <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
           <Paper
             elevation={3}
@@ -357,36 +348,47 @@ const ItemsSection = ({
               bgcolor: 'rgba(0, 0, 0, 0.2)',
               border: '1px solid rgba(255, 255, 255, 0.1)',
               borderRadius: '8px',
-              minWidth: '250px'
+              minWidth: '300px'
             }}
           >
             <Grid container spacing={1}>
-              <Grid item xs={6}>
-                <Typography variant="body2" color="text.secondary">Subtotal:</Typography>
+              <Grid item xs={7}>
+                <Typography variant="body2" color="text.secondary">Base Imponible:</Typography>
               </Grid>
-              <Grid item xs={6}>
+              <Grid item xs={5}>
                 <Typography variant="body2" align="right">
-                  {formatCurrency(formData.subtotal, formData.currency)}
+                  {formatCurrency(formData.subtotalGravado || 0, formData.currency)}
                 </Typography>
               </Grid>
-
-              <Grid item xs={6}>
+              
+              <Grid item xs={7}>
+                <Typography variant="body2" color="text.secondary">Exento:</Typography>
+              </Grid>
+              <Grid item xs={5}>
+                <Typography variant="body2" align="right">
+                  {formatCurrency(formData.subtotalExento || 0, formData.currency)}
+                </Typography>
+              </Grid>
+              
+              <Grid item xs={7}>
                 <Typography variant="body2" color="text.secondary">IVA (16%):</Typography>
               </Grid>
-              <Grid item xs={6}>
+              <Grid item xs={5}>
                 <Typography variant="body2" align="right">
-                  {formatCurrency(formData.tax || formData.taxAmount, formData.currency)}
+                  {formatCurrency(formData.tax || formData.taxAmount || 0, formData.currency)}
                 </Typography>
               </Grid>
-
+              
+              {/* La fila de "Subtotal No Gravado" ha sido eliminada */}
+              
               <Grid item xs={12}>
                 <Divider sx={{ my: 1, bgcolor: 'rgba(255, 255, 255, 0.1)' }} />
               </Grid>
-
-              <Grid item xs={6}>
+              
+              <Grid item xs={7}>
                 <Typography variant="subtitle2" fontWeight="bold">Total:</Typography>
               </Grid>
-              <Grid item xs={6}>
+              <Grid item xs={5}>
                 <Typography variant="subtitle2" fontWeight="bold" align="right">
                   {formatCurrency(formData.total, formData.currency)}
                 </Typography>
@@ -395,6 +397,7 @@ const ItemsSection = ({
           </Paper>
         </Box>
       )}
+      {/* FIN DE SECCIÓN DE RESUMEN DE TOTALES MODIFICADA */}
     </Box>
   );
 };
