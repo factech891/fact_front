@@ -1,5 +1,3 @@
-import React from 'react';
-// src/hooks/useClients.js - Solución sin jwt-decode
 import { useState, useEffect } from 'react';
 import { clientsApi } from '../services/api';
 

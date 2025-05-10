@@ -1,5 +1,3 @@
-import React from 'react';
-// src/hooks/useRoleAccess.js (CORREGIDO)
 import { useAuth } from '../context/AuthContext';
 
 /**

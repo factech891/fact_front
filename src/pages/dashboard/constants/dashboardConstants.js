@@ -1,5 +1,3 @@
-import React from 'react';
-// src/pages/dashboard/constants/dashboardConstants.js
 
 export const CHART_COLORS = {
   primary: '#0088FE',
