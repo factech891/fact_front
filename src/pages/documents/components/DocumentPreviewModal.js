@@ -34,6 +34,35 @@ import { InvoiceStyleSelector } from '../../invoices/InvoicePreview/InvoiceStyle
 import { invoiceThemes } from '../../invoices/InvoicePreview/invoiceThemes';
 import { generatePDF } from '../../../utils/pdfGenerator';
 
+// Estilo para el botón "Descargar PDF" con gradiente azul
+const downloadButtonStyle = {
+  color: 'white',
+  fontWeight: 600,
+  padding: '8px 22px',
+  textTransform: 'none',
+  backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+  boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)',
+  transition: 'all 0.2s ease-in-out',
+  border: 'none',
+  borderRadius: '50px',
+  fontSize: '14px',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: '0 6px 20px rgba(79, 172, 254, 0.6)',
+    backgroundImage: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+  },
+  '&:active': {
+    transform: 'translateY(0)',
+    boxShadow: '0 2px 10px rgba(79, 172, 254, 0.4)',
+  },
+  '&.Mui-disabled': {
+    backgroundImage: 'linear-gradient(to right, #919191 0%, #b7b7b7 100%)',
+    color: 'rgba(255, 255, 255, 0.6)',
+    boxShadow: 'none',
+    transform: 'none',
+  }
+};
+
 // Estilos para el contenedor de la factura
 const getStyles = (theme) => ({
   invoiceContainer: {
@@ -422,12 +451,13 @@ const DocumentPreviewModal = ({ open, onClose, documentId, onRefresh }) => {
           </Button>
 
           <Box>
-            {/* Botón Imprimir eliminado */}
+            {/* Botón Descargar PDF con estilo de gradiente */}
             <Button
               variant="contained"
               startIcon={<DownloadIcon />}
               onClick={handleDownload}
               disabled={loading || isGenerating}
+              sx={downloadButtonStyle}
             >
               {isGenerating ? 'Generando...' : 'Descargar PDF'}
             </Button>
