@@ -10,7 +10,7 @@ import {
     Alert,
     List,
     ListItem,
-    ListItemIcon, // <--- AÑADIDO AQUÍ
+    ListItemIcon, 
     ListItemText,
     Paper
 } from '@mui/material';

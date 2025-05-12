@@ -31,13 +31,15 @@ const usePlatformAdmin = () => {
         setSuccessMessage(null);
     }, []);
 
-    // --- Funciones existentes (fetchDashboardStats, fetchCompanies, extendCompanyTrial, changeCompanySubscriptionStatus, toggleCompanyActiveState) ---
+    // --- fetchDashboardStats CORREGIDA ---
     const fetchDashboardStats = useCallback(async () => {
         setLoadingStats(true);
         clearMessages();
         try {
             const data = await PlatformAdminApi.getDashboardStats();
             if (data.success) {
+                // Usar los datos directamente tal como vienen del backend
+                // Ya no necesitamos modificar nada aquí
                 setDashboardStats(data.stats);
             } else {
                 throw new Error(data.message || 'Failed to fetch dashboard stats');
@@ -45,12 +47,15 @@ const usePlatformAdmin = () => {
         } catch (err) {
             console.error("Hook error fetching stats:", err);
             setError(err.message || 'Error al obtener estadísticas');
-            setDashboardStats(null);
+            setDashboardStats(null); // Resetear stats en caso de error
         } finally {
             setLoadingStats(false);
         }
     }, [clearMessages]);
+    // --- FIN fetchDashboardStats CORREGIDA ---
 
+
+    // --- Funciones existentes (sin cambios recientes) ---
     const fetchCompanies = useCallback(async () => {
         setLoadingCompanies(true);
         clearMessages();
@@ -135,43 +140,30 @@ const usePlatformAdmin = () => {
         }
         return success;
     }, [clearMessages, fetchCompanies]);
-    // --- FIN Funciones existentes ---
 
-
-    // --- NUEVA FUNCIÓN para enviar notificación ---
-    /**
-     * Sends a notification to a specific company.
-     * @param {string} companyId - The ID of the target company.
-     * @param {object} notificationData - The notification details { title, message, type }.
-     * @returns {Promise<boolean>} True if the notification was sent successfully, false otherwise.
-     */
     const sendCompanyNotification = useCallback(async (companyId, notificationData) => {
         setLoadingAction(true); // Start action loading
         clearMessages(); // Clear previous messages
         let success = false;
         try {
-            console.log(`Hook: Intentando enviar notificación a ${companyId}`, notificationData);
             // Call the API service function
             const data = await PlatformAdminApi.sendNotification(companyId, notificationData);
 
             if (data.success) {
                 setSuccessMessage(data.message || 'Notificación enviada con éxito.');
-                // No es necesario re-fetch companies aquí, la notificación no cambia la lista
                 success = true;
             } else {
-                // Handle API errors that don't throw exceptions (e.g., { success: false, message: '...' })
                 throw new Error(data.message || 'Failed to send notification');
             }
         } catch (err) {
-            // Handle exceptions thrown by the API call or handleResponse
             console.error("Hook error sending notification:", err);
             setError(err.message || 'Error al enviar la notificación');
         } finally {
             setLoadingAction(false); // Stop action loading
         }
         return success; // Return success status for UI feedback
-    }, [clearMessages]); // Dependency: clearMessages
-    // --- FIN NUEVA FUNCIÓN ---
+    }, [clearMessages]);
+    // --- FIN Funciones existentes ---
 
 
     // Return all state values and functions needed by components
@@ -183,12 +175,12 @@ const usePlatformAdmin = () => {
         loadingAction,
         error,
         successMessage,
-        fetchDashboardStats,
+        fetchDashboardStats, // <-- Función corregida
         fetchCompanies,
         extendCompanyTrial,
         changeCompanySubscriptionStatus,
         toggleCompanyActiveState,
-        sendCompanyNotification, // <-- Exponer la nueva función
+        sendCompanyNotification,
         clearMessages
     };
 };
