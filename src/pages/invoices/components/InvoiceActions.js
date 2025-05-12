@@ -1,18 +1,17 @@
-// src/pages/invoices/components/InvoiceActions.js (CORREGIDO - Quitar color prop)
+// src/pages/invoices/components/InvoiceActions.js
 import React from 'react';
 import { IconButton, Tooltip, Box } from '@mui/material';
 import {
   Visibility,
   Edit,
-  Delete,
-  FileDownload
+  Delete
 } from '@mui/icons-material';
 // Importar hook y componente con rutas ajustadas
 import { useRoleAccess } from '../../../hooks/useRoleAccess'; // VERIFICA ESTA RUTA
 import ActionButton from '../../../components/ActionButton'; // VERIFICA ESTA RUTA
 
 /**
- * Componente para mostrar acciones comunes de facturas (ver, editar, eliminar, descargar)
+ * Componente para mostrar acciones comunes de facturas (ver, editar, eliminar)
  * con control de acceso basado en roles y estilo de íconos blanco.
  */
 export const InvoiceActions = ({
@@ -20,7 +19,7 @@ export const InvoiceActions = ({
   onPreview,
   onEdit,
   onDelete,
-  onDownload,
+  onDownload, // Mantenemos el prop aunque no lo usemos para evitar errores
   ...props
 }) => {
   // Obtener funciones de permiso del hook
@@ -33,7 +32,6 @@ export const InvoiceActions = ({
         <Tooltip title="Previsualizar">
           <IconButton
             onClick={() => onPreview(invoice)}
-            // color="info" // Quitar color si queremos blanco por defecto
             size="small"
           >
             <Visibility fontSize="inherit" />
@@ -41,18 +39,7 @@ export const InvoiceActions = ({
         </Tooltip>
       )}
 
-      {/* Botón Descargar PDF (ya debería ser blanco por defecto) */}
-      {onDownload && (
-        <Tooltip title="Descargar PDF">
-          <IconButton
-            onClick={() => onDownload(invoice)}
-            // color="secondary" // Quitar color si queremos blanco por defecto
-            size="small"
-          >
-            <FileDownload fontSize="inherit" />
-          </IconButton>
-        </Tooltip>
-      )}
+      {/* El botón de descargar PDF ha sido eliminado */}
 
       {/* Botón Editar: Usar ActionButton SIN pasarle color */}
       {onEdit && (
@@ -63,7 +50,6 @@ export const InvoiceActions = ({
           isIconButton={true}
           showDisabled={true}
           buttonProps={{
-            // color: 'primary', // QUITAMOS la prop color
             size: 'small',
           }}
         >
@@ -80,7 +66,6 @@ export const InvoiceActions = ({
           isIconButton={true}
           showDisabled={true}
           buttonProps={{
-            // color: 'error', // QUITAMOS la prop color
             size: 'small',
           }}
         >

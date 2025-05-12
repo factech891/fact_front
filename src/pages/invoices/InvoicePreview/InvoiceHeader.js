@@ -3,121 +3,125 @@ import React from 'react';
 import { Grid, Typography, Box } from '@mui/material';
 import { useEffect, useState } from 'react';
 
-const getStyles = (theme, logoOpacity) => ({
-  header: {
-    backgroundColor: theme.primary || '#003366',
-    background: theme.gradient || 'linear-gradient(135deg, #003366 0%, #004080 100%)',
-    color: 'white',
-    padding: '15px 25px',
-    position: 'relative',
-    minHeight: '110px',
-    borderBottom: `1px solid ${theme.border || '#e0e0e0'}`,
-    boxShadow: '0 1px 6px rgba(0,0,0,0.1)'
-  },
-  leftSection: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px'
-  },
-  companyInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '3px'
-  },
-  companyName: {
-    color: 'white',
-    fontWeight: '700',
-    fontSize: theme.fontSize.title || '22px',
-    letterSpacing: '0.5px',
-    textTransform: 'uppercase',
-    lineHeight: 1.2,
-    marginBottom: '3px'
-  },
-  companyText: {
-    color: 'white',
-    fontSize: theme.fontSize.small || '12px',
-    lineHeight: 1.4,
-    opacity: '0.95'
-  },
-  invoiceBox: {
-    backgroundColor: 'white',
-    padding: '12px',
-    borderRadius: '8px',
-    color: theme.primary || '#003366',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
-    border: `1px solid ${theme.border || '#e0e0e0'}`,
-    position: 'relative',
-    width: '200px',
-    minHeight: '110px',
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden'
-  },
-  logoBackground: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    width: '100%',
-    height: '100%',
-    opacity: logoOpacity, // Usamos el valor de opacidad pasado
-    '& img': {
+const getStyles = (theme, logoOpacity) => {
+  const isPrintMode = theme.printMode === true;
+  
+  return {
+    header: {
+      backgroundColor: isPrintMode ? '#ffffff' : (theme.primary || '#003366'),
+      background: isPrintMode ? 'none' : (theme.gradient || 'linear-gradient(135deg, #003366 0%, #004080 100%)'),
+      color: isPrintMode ? '#000000' : 'white',
+      padding: '15px 25px',
+      position: 'relative',
+      minHeight: '110px',
+      borderBottom: `1px solid ${isPrintMode ? '#000000' : (theme.border || '#e0e0e0')}`,
+      boxShadow: isPrintMode ? 'none' : '0 1px 6px rgba(0,0,0,0.1)'
+    },
+    leftSection: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px'
+    },
+    companyInfo: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '3px'
+    },
+    companyName: {
+      color: isPrintMode ? '#000000' : 'white',
+      fontWeight: '700',
+      fontSize: theme.fontSize.title || '22px',
+      letterSpacing: '0.5px',
+      textTransform: 'uppercase',
+      lineHeight: 1.2,
+      marginBottom: '3px'
+    },
+    companyText: {
+      color: isPrintMode ? '#000000' : 'white',
+      fontSize: theme.fontSize.small || '12px',
+      lineHeight: 1.4,
+      opacity: isPrintMode ? '1' : '0.95'
+    },
+    invoiceBox: {
+      backgroundColor: 'white',
+      padding: '12px',
+      borderRadius: '8px',
+      color: theme.primary || '#003366',
+      boxShadow: isPrintMode ? 'none' : '0 2px 8px rgba(0, 0, 0, 0.12)',
+      border: `1px solid ${isPrintMode ? '#000000' : (theme.border || '#e0e0e0')}`,
+      position: 'relative',
+      width: '200px',
+      minHeight: '110px',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden'
+    },
+    logoBackground: {
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
       width: '100%',
       height: '100%',
-      objectFit: 'cover',
-      padding: 0
+      opacity: logoOpacity, // Usamos el valor de opacidad pasado
+      '& img': {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+        padding: 0
+      }
+    },
+    invoiceContent: {
+      position: 'relative',
+      zIndex: 1,
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%'
+    },
+    invoiceHeader: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 0
+    },
+    invoiceTitle: {
+      color: isPrintMode ? '#000000' : (theme.primary || '#003366'),
+      fontWeight: '700',
+      fontSize: theme.fontSize.subtitle || '18px',
+      textAlign: 'center',
+      marginBottom: '2px',
+      lineHeight: 1.2
+    },
+    invoiceNumber: {
+      color: theme.text.primary || '#333',
+      fontSize: theme.fontSize.small || '13px',
+      fontWeight: '600',
+      textAlign: 'center',
+      marginTop: '2px',
+      lineHeight: 1.2
+    },
+    invoiceDate: {
+      color: theme.text.primary || '#333',
+      fontSize: theme.fontSize.small || '13px',
+      fontWeight: '600',
+      textAlign: 'center',
+      marginTop: 'auto',
+      paddingTop: '10px'
+    },
+    logo: {
+      maxWidth: '100px',
+      maxHeight: '60px',
+      marginLeft: 'auto',
+      marginRight: 'auto',
+      marginBottom: '8px',
+      display: 'block'
     }
-  },
-  invoiceContent: {
-    position: 'relative',
-    zIndex: 1,
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%'
-  },
-  invoiceHeader: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 0
-  },
-  invoiceTitle: {
-    color: theme.primary || '#003366',
-    fontWeight: '700',
-    fontSize: theme.fontSize.subtitle || '18px',
-    textAlign: 'center',
-    marginBottom: '2px',
-    lineHeight: 1.2
-  },
-  invoiceNumber: {
-    color: theme.text.primary || '#333',
-    fontSize: theme.fontSize.small || '13px',
-    fontWeight: '600',
-    textAlign: 'center',
-    marginTop: '2px',
-    lineHeight: 1.2
-  },
-  invoiceDate: {
-    color: theme.text.primary || '#333',
-    fontSize: theme.fontSize.small || '13px',
-    fontWeight: '600',
-    textAlign: 'center',
-    marginTop: 'auto',
-    paddingTop: '10px'
-  },
-  logo: {
-    maxWidth: '100px',
-    maxHeight: '60px',
-    marginLeft: 'auto',
-    marginRight: 'auto',
-    marginBottom: '8px',
-    display: 'block'
-  }
-});
+  };
+};
 
 export const InvoiceHeader = ({ invoice, empresa, theme, documentType }) => {
-  // CORRECCIÓN: Mover todos los hooks al inicio, antes de cualquier retorno condicional
+  // Corrección: Mover todos los hooks al inicio, antes de cualquier retorno condicional
   const [logoOpacity, setLogoOpacity] = useState(0.25); // Valor por defecto
 
   // Cargar la opacidad guardada cuando el componente se monta

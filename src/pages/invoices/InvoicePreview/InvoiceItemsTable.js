@@ -15,6 +15,8 @@ import {
 export const InvoiceItemsTable = ({ items = [], moneda = 'VES', theme = {} }) => {
   if (!items || items.length === 0) return null;
 
+  const isPrintMode = theme.printMode === true;
+
   const tableStyles = {
     root: {
       width: '100%',
@@ -23,32 +25,32 @@ export const InvoiceItemsTable = ({ items = [], moneda = 'VES', theme = {} }) =>
       borderCollapse: 'collapse',
       borderRadius: '6px',
       overflow: 'hidden',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+      boxShadow: isPrintMode ? 'none' : '0 1px 3px rgba(0,0,0,0.1)',
+      border: isPrintMode ? '1px solid #000000' : 'none',
     },
-    // Modificación 1: Mejorar los estilos del encabezado de tabla
     header: {
-      backgroundColor: theme.primary || '#003366',
+      backgroundColor: isPrintMode ? '#ffffff' : (theme.primary || '#003366'),
       '& th': {
-        color: '#FFFFFF',
-        padding: '12px 15px', // Aumentar padding
+        color: isPrintMode ? '#000000' : '#FFFFFF',
+        padding: '12px 15px', 
         fontWeight: '600',
-        fontSize: '14px', // Aumentar tamaño
+        fontSize: '14px', 
         textTransform: 'uppercase',
         letterSpacing: '0.5px',
         textAlign: 'left',
-        borderBottom: 'none',
-        whiteSpace: 'nowrap' // Evitar que se rompa el texto
+        borderBottom: isPrintMode ? '1px solid #000000' : 'none',
+        whiteSpace: 'nowrap' 
       }
     },
     cell: {
       padding: '10px 8px',
-      borderBottom: '1px solid #eaeaea',
+      borderBottom: isPrintMode ? '1px solid #000000' : '1px solid #eaeaea',
       color: theme.text?.primary || '#333333',
       fontSize: '13px',
       fontWeight: '400'
     },
     evenRow: {
-      backgroundColor: theme.background?.secondary || '#f9f9f9',
+      backgroundColor: isPrintMode ? '#ffffff' : (theme.background?.secondary || '#f9f9f9'),
     },
     oddRow: {
       backgroundColor: theme.background?.primary || '#FFFFFF',
@@ -66,15 +68,17 @@ export const InvoiceItemsTable = ({ items = [], moneda = 'VES', theme = {} }) =>
       width: 'auto',
       minWidth: '80px',
       textAlign: 'center',
-      boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+      boxShadow: isPrintMode ? 'none' : '0 1px 2px rgba(0,0,0,0.05)'
     },
     exentoTrue: { 
-      backgroundColor: theme.success || '#4caf50',
-      color: 'white'
+      backgroundColor: isPrintMode ? '#ffffff' : (theme.success || '#4caf50'),
+      color: isPrintMode ? '#000000' : 'white',
+      border: isPrintMode ? '1px solid #000000' : 'none'
     },
     exentoFalse: { 
-      backgroundColor: theme.error || '#f44336',
-      color: 'white'
+      backgroundColor: isPrintMode ? '#ffffff' : (theme.error || '#f44336'),
+      color: isPrintMode ? '#000000' : 'white',
+      border: isPrintMode ? '1px solid #000000' : 'none'
     },
     numeric: {
       textAlign: 'right',
@@ -119,7 +123,6 @@ export const InvoiceItemsTable = ({ items = [], moneda = 'VES', theme = {} }) =>
               <TableCell sx={{ ...tableStyles.quantity, width: '10%' }}>Cantidad</TableCell>
               <TableCell sx={{ ...tableStyles.numeric, width: '15%' }}>Precio Unit.</TableCell>
               <TableCell sx={{ ...tableStyles.numeric, width: '15%' }}>Total</TableCell>
-              {/* El título de la columna ya es "TIPO FISCAL" desde la modificación anterior */}
               <TableCell sx={{ ...tableStyles.exentoColumn, width: '10%' }}>TIPO FISCAL</TableCell>
             </TableRow>
           </TableHead>
@@ -163,8 +166,9 @@ export const InvoiceItemsTable = ({ items = [], moneda = 'VES', theme = {} }) =>
                         borderRadius: '4px',
                         fontWeight: '600',
                         fontSize: '12px',
-                        color: 'white',
-                        backgroundColor: theme.primary || '#003366',
+                        color: isPrintMode ? '#000000' : 'white',
+                        backgroundColor: isPrintMode ? '#ffffff' : (theme.primary || '#003366'),
+                        border: isPrintMode ? '1px solid #000000' : 'none',
                         display: 'inline-block',
                         width: 'auto',
                         minWidth: '80px',

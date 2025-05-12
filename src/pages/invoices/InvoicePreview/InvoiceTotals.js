@@ -5,6 +5,8 @@ import { Box, Typography, Paper } from '@mui/material';
 export const InvoiceTotals = ({ invoice, theme = {} }) => {
   if (!invoice) return null;
   
+  const isPrintMode = theme.printMode === true;
+  
   // Asegurarnos de tener los items
   const items = invoice.items || [];
   
@@ -48,13 +50,14 @@ export const InvoiceTotals = ({ invoice, theme = {} }) => {
       marginBottom: '20px',
       overflow: 'hidden',
       borderRadius: '6px',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
+      boxShadow: isPrintMode ? 'none' : '0 2px 8px rgba(0,0,0,0.12)'
     },
     totalsBox: {
-      backgroundColor: theme.primary || '#003366',
+      backgroundColor: isPrintMode ? '#ffffff' : (theme.primary || '#003366'),
       padding: '0',
-      color: '#FFFFFF',
-      borderRadius: '6px'
+      color: isPrintMode ? '#000000' : '#FFFFFF',
+      borderRadius: '6px',
+      border: isPrintMode ? '1px solid #000000' : 'none'
     },
     row: {
       display: 'flex',
@@ -63,18 +66,19 @@ export const InvoiceTotals = ({ invoice, theme = {} }) => {
       alignItems: 'center'
     },
     baseImponibleRow: {
-      borderBottom: '1px solid rgba(255,255,255,0.1)'
+      borderBottom: isPrintMode ? '1px solid #000000' : '1px solid rgba(255,255,255,0.1)'
     },
     exentoRow: {
-      borderBottom: '1px solid rgba(255,255,255,0.1)'
+      borderBottom: isPrintMode ? '1px solid #000000' : '1px solid rgba(255,255,255,0.1)'
     },
     ivaRow: {
-      borderBottom: '1px solid rgba(255,255,255,0.1)',
-      backgroundColor: 'rgba(0,0,0,0.05)'
+      borderBottom: isPrintMode ? '1px solid #000000' : '1px solid rgba(255,255,255,0.1)',
+      backgroundColor: isPrintMode ? '#ffffff' : 'rgba(0,0,0,0.05)'
     },
     totalRow: {
-      backgroundColor: 'rgba(0,0,0,0.1)',
-      padding: '15px'
+      backgroundColor: isPrintMode ? '#ffffff' : 'rgba(0,0,0,0.1)',
+      padding: '15px',
+      borderTop: isPrintMode ? '2px solid #000000' : 'none'
     },
     label: {
       fontWeight: '500',
@@ -107,7 +111,7 @@ export const InvoiceTotals = ({ invoice, theme = {} }) => {
           </Typography>
         </Box>
         
-        {/* Nueva línea para Exento */}
+        {/* Exento */}
         <Box sx={{...styles.row, ...styles.exentoRow}}>
           <Typography sx={styles.label}>Exento:</Typography>
           <Typography sx={styles.value} className="exento-value">

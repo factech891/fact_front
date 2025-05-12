@@ -5,7 +5,8 @@ import {
   Palette, 
   Style, 
   ViewStreamOutlined, 
-  Business
+  Business,
+  Print // Nuevo ícono para modo impresión
 } from '@mui/icons-material';
 
 const styles = {
@@ -25,6 +26,12 @@ const styles = {
 };
 
 const invoiceStyles = [
+  { 
+    id: 'print', 
+    name: 'Impresión',
+    icon: <Print fontSize="small" />,
+    tooltip: 'Modo económico para impresión'
+  },
   { 
     id: 'modern', 
     name: 'Moderno',
@@ -56,7 +63,7 @@ export const InvoiceStyleSelector = ({
   onStyleChange
 }) => {
   return (
-    <Box sx={styles.selectorContainer}>
+    <Box sx={styles.selectorContainer} className="style-selector">
       <ButtonGroup size="small">
         {invoiceStyles.map((style) => (
           <Tooltip key={style.id} title={style.tooltip} placement="bottom">
