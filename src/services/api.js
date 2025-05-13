@@ -1,5 +1,5 @@
-// src/services/api.js modificado
-const API_BASE_URL = 'http://localhost:5002/api';
+// src/services/api.js 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002/api';
 
 // Función para manejar respuestas de la API
 const handleResponse = async (response) => {
