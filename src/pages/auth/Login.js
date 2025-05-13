@@ -1,4 +1,4 @@
-// src/pages/auth/Login.js (con mensaje de error de compañía/suscripción actualizado)
+// src/pages/auth/Login.js
 import React, { useState, useEffect } from 'react';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -66,12 +66,10 @@ const Login = () => {
       const loggedInUserData = await login(email, password);
       console.log('[Login handleSubmit] Login API call successful. User data received:', loggedInUserData);
 
-      // Redirecciones según el rol
-      // Usar hasRole del contexto sería más robusto si los roles son un array
-      if (loggedInUserData?.user?.role === PLATFORM_ADMIN_ROLE || loggedInUserData?.user?.roles?.includes(PLATFORM_ADMIN_ROLE)) {
+      if (loggedInUserData?.user?.role === PLATFORM_ADMIN_ROLE) {
         console.log('[Login handleSubmit] Redirigiendo a /platform-admin');
         navigate('/platform-admin', { replace: true });
-      } else if (loggedInUserData?.user?.role === FACTURADOR_ROLE || loggedInUserData?.user?.roles?.includes(FACTURADOR_ROLE)) {
+      } else if (loggedInUserData?.user?.role === FACTURADOR_ROLE) {
         console.log('[Login handleSubmit] Redirigiendo a /invoices');
         navigate('/invoices', { replace: true });
       } else {
@@ -81,25 +79,21 @@ const Login = () => {
 
     } catch (err) {
       console.error('Error de login:', err);
-
-      // Manejo de errores específico
-      // @ts-ignore
+      
+      // Detectar si es un error de verificación de correo
       if (err.response?.data?.needsVerification || err.needsVerification) {
         setNeedsVerification(true);
         localStorage.setItem('pendingVerificationEmail', email);
         setError('Por favor, verifica tu correo electrónico antes de iniciar sesión.');
-      }
-      // @ts-ignore
+      } 
+      // Detectar si es un error de compañía inactiva
       else if (err.response?.data?.companyInactive || err.companyInactive) {
-         // --- INICIO MODIFICACIÓN MENSAJE DE ERROR ---
         setError('La empresa asociada a su cuenta está desactivada o su suscripción ha finalizado.');
-         // --- FIN MODIFICACIÓN MENSAJE DE ERROR ---
-      }
+      } 
       else {
-        // @ts-ignore
         setError(err.message || 'Correo electrónico o contraseña incorrectos.');
       }
-
+      
       setLoading(false);
     }
   };
@@ -221,7 +215,7 @@ const Login = () => {
                   py: 1.5,
                   background: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
                   color: theme.palette.primary.contrastText,
-                  transition: 'opacity 0.3s ease, background-color 0.3s ease',
+                  transition: 'opacity 0.3s ease',
                   '&:hover': {
                     opacity: 0.9,
                   },

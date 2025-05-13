@@ -23,12 +23,14 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 // --- Componentes y funciones auxiliares ---
 
 const formatDate = (dateString) => {
+    // ... (sin cambios)
     if (!dateString) return '-';
     try { return format(parseISO(dateString), 'dd MMM yy', { locale: es }); }
     catch (e) { console.error("Error parsing date:", dateString, e); return 'Inválida'; }
 };
 
 const calculateTrialModification = (createdAt, trialEndDate) => {
+    // ... (sin cambios)
     if (!createdAt || !trialEndDate) return { days: 0, text: "N/A" };
     try {
         const creationDate = parseISO(createdAt);
@@ -45,9 +47,11 @@ const calculateTrialModification = (createdAt, trialEndDate) => {
 };
 
 const ActiveStatusChip = ({ isActive }) => (
+    // ... (sin cambios)
     <Chip icon={isActive ? <CheckCircleIcon /> : <CancelIcon />} label={isActive ? 'Activa' : 'Inactiva'} color={isActive ? 'success' : 'error'} size="small" variant="outlined" />
 );
 
+// --- SubscriptionStatusChip REEMPLAZADO ---
 const SubscriptionStatusChip = ({ status, onClick, loadingAction }) => {
     let color = 'default';
     let label = status || 'N/A';
@@ -82,30 +86,33 @@ const SubscriptionStatusChip = ({ status, onClick, loadingAction }) => {
     );
 };
 
-
 const CompanyTable = ({
     companies = [],
     onExtendTrial,
     onChangeStatus,
-    onToggleActive, // Prop necesaria para la desactivación automática
+    onToggleActive,
     sendCompanyNotification,
     loadingAction,
     loadingCompanies,
     refreshCompanies
 }) => {
+    // Estados para el modal de Trial
     const [openTrialModal, setOpenTrialModal] = useState(false);
     const [selectedCompanyForTrial, setSelectedCompanyForTrial] = useState(null);
     const [trialDays, setTrialDays] = useState(7);
 
+    // Estados para el modal de Notificación
     const [openNotifyModal, setOpenNotifyModal] = useState(false);
     const [selectedCompanyForNotify, setSelectedCompanyForNotify] = useState(null);
     const [notificationTitle, setNotificationTitle] = useState('');
     const [notificationMessage, setNotificationMessage] = useState('');
     const [notificationError, setNotificationError] = useState('');
 
+    // --- Estados para el menú de estado ---
     const [statusMenuAnchor, setStatusMenuAnchor] = useState(null);
     const [selectedCompanyForStatus, setSelectedCompanyForStatus] = useState(null);
 
+    // --- Handlers para Modal de Trial ---
     const handleOpenTrialModal = (company) => {
         setSelectedCompanyForTrial(company);
         setTrialDays(7);
@@ -122,6 +129,7 @@ const CompanyTable = ({
         }
     };
 
+    // --- Handlers para Modal de Notificación ---
     const handleOpenNotifyModal = (company) => {
         if (!company) {
             console.error("Error: Se intentó abrir modal de notificación sin datos de compañía.");
@@ -171,62 +179,50 @@ const CompanyTable = ({
         }
     };
 
-    // Handler original de onToggleActive, se mantiene para la acción manual del botón
+    // --- Handler para Activar/Desactivar ---
     const handleToggleActive = async (companyId, currentActiveState) => {
-        // Este es el handler para la acción manual de activar/desactivar
-        // La lógica de desactivación automática está en handleChangeStatus
-        if (typeof onToggleActive === 'function') {
-            await onToggleActive(companyId, !currentActiveState);
-            if (typeof refreshCompanies === 'function') {
-                refreshCompanies(); // Refrescar después de la acción manual
-            }
-        } else {
-            console.error("Función onToggleActive no proporcionada.");
-        }
+        await onToggleActive(companyId, !currentActiveState);
     };
 
-
-    // --- Handlers para el menú de estado (handleChangeStatus MODIFICADO) ---
+    // --- Handlers para el menú de estado (MODIFICADOS) ---
     const handleStatusClick = (event, company) => {
-        event.stopPropagation();
-        setStatusMenuAnchor(event.currentTarget);
-        setSelectedCompanyForStatus(company);
+        event.stopPropagation(); // Prevenir que el click afecte a la fila
+        setStatusMenuAnchor(event.currentTarget); // Anclar menú al elemento clickeado
+        setSelectedCompanyForStatus(company); // Guardar la compañía seleccionada
     };
-
     const handleCloseStatusMenu = () => {
-        setStatusMenuAnchor(null);
-        setSelectedCompanyForStatus(null);
+        setStatusMenuAnchor(null); // Limpiar anchor para cerrar menú
+        setSelectedCompanyForStatus(null); // Limpiar compañía seleccionada
     };
-
-    // Función modificada para desactivar automáticamente cuando se cambia a "expirada" o "cancelada"
+    
+    // MODIFICACIÓN IMPORTANTE: Desactivar automáticamente cuando se cambia a expirado o cancelado
     const handleChangeStatus = async (status) => {
         if (selectedCompanyForStatus && status && typeof onChangeStatus === 'function') {
             // Primero cambiamos el estado de suscripción
             await onChangeStatus(selectedCompanyForStatus.id, status);
-
+            
             // Si el estado es 'expired' o 'cancelled', desactivamos automáticamente el acceso
-            // y la compañía está actualmente activa y la función onToggleActive está disponible.
-            const lowerCaseStatus = status.toLowerCase(); // Para comparación insensible a mayúsculas/minúsculas
-            if ((lowerCaseStatus === 'expired' || lowerCaseStatus === 'cancelled') &&
-                selectedCompanyForStatus.active &&
+            if ((status === 'expired' || status === 'cancelled') && 
+                selectedCompanyForStatus.active && 
                 typeof onToggleActive === 'function') {
-                console.log(`Desactivando automáticamente empresa ${selectedCompanyForStatus.name} (ID: ${selectedCompanyForStatus.id}) por cambio de estado a ${status}`);
+                console.log(`Desactivando automáticamente empresa ${selectedCompanyForStatus.name} por cambio de estado a ${status}`);
                 await onToggleActive(selectedCompanyForStatus.id, false);
             }
-
+            
             handleCloseStatusMenu(); // Cerrar menú después de la acción
-
+            
             // Refrescar la lista de compañías
             if (typeof refreshCompanies === 'function') {
                 refreshCompanies();
             }
         } else {
-            console.error("Error: No se pudo cambiar el estado - falta compañía seleccionada, nuevo estado, o función 'onChangeStatus'.");
+            console.error("Error: No se pudo cambiar el estado - falta compañía, estado o función 'onChangeStatus'");
             handleCloseStatusMenu(); // Asegurarse de cerrar el menú igual
         }
     };
     // --- FIN Handlers MODIFICADOS ---
 
+    // --- Procesamiento y Filtrado de Filas ---
     const processedRows = companies.map(company => ({
         ...company,
         isSystemAccount: (company.name === "Sistema FactTech") || (company.rif === "ADMIN-FACTTECH-001") || (company.email?.includes("riki386@hotmail.com")),
@@ -236,11 +232,15 @@ const CompanyTable = ({
     }));
     const filteredRows = processedRows.filter(row => !row.isSystemAccount);
 
+    // --- Definición de Columnas ---
     const columns = [
+        // Columnas existentes (Nombre, RIF, Email, Acceso)
         { field: 'name', headerName: 'Nombre Compañía', flex: 1.5, minWidth: 180 },
         { field: 'rif', headerName: 'RIF/ID', flex: 1, minWidth: 120 },
         { field: 'email', headerName: 'Email', flex: 1.5, minWidth: 180 },
         { field: 'active', headerName: 'Acceso', flex: 0.8, minWidth: 110, align: 'center', headerAlign: 'center', renderCell: (params) => params.row ? <ActiveStatusChip isActive={params.value} /> : null },
+
+        // Columna de Suscripción MODIFICADA
         {
             field: 'status',
             headerName: 'Suscripción',
@@ -252,10 +252,11 @@ const CompanyTable = ({
                 <SubscriptionStatusChip
                     status={params.value}
                     onClick={(e) => handleStatusClick(e, params.row)}
-                    loadingAction={loadingAction && selectedCompanyForStatus?.id === params.row.id} // Mostrar loading solo en la fila afectada
+                    loadingAction={loadingAction}
                 />
             ) : null
         },
+        // Columnas existentes (Fin Prueba, Fin Susc., Registro)
         {
             field: 'formattedTrialEndDate', headerName: 'Fin Prueba', flex: 0.9, minWidth: 130, align: 'center', headerAlign: 'center',
             renderCell: (params) => {
@@ -267,41 +268,16 @@ const CompanyTable = ({
         },
         { field: 'formattedSubscriptionEndDate', headerName: 'Fin Susc.', flex: 0.8, minWidth: 110, align: 'center', headerAlign: 'center', renderCell: (params) => params.row ? <Tooltip title="Fecha fin suscripción activa"><span>{params.value}</span></Tooltip> : null },
         { field: 'formattedCreatedAt', headerName: 'Registro', flex: 0.8, minWidth: 110, align: 'center', headerAlign: 'center', renderCell: (params) => params.row ? <Tooltip title="Fecha registro"><span>{params.value}</span></Tooltip> : null },
+
+        // Columna de Acciones (sin cambios, se mantiene)
         {
             field: 'actions', type: 'actions', headerName: 'Acciones', width: 150,
             getActions: (params) => {
                 if (!params.row) return [];
                 return [
-                    <GridActionsCellItem
-                        key={`toggle-${params.row.id}`}
-                        icon={
-                            <Tooltip title={params.row.active ? "Desactivar Acceso" : "Activar Acceso"}>
-                                <IconButton size="small" color={params.row.active ? "error" : "success"}>
-                                    {params.row.active ? <ToggleOffIcon /> : <ToggleOnIcon />}
-                                </IconButton>
-                            </Tooltip>
-                        }
-                        label={params.row.active ? "Desactivar" : "Activar"}
-                        onClick={() => handleToggleActive(params.row.id, params.row.active)} // Acción manual
-                        disabled={loadingAction}
-                        showInMenu={false}
-                    />,
-                    <GridActionsCellItem
-                        key={`trial-${params.row.id}`}
-                        icon={ <Tooltip title="Modificar Días de Prueba"><IconButton size="small" color="primary"><MoreTimeIcon /></IconButton></Tooltip> }
-                        label="Modificar Prueba"
-                        onClick={() => handleOpenTrialModal(params.row)}
-                        disabled={loadingAction}
-                        showInMenu={false}
-                    />,
-                    <GridActionsCellItem
-                        key={`notify-${params.row.id}`}
-                        icon={ <Tooltip title="Enviar Notificación"><IconButton size="small" color="secondary"><NotificationsIcon /></IconButton></Tooltip> }
-                        label="Notificar"
-                        onClick={() => handleOpenNotifyModal(params.row)}
-                        disabled={loadingAction}
-                        showInMenu={false}
-                     />,
+                    <GridActionsCellItem key={`toggle-${params.row.id}`} icon={ <Tooltip title={params.row.active ? "Desactivar Acceso" : "Activar Acceso"}><IconButton size="small" color={params.row.active ? "error" : "success"}>{params.row.active ? <ToggleOffIcon /> : <ToggleOnIcon />}</IconButton></Tooltip> } label={params.row.active ? "Desactivar" : "Activar"} onClick={() => handleToggleActive(params.row.id, params.row.active)} disabled={loadingAction} showInMenu={false} />,
+                    <GridActionsCellItem key={`trial-${params.row.id}`} icon={ <Tooltip title="Modificar Días de Prueba"><IconButton size="small" color="primary"><MoreTimeIcon /></IconButton></Tooltip> } label="Modificar Prueba" onClick={() => handleOpenTrialModal(params.row)} disabled={loadingAction} showInMenu={false} />,
+                    <GridActionsCellItem key={`notify-${params.row.id}`} icon={ <Tooltip title="Enviar Notificación"><IconButton size="small" color="secondary"><NotificationsIcon /></IconButton></Tooltip> } label="Notificar" onClick={() => handleOpenNotifyModal(params.row)} disabled={loadingAction} showInMenu={false} />,
                 ];
             }
         },
@@ -327,6 +303,7 @@ const CompanyTable = ({
                 }}
             />
 
+            {/* --- Modal para Extender/Reducir Trial --- */}
             <Dialog open={openTrialModal} onClose={handleCloseTrialModal} maxWidth="xs" fullWidth>
                  <DialogTitle>Modificar Período de Prueba</DialogTitle>
                 <DialogContent>
@@ -341,6 +318,7 @@ const CompanyTable = ({
                 </DialogActions>
             </Dialog>
 
+            {/* --- Modal para Enviar Notificación --- */}
             <Dialog open={openNotifyModal} onClose={handleCloseNotifyModal} maxWidth="sm" fullWidth>
                 <DialogTitle>Enviar Notificación a Empresa</DialogTitle>
                 <DialogContent>
@@ -355,17 +333,17 @@ const CompanyTable = ({
                 </DialogActions>
             </Dialog>
 
+             {/* --- Menú para cambiar estado de suscripción --- */}
              <Menu
                 anchorEl={statusMenuAnchor}
                 open={Boolean(statusMenuAnchor)}
                 onClose={handleCloseStatusMenu}
             >
-                <MenuItem onClick={() => handleChangeStatus('trial')} disabled={selectedCompanyForStatus?.status === 'trial'}>Período de Prueba</MenuItem>
-                <MenuItem onClick={() => handleChangeStatus('active')} disabled={selectedCompanyForStatus?.status === 'active'}>Suscripción Activa</MenuItem>
-                <MenuItem onClick={() => handleChangeStatus('expired')} disabled={selectedCompanyForStatus?.status === 'expired'}>Expirada</MenuItem>
-                <MenuItem onClick={() => handleChangeStatus('cancelled')} disabled={selectedCompanyForStatus?.status === 'cancelled'}>Cancelada</MenuItem>
+                <MenuItem onClick={() => handleChangeStatus('trial')}>Período de Prueba</MenuItem>
+                <MenuItem onClick={() => handleChangeStatus('active')}>Suscripción Activa</MenuItem>
+                <MenuItem onClick={() => handleChangeStatus('expired')}>Expirada</MenuItem>
+                <MenuItem onClick={() => handleChangeStatus('cancelled')}>Cancelada</MenuItem>
             </Menu>
-
         </Box>
     );
 };
