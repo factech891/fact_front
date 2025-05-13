@@ -9,6 +9,7 @@ import {
   Alert
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import { API_BASE_URL } from '../../services/api'; 
 
 // Componentes
 import SalesChart from './components/SalesChart';
@@ -70,7 +71,8 @@ const Dashboard = () => {
   const fetchDashboardData = async (authToken) => {
     setDataLoadingError(null);
     try {
-      const response = await fetch('http://localhost:5002/api/invoices/dashboard-data', {
+      // MODIFICADO: Usar API_BASE_URL en lugar de hardcodear la URL
+      const response = await fetch(`${API_BASE_URL}/invoices/dashboard-data`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
