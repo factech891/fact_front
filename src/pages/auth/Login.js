@@ -4,27 +4,13 @@ import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box, Typography, TextField, Button,
   Link, Paper, Grid, CircularProgress, Alert,
-  useTheme, InputAdornment, styled
+  useTheme, InputAdornment
 } from '@mui/material';
 import EmailIcon from '@mui/icons-material/Email';
 import LockIcon from '@mui/icons-material/Lock';
 import { useAuth } from '../../context/AuthContext';
 
 const BACKGROUND_IMAGE_URL = 'https://pub-c37b7a23aa9c49239d088e3e0a3ba275.r2.dev/q.svg';
-
-const GradientText = styled(Typography)(({ theme }) => ({
-  fontWeight: 700,
-  fontSize: '2.5rem',
-  background: 'linear-gradient(135deg, #4338ca 0%, #38bdf8 100%)',
-  backgroundClip: 'text',
-  WebkitBackgroundClip: 'text',
-  color: 'transparent',
-  WebkitTextFillColor: 'transparent',
-  display: 'inline-block',
-  marginBottom: theme.spacing(3),
-  textShadow: '1px 1px 2px rgba(0, 0, 0, 0.3)',
-}));
-
 
 const Login = () => {
   // Estados
@@ -126,24 +112,55 @@ const Login = () => {
         px: 2,
       }}
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: '450px' }}>
-          <Paper
-            elevation={8}
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: '800px' }}>
+        <Paper
+          elevation={8}
+          sx={{
+            width: '100%',
+            borderRadius: theme.shape.borderRadius * 1.5,
+            overflow: 'hidden', // Importante para mantener los colores dentro de los bordes redondeados
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' } // Columna en móvil, fila en desktop
+          }}
+        >
+          {/* Lado izquierdo: Logo con fondo azul oscuro */}
+          <Box
             sx={{
-              p: { xs: 3, sm: 5 },
-              width: '100%',
-              backgroundColor: 'rgba(30, 30, 30, 0.85)',
-              backdropFilter: 'blur(5px)',
-              borderRadius: theme.shape.borderRadius * 1.5,
+              flex: { xs: '1', md: '0.5' },
+              backgroundColor: '#0B0B5E', // Azul oscuro como en tu imagen
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
+              justifyContent: 'center',
+              padding: 4,
+              position: 'relative'
             }}
           >
-            <GradientText component="h1">
-              FactTech
-            </GradientText>
+            {/* Logo SVG */}
+            <Box
+              component="img"
+              src="/favicon.svg"  // Usando el SVG de la carpeta public
+              alt="FactTech Logo"
+              sx={{
+                width: { xs: '240px', md: '320px' },
+                height: 'auto',
+                maxWidth: '100%',
+                filter: 'drop-shadow(0 0 12px rgba(79, 172, 254, 0.4))'
+              }}
+            />
+          </Box>
 
+          {/* Lado derecho: Formulario de login */}
+          <Box
+            sx={{
+              flex: { xs: '1', md: '0.5' },
+              backgroundColor: 'rgba(30, 30, 30, 0.85)',
+              backdropFilter: 'blur(5px)',
+              p: { xs: 3, md: 4 },
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
             {error && (
               <Alert
                 severity="error"
@@ -244,18 +261,19 @@ const Login = () => {
                 </Grid>
               </Grid>
             </Box>
-          </Paper>
+          </Box>
+        </Paper>
       </Box>
 
       <Typography
-         variant="body2"
-         align="center"
-         sx={{
-            width: '100%',
-            color: theme.palette.text.secondary,
-            pt: 4,
-            pb: 2,
-         }}
+        variant="body2"
+        align="center"
+        sx={{
+          width: '100%',
+          color: theme.palette.text.secondary,
+          pt: 4,
+          pb: 2,
+        }}
       >
         &copy; {new Date().getFullYear()} FactTech. Todos los derechos reservados.
       </Typography>
