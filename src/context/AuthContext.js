@@ -1,7 +1,8 @@
-// src/context/AuthContext.js (SOLUCIÓN DE EMERGENCIA)
+// src/context/AuthContext.js
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { authApi } from '../services/AuthApi';
 import { useNavigate } from 'react-router-dom';
+import useInactivityTimeout from '../hooks/useInactivityTimeout'; // Importar el hook
 
 // Crear el contexto
 const AuthContext = createContext();
@@ -9,6 +10,12 @@ const AuthContext = createContext();
 // Hook personalizado para usar el contexto más fácilmente
 export const useAuth = () => {
   return useContext(AuthContext);
+};
+
+// Componente para manejar la inactividad
+const InactivityHandler = ({ timeout }) => {
+  useInactivityTimeout(timeout);
+  return null; // No renderiza nada
 };
 
 export const AuthProvider = ({ children }) => {
@@ -284,6 +291,8 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={value}>
+      {/* Activar el detector de inactividad solo cuando hay un usuario autenticado */}
+      {currentUser && <InactivityHandler timeout={60} />}
       {!loading && children}
     </AuthContext.Provider>
   );

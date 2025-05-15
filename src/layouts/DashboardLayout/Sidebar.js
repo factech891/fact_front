@@ -1,6 +1,6 @@
 // src/layouts/DashboardLayout/Sidebar.js
 import React, { useState } from 'react';
-import { useLocation, Link as RouterLink, useNavigate } from 'react-router-dom';
+import { useLocation, Link as RouterLink } from 'react-router-dom'; // Removed useNavigate
 import {
   Box,
   Drawer,
@@ -11,7 +11,7 @@ import {
   ListItemText,
   Typography,
   Avatar,
-  Tooltip, // Tooltip ya estaba importado
+  Tooltip,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -24,7 +24,7 @@ import { useTheme } from '@mui/material/styles';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import BusinessIcon from '@mui/icons-material/Business';
 import SupportIcon from '@mui/icons-material/Support';
-import LogoutIcon from '@mui/icons-material/Logout';
+// import LogoutIcon from '@mui/icons-material/Logout'; // Removed: defined but never used
 
 import { useCompany } from '../../hooks/useCompany';
 import { useAuth } from '../../context/AuthContext';
@@ -32,7 +32,7 @@ import { useAuth } from '../../context/AuthContext';
 const Sidebar = () => {
   const location = useLocation();
   const theme = useTheme();
-  const navigate = useNavigate();
+  // const navigate = useNavigate(); // Removed: assigned a value but never used
   const [isHovering, setIsHovering] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
 
@@ -206,14 +206,13 @@ const Sidebar = () => {
     ? 'linear-gradient(45deg, rgba(156, 39, 176, 0.1) 0%, rgba(156, 39, 176, 0.18) 100%)'
     : 'linear-gradient(45deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.18) 100%)';
 
-  // Definir la animación de rebote
-  const bounceEffect = {
-    '@keyframes bounce': {
-      '0%': { transform: 'translateY(0)' },
-      '50%': { transform: 'translateY(-5px)' },
-      '100%': { transform: 'translateY(0)' }
-    }
-  };
+  // const bounceEffect = { // Removed: assigned a value but never used
+  //   '@keyframes bounce': {
+  //     '0%': { transform: 'translateY(0)' },
+  //     '50%': { transform: 'translateY(-5px)' },
+  //     '100%': { transform: 'translateY(0)' }
+  //   }
+  // };
 
   const drawerStyles = {
     width: open ? expandedWidth : collapsedWidth,
@@ -568,7 +567,7 @@ const Sidebar = () => {
         </DialogTitle>
         <DialogContent sx={{ py: 3 }}>
           <DialogContentText>
-            Para obtener asistencia técnica, contáctanos a través de cualquiera de los siguientes medios:
+            Para obtener asistencia técnica, contáctanos a través de los siguientes medios:
           </DialogContentText>
           <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -577,16 +576,7 @@ const Sidebar = () => {
               </Box>
               <Box>
                 <Typography variant="subtitle2" fontWeight="medium">Email de soporte:</Typography>
-                <Typography variant="body2">soporte@facttech.com</Typography>
-              </Box>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Box sx={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', bgcolor: 'rgba(79, 172, 254, 0.1)' }}>
-                <span role="img" aria-label="phone" style={{ fontSize: '18px' }}>📞</span>
-              </Box>
-              <Box>
-                <Typography variant="subtitle2" fontWeight="medium">Teléfono:</Typography>
-                <Typography variant="body2">+58 412-123-4567</Typography>
+                <Typography variant="body2">soporte@facttech.io</Typography>
               </Box>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -595,7 +585,25 @@ const Sidebar = () => {
               </Box>
               <Box>
                 <Typography variant="subtitle2" fontWeight="medium">Horario de atención:</Typography>
-                <Typography variant="body2">Lunes a Viernes de 8:00 AM a 5:00 PM</Typography>
+                <Typography variant="body2">Lunes a Viernes de 8:00 AM a 9:00 PM</Typography>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', bgcolor: 'rgba(79, 172, 254, 0.1)' }}>
+                <span role="img" aria-label="chat" style={{ fontSize: '18px' }}>💬</span>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" fontWeight="medium">Chat en vivo:</Typography>
+                <Typography variant="body2">Disponible durante el horario de atención</Typography>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', bgcolor: 'rgba(79, 172, 254, 0.1)' }}>
+                <span role="img" aria-label="help" style={{ fontSize: '18px' }}>📚</span>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" fontWeight="medium">Centro de ayuda:</Typography>
+                <Typography variant="body2">Visita nuestra documentación en línea para guías y tutoriales</Typography>
               </Box>
             </Box>
           </Box>

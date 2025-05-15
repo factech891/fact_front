@@ -1,4 +1,4 @@
-// src/App.js (unificado con rutas de Platform Admin y Companies)
+// src/App.js
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
@@ -95,8 +95,8 @@ function App() {
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/register" element={<Register />} />
             <Route path="/auth/forgot-password" element={<ForgotPassword />} />
-            <Route path="/auth/verify-email-notice" element={<VerifyEmailNotice />} /> {/* Añadido desde la modificación */}
-            <Route path="/auth/verify-email/:token" element={<VerifyEmailConfirm />} /> {/* Añadido desde la modificación */}
+            <Route path="/auth/verify-email-notice" element={<VerifyEmailNotice />} />
+            <Route path="/auth/verify-email/:token" element={<VerifyEmailConfirm />} />
 
             {/* Ruta para acceso no autorizado */}
             <Route path="/unauthorized" element={<Unauthorized />} />
