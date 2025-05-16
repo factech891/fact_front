@@ -38,8 +38,8 @@ function useClients() {
   // Función para obtener companyId usando la API existente
   const getCompanyId = async () => {
     try {
-      // Puedes usar el endpoint auth/me que ya existe (vimos en el código del backend)
-      const response = await fetch('http://localhost:5002/api/auth/me', {
+      // Cambiado de URL hardcodeada a ruta relativa
+      const response = await fetch('/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
