@@ -38,8 +38,10 @@ function useClients() {
   // Función para obtener companyId usando la API existente
   const getCompanyId = async () => {
     try {
-      // Cambiado de URL hardcodeada a ruta relativa
-      const response = await fetch('/api/auth/me', {
+      // Usar la variable de entorno REACT_APP_API_URL para construir la URL
+      const API_URL = process.env.REACT_APP_API_URL || 'https://fact-back-drx3.onrender.com/api';
+      
+      const response = await fetch(`${API_URL}/auth/me`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
