@@ -3,14 +3,19 @@ import React, { useState, useEffect } from 'react';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box, Typography, TextField, Button,
-  Link, Paper, Grid, CircularProgress, Alert,
-  useTheme, InputAdornment
+  Link, Grid, CircularProgress, Alert,
+  InputAdornment
 } from '@mui/material';
 import EmailIcon from '@mui/icons-material/Email';
 import LockIcon from '@mui/icons-material/Lock';
 import { useAuth } from '../../context/AuthContext';
 
-const BACKGROUND_IMAGE_URL = 'https://pub-c37b7a23aa9c49239d088e3e0a3ba275.r2.dev/q.svg';
+// Colores inspirados en la imagen nueva
+const LEFT_PANEL_BACKGROUND = '#0A0318'; // Azul muy oscuro / casi negro (ajustado a más oscuro)
+// Ahora usamos un degradado en lugar de un color sólido para el panel derecho
+const RIGHT_PANEL_GRADIENT = 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)';
+const TEXT_ON_DARK_BACKGROUND = '#FFFFFF'; // Blanco para texto sobre fondo oscuro
+const ACCENT_COLOR = '#40E0D0'; // Color turquesa para acentos
 
 const Login = () => {
   // Estados
@@ -24,7 +29,6 @@ const Login = () => {
   const { login, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const theme = useTheme();
 
   // Constantes de Roles
   const PLATFORM_ADMIN_ROLE = 'platform_admin';
@@ -34,9 +38,8 @@ const Login = () => {
   const from = location.state?.from?.pathname || '/';
 
   useEffect(() => {
-      console.log("[Login useEffect] Verificando estado inicial de authLoading:", authLoading);
+    // console.log("[Login useEffect] Verificando estado inicial de authLoading:", authLoading);
   }, [authLoading]);
-
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -50,29 +53,23 @@ const Login = () => {
       setLoading(true);
 
       const loggedInUserData = await login(email, password);
-      console.log('[Login handleSubmit] Login API call successful. User data received:', loggedInUserData);
 
       if (loggedInUserData?.user?.role === PLATFORM_ADMIN_ROLE) {
-        console.log('[Login handleSubmit] Redirigiendo a /platform-admin');
         navigate('/platform-admin', { replace: true });
       } else if (loggedInUserData?.user?.role === FACTURADOR_ROLE) {
-        console.log('[Login handleSubmit] Redirigiendo a /invoices');
         navigate('/invoices', { replace: true });
       } else {
-        console.log(`[Login handleSubmit] Redirigiendo a ${from} (u otro rol)`);
         navigate(from, { replace: true });
       }
 
     } catch (err) {
       console.error('Error de login:', err);
       
-      // Detectar si es un error de verificación de correo
       if (err.response?.data?.needsVerification || err.needsVerification) {
         setNeedsVerification(true);
         localStorage.setItem('pendingVerificationEmail', email);
         setError('Por favor, verifica tu correo electrónico antes de iniciar sesión.');
       } 
-      // Detectar si es un error de compañía inactiva
       else if (err.response?.data?.companyInactive || err.companyInactive) {
         setError('La empresa asociada a su cuenta está desactivada o su suscripción ha finalizado.');
       } 
@@ -84,199 +81,369 @@ const Login = () => {
     }
   };
 
-  // --- Manejador para el botón de reenviar verificación ---
   const handleResendVerification = () => {
     localStorage.setItem('pendingVerificationEmail', email);
     navigate('/auth/verify-email-notice');
   };
 
   if (authLoading) {
-      console.log('[Login Render] Esperando carga inicial de auth...');
-      return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><CircularProgress /></div>;
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', width: '100vw', backgroundColor: LEFT_PANEL_BACKGROUND }}>
+        <CircularProgress sx={{ color: TEXT_ON_DARK_BACKGROUND }} />
+      </Box>
+    );
   }
 
-  console.log('[Login Render] Mostrando formulario de login.');
   return (
     <Box
       sx={{
         display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        backgroundImage: `url(${BACKGROUND_IMAGE_URL})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        py: 4,
-        px: 2,
+        flexDirection: { xs: 'column', md: 'row' },
+        height: '100vh', // Cambiado minHeight por height para asegurar que cubra exactamente toda la pantalla
+        width: '100vw',
+        overflow: 'hidden',
+        backgroundColor: LEFT_PANEL_BACKGROUND, // Fondo del container principal para evitar espacios negros
       }}
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: '800px' }}>
-        <Paper
-          elevation={8}
-          sx={{
-            width: '100%',
-            borderRadius: theme.shape.borderRadius * 1.5,
-            overflow: 'hidden', // Importante para mantener los colores dentro de los bordes redondeados
-            display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' } // Columna en móvil, fila en desktop
-          }}
-        >
-          {/* Lado izquierdo: Logo con fondo azul oscuro */}
-          <Box
-            sx={{
-              flex: { xs: '1', md: '0.5' },
-              backgroundColor: '#0B0B5E', // Azul oscuro como en tu imagen
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 4,
-              position: 'relative'
-            }}
-          >
-            {/* Logo SVG */}
-            <Box
-              component="img"
-              src="/favicon.svg"  // Usando el SVG de la carpeta public
-              alt="FactTech Logo"
-              sx={{
-                width: { xs: '240px', md: '320px' },
-                height: 'auto',
-                maxWidth: '100%',
-                filter: 'drop-shadow(0 0 12px rgba(79, 172, 254, 0.4))'
-              }}
-            />
-          </Box>
-
-          {/* Lado derecho: Formulario de login */}
-          <Box
-            sx={{
-              flex: { xs: '1', md: '0.5' },
-              backgroundColor: 'rgba(30, 30, 30, 0.85)',
-              backdropFilter: 'blur(5px)',
-              p: { xs: 3, md: 4 },
-              display: 'flex',
-              flexDirection: 'column'
-            }}
-          >
-            {error && (
-              <Alert
-                severity="error"
-                sx={{ mb: 2, width: '100%', backgroundColor: 'rgba(30, 30, 30, 0.85)' }}
-                action={
-                  needsVerification ? (
-                    <Button
-                      color="inherit"
-                      size="small"
-                      onClick={handleResendVerification}
-                    >
-                      Verificar
-                    </Button>
-                  ) : null
-                }
-              >
-                {error}
-              </Alert>
-            )}
-
-            <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1, width: '100%' }}>
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                id="email"
-                label="Correo Electrónico"
-                name="email"
-                autoComplete="email"
-                autoFocus
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <EmailIcon sx={{ color: theme.palette.text.secondary }} />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                name="password"
-                label="Contraseña"
-                type="password"
-                id="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <LockIcon sx={{ color: theme.palette.text.secondary }} />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                sx={{
-                  mt: 3,
-                  mb: 2,
-                  py: 1.5,
-                  background: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
-                  color: theme.palette.primary.contrastText,
-                  transition: 'opacity 0.3s ease',
-                  '&:hover': {
-                    opacity: 0.9,
-                  },
-                  '&.Mui-disabled': {
-                    background: theme.palette.action.disabledBackground,
-                    color: theme.palette.action.disabled,
-                    cursor: 'not-allowed',
-                    pointerEvents: 'auto',
-                  }
-                }}
-                disabled={loading}
-              >
-                {loading ? <CircularProgress size={24} color="inherit" /> : 'Iniciar Sesión'}
-              </Button>
-
-              <Grid container spacing={1} justifyContent="space-between">
-                <Grid item>
-                  <Link component={RouterLink} to="/auth/forgot-password" variant="body2">
-                    ¿Olvidaste tu contraseña?
-                  </Link>
-                </Grid>
-                <Grid item>
-                  <Link component={RouterLink} to="/auth/register" variant="body2">
-                    ¿No tienes una cuenta? Regístrate
-                  </Link>
-                </Grid>
-              </Grid>
-            </Box>
-          </Box>
-        </Paper>
-      </Box>
-
-      <Typography
-        variant="body2"
-        align="center"
+      {/* Lado izquierdo: Logo con fondo oscuro */}
+      <Box
         sx={{
-          width: '100%',
-          color: theme.palette.text.secondary,
-          pt: 4,
-          pb: 2,
+          flex: { xs: 'none', md: '0.5' }, 
+          backgroundColor: LEFT_PANEL_BACKGROUND,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center', // Esto ya centra verticalmente, pero lo mantenemos explícito
+          padding: { xs: 4, sm: 5, md: 6 },
+          height: { xs: '100%', md: '100%' }, 
+          minHeight: { xs: '320px', sm: '350px' },
+          position: 'relative', // Para posicionar el copyright absoluto
         }}
       >
-        &copy; {new Date().getFullYear()} FactTech. Todos los derechos reservados.
-      </Typography>
+        {/* Contenedor para centrar el logo y texto */}
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%', // Esto hace que el contenido ocupe todo el espacio disponible
+            width: '100%',
+          }}
+        >
+          <Box
+            sx={{
+              mb: 3,
+              width: { xs: '140px', sm: '180px', md: '220px' },
+              height: { xs: '140px', sm: '180px', md: '220px' },
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {/* Logo más parecido al de la referencia */}
+            <Box
+              component="div"
+              sx={{
+                width: '100%',
+                height: '100%',
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Box
+                component="div"
+                sx={{
+                  width: '85%',
+                  height: '100%',
+                  border: `4px solid ${ACCENT_COLOR}`,
+                  borderRadius: '5px',
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {/* Líneas que simulan texto dentro del documento */}
+                {[...Array(5)].map((_, i) => (
+                  <Box
+                    key={i}
+                    sx={{
+                      width: '70%',
+                      height: '6px',
+                      backgroundColor: ACCENT_COLOR,
+                      my: 0.5,
+                      borderRadius: '2px',
+                    }}
+                  />
+                ))}
+              </Box>
+              {/* Corchete izquierdo */}
+              <Box
+                component="div"
+                sx={{
+                  width: '15px',
+                  height: '60%',
+                  borderLeft: `4px solid ${ACCENT_COLOR}`,
+                  borderTop: `4px solid ${ACCENT_COLOR}`,
+                  borderBottom: `4px solid ${ACCENT_COLOR}`,
+                  borderTopLeftRadius: '8px',
+                  borderBottomLeftRadius: '8px',
+                  position: 'absolute',
+                  left: '0',
+                }}
+              />
+              {/* Corchete derecho */}
+              <Box
+                component="div"
+                sx={{
+                  width: '15px',
+                  height: '60%',
+                  borderRight: `4px solid ${ACCENT_COLOR}`,
+                  borderTop: `4px solid ${ACCENT_COLOR}`,
+                  borderBottom: `4px solid ${ACCENT_COLOR}`,
+                  borderTopRightRadius: '8px',
+                  borderBottomRightRadius: '8px',
+                  position: 'absolute',
+                  right: '0',
+                }}
+              />
+            </Box>
+          </Box>
+          
+          <Typography
+            component="h1"
+            sx={{
+              fontWeight: 700,
+              textAlign: 'center',
+              fontSize: { xs: '3rem', sm: '3.8rem', md: '4.5rem' },
+              letterSpacing: '0.03em',
+              lineHeight: 1.1,
+              fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+              // Color turquesa similar al logo
+              color: ACCENT_COLOR,
+            }}
+          >
+            FactTech
+          </Typography>
+        </Box>
+        
+        {/* Copyright integrado en el panel izquierdo - ahora absoluto al fondo */}
+        <Typography
+          variant="body2"
+          align="center"
+          sx={{
+            color: 'rgba(255,255,255,0.6)',
+            fontSize: '0.75rem',
+            position: 'absolute',
+            bottom: '20px',
+            left: 0,
+            right: 0,
+          }}
+        >
+          &copy; {new Date().getFullYear()} FactTech. Todos los derechos reservados.
+        </Typography>
+      </Box>
+
+      {/* Lado derecho: Formulario de login con fondo celeste */}
+      <Box
+        sx={{
+          flex: { xs: '1 1 auto', md: '0.5' },
+          background: RIGHT_PANEL_GRADIENT, // Usando el degradado solicitado
+          p: { xs: 3, sm: 4, md: 5 },
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          overflowY: 'auto',
+          height: '100%', // Siempre 100% en todas las pantallas
+        }}
+      >
+        {/* Contenedor interno para el formulario para limitar su ancho */}
+        <Box sx={{ width: '100%', maxWidth: '450px' }}>
+          <Typography variant="h4" component="h2" sx={{ mb: 1, color: '#00334e', fontWeight: 'bold', textAlign: 'center' }}>
+            Iniciar Sesión
+          </Typography>
+          <Typography variant="body1" sx={{ mb: { xs: 2, md: 3 }, color: '#00334e', textAlign: 'center' }}>
+            Bienvenido de nuevo. Ingresa tus credenciales.
+          </Typography>
+
+          {error && (
+            <Alert
+              severity="error"
+              sx={{
+                mb: 2,
+                width: '100%',
+                backgroundColor: 'rgba(255, 205, 210, 0.9)',
+                color: '#b71c1c',
+                border: '1px solid #ef9a9a',
+                '& .MuiAlert-icon': {
+                  color: '#b71c1c',
+                }
+              }}
+              action={
+                needsVerification ? (
+                  <Button
+                    sx={{ color: '#b71c1c' }}
+                    size="small"
+                    onClick={handleResendVerification}
+                  >
+                    Verificar
+                  </Button>
+                ) : null
+              }
+            >
+              {error}
+            </Alert>
+          )}
+
+          <Box component="form" onSubmit={handleSubmit} noValidate sx={{ width: '100%' }}>
+            {/* Campo de correo electrónico */}
+            <TextField
+              margin="normal"
+              fullWidth
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              autoFocus
+              placeholder="Ingresa tu correo electrónico"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
+              label=""
+              variant="outlined"
+              InputLabelProps={{ shrink: true, sx: { display: 'none' } }}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  "& > input": {
+                    color: "black !important",
+                    WebkitTextFillColor: "black !important"
+                  }
+                }
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <EmailIcon sx={{ color: '#00334e' }} />
+                  </InputAdornment>
+                ),
+                sx: {
+                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                  borderRadius: '8px',
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#00334e',
+                    borderWidth: '2px',
+                  },
+                  '&::before': {
+                    content: '"Correo Electrónico"',
+                    position: 'absolute',
+                    top: '-25px',
+                    left: '0',
+                    color: '#00334e',
+                    fontWeight: 500,
+                    fontSize: '0.9rem',
+                  }
+                }
+              }}
+            />
+
+            {/* Campo de contraseña */}
+            <TextField
+              margin="normal"
+              fullWidth
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              placeholder="Ingresa tu contraseña"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
+              label=""
+              variant="outlined"
+              InputLabelProps={{ shrink: true, sx: { display: 'none' } }}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  "& > input": {
+                    color: "black !important",
+                    WebkitTextFillColor: "black !important"
+                  }
+                }
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LockIcon sx={{ color: '#00334e' }} />
+                  </InputAdornment>
+                ),
+                sx: {
+                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                  borderRadius: '8px',
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#00334e',
+                    borderWidth: '2px',
+                  },
+                  '&::before': {
+                    content: '"Contraseña"',
+                    position: 'absolute',
+                    top: '-25px',
+                    left: '0',
+                    color: '#00334e',
+                    fontWeight: 500,
+                    fontSize: '0.9rem',
+                  }
+                }
+              }}
+            />
+            
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              size="large"
+              sx={{
+                mt: 3,
+                mb: 2,
+                py: 1.5,
+                backgroundColor: '#0288d1',
+                color: 'white',
+                fontWeight: 'bold',
+                borderRadius: '8px',
+                textTransform: 'none',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                '&:hover': {
+                  backgroundColor: '#0277bd',
+                  boxShadow: '0 6px 10px rgba(0,0,0,0.15)',
+                },
+                '&.Mui-disabled': {
+                  backgroundColor: 'rgba(0,0,0,0.12)',
+                  color: 'rgba(0,0,0,0.26)',
+                }
+              }}
+              disabled={loading}
+            >
+              {loading ? <CircularProgress size={24} color="inherit" /> : 'Iniciar Sesión'}
+            </Button>
+
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={12} sm={6}>
+                <Link component={RouterLink} to="/auth/forgot-password" variant="body2" sx={{ color: '#00334e', '&:hover': { color: '#002233', textDecoration: 'underline' } }}>
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </Grid>
+              <Grid item xs={12} sm={6} sx={{ textAlign: { xs: 'left', sm: 'right' } }}>
+                <Link component={RouterLink} to="/auth/register" variant="body2" sx={{ color: '#00334e', '&:hover': { color: '#002233', textDecoration: 'underline' } }}>
+                  ¿No tienes una cuenta? Regístrate
+                </Link>
+              </Grid>
+            </Grid>
+          </Box>
+        </Box>
+      </Box>
     </Box>
   );
 };

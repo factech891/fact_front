@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, TextField, Button,
-  Link, Paper, Grid, CircularProgress, Alert, Stepper, Step, StepLabel,
-  useTheme, InputAdornment, FormControl, InputLabel, Select, MenuItem
+  Link, Grid, CircularProgress, Alert, Stepper, Step, StepLabel,
+  useTheme, InputAdornment, FormControl, Select, MenuItem
 } from '@mui/material';
 // Importa los iconos necesarios
 import EmailIcon from '@mui/icons-material/Email';
@@ -15,13 +15,16 @@ import BadgeIcon from '@mui/icons-material/Badge';
 import PhoneIcon from '@mui/icons-material/Phone';
 import HomeIcon from '@mui/icons-material/Home';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 
 import { useAuth } from '../../context/AuthContext';
 import { detectBrowserTimezone, commonTimezones } from '../../utils/dateUtils';
 
-// URL de la imagen de fondo SVG
-const BACKGROUND_IMAGE_URL = 'https://pub-c37b7a23aa9c49239d088e3e0a3ba275.r2.dev/q.svg';
+// Colores inspirados en la imagen nueva - IGUALES QUE EN LOGIN
+const LEFT_PANEL_BACKGROUND = '#0A0318'; // Azul muy oscuro / casi negro (ajustado a más oscuro)
+// Ahora usamos un degradado en lugar de un color sólido para el panel derecho
+const RIGHT_PANEL_GRADIENT = 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)';
+// const TEXT_ON_DARK_BACKGROUND = '#FFFFFF'; // No usado, pero lo mantenemos comentado por si acaso
+const ACCENT_COLOR = '#40E0D0'; // Color turquesa para acentos
 
 // Pasos del registro
 const steps = ['Información de la Empresa', 'Información del Usuario'];
@@ -46,6 +49,7 @@ const Register = () => {
   // --- Hooks ---
   const { register } = useAuth();
   const navigate = useNavigate();
+  // eslint-disable-next-line no-unused-vars
   const theme = useTheme();
 
   // --- Handlers ---
@@ -96,7 +100,6 @@ const Register = () => {
     try {
         const registrationData = { company: companyData, user: userData };
         console.log("Submitting registration:", registrationData);
-        // Eliminada la asignación no utilizada
         await register(registrationData);
         
         localStorage.setItem('pendingVerificationEmail', userData.email);
@@ -109,147 +112,346 @@ const Register = () => {
     }
   };
 
+  // Función helper para crear los campos de texto con la etiqueta sobre el campo
+  const renderTextField = (id, label, name, value, onChange, icon, required = false, type = "text", fullWidth = true, xs = 12, sm = undefined) => {
+    return (
+      <Grid item xs={xs} sm={sm}>
+        <Box sx={{ position: 'relative', mb: 1 }}>
+          <Typography 
+            sx={{ 
+              position: 'absolute',
+              top: '-8px',
+              left: '0',
+              fontSize: '0.8rem',
+              fontWeight: 500,
+              color: '#00334e',
+              zIndex: 1
+            }}
+          >
+            {label} {required && <span style={{ color: 'red' }}>*</span>}
+          </Typography>
+          <TextField 
+            fullWidth={fullWidth}
+            id={id}
+            name={name}
+            type={type}
+            placeholder={`Ingresa ${label.toLowerCase()}`}
+            value={value}
+            onChange={onChange}
+            required={false}
+            variant="outlined"
+            label=""
+            size="small"
+            margin="dense"
+            InputLabelProps={{
+              shrink: true,
+              sx: { display: 'none' }
+            }}
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                "& > input": {
+                  color: "black !important",
+                  WebkitTextFillColor: "black !important"
+                }
+              }
+            }}
+            InputProps={{
+              sx: {
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                borderRadius: '8px',
+                mt: 1,
+                height: '36px',
+                fontSize: '0.9rem',
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#00334e',
+                  borderWidth: '2px',
+                },
+              },
+              startAdornment: icon && (
+                <InputAdornment position="start">
+                  {icon}
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Box>
+      </Grid>
+    );
+  };
+
   return (
+    // USANDO EXACTAMENTE LA MISMA ESTRUCTURA QUE EN LOGIN
     <Box
       sx={{
         display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        backgroundImage: `url(${BACKGROUND_IMAGE_URL})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        py: 4,
-        px: 2,
+        flexDirection: { xs: 'column', md: 'row' },
+        height: '100vh', // Cambiado minHeight por height para asegurar que cubra exactamente toda la pantalla
+        width: '100vw',
+        overflow: 'hidden',
+        backgroundColor: LEFT_PANEL_BACKGROUND, // Fondo del container principal para evitar espacios negros
       }}
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: '900px' }}>
-        <Paper
-          elevation={8}
+      {/* Lado izquierdo: Logo con fondo oscuro */}
+      <Box
+        sx={{
+          flex: { xs: 'none', md: '0.5' }, 
+          backgroundColor: LEFT_PANEL_BACKGROUND,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center', // Esto ya centra verticalmente, pero lo mantenemos explícito
+          padding: { xs: 4, sm: 5, md: 6 },
+          height: { xs: '100%', md: '100%' }, 
+          minHeight: { xs: '320px', sm: '350px' },
+          position: 'relative', // Para posicionar el copyright absoluto
+        }}
+      >
+        {/* Contenedor para centrar el logo y texto */}
+        <Box
           sx={{
-            width: '100%',
-            borderRadius: theme.shape.borderRadius * 1.5,
-            overflow: 'hidden',
             display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' }
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%', // Esto hace que el contenido ocupe todo el espacio disponible
+            width: '100%',
           }}
         >
-          {/* Lado izquierdo: Logo con fondo azul oscuro */}
           <Box
             sx={{
-              flex: { xs: '1', md: '0.4' },
-              backgroundColor: '#0B0B5E',
+              mb: 3,
+              width: { xs: '140px', sm: '180px', md: '220px' },
+              height: { xs: '140px', sm: '180px', md: '220px' },
               display: 'flex',
-              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: 4,
-              position: 'relative'
             }}
           >
-            {/* Logo SVG */}
+            {/* Logo más parecido al de la referencia */}
             <Box
-              component="img"
-              src="/favicon.svg"
-              alt="FactTech Logo"
+              component="div"
               sx={{
-                width: { xs: '200px', md: '250px' },
-                height: 'auto',
-                maxWidth: '100%',
-                filter: 'drop-shadow(0 0 12px rgba(79, 172, 254, 0.4))'
+                width: '100%',
+                height: '100%',
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
-            />
+            >
+              <Box
+                component="div"
+                sx={{
+                  width: '85%',
+                  height: '100%',
+                  border: `4px solid ${ACCENT_COLOR}`,
+                  borderRadius: '5px',
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {/* Líneas que simulan texto dentro del documento */}
+                {[...Array(5)].map((_, i) => (
+                  <Box
+                    key={i}
+                    sx={{
+                      width: '70%',
+                      height: '6px',
+                      backgroundColor: ACCENT_COLOR,
+                      my: 0.5,
+                      borderRadius: '2px',
+                    }}
+                  />
+                ))}
+              </Box>
+              {/* Corchete izquierdo */}
+              <Box
+                component="div"
+                sx={{
+                  width: '15px',
+                  height: '60%',
+                  borderLeft: `4px solid ${ACCENT_COLOR}`,
+                  borderTop: `4px solid ${ACCENT_COLOR}`,
+                  borderBottom: `4px solid ${ACCENT_COLOR}`,
+                  borderTopLeftRadius: '8px',
+                  borderBottomLeftRadius: '8px',
+                  position: 'absolute',
+                  left: '0',
+                }}
+              />
+              {/* Corchete derecho */}
+              <Box
+                component="div"
+                sx={{
+                  width: '15px',
+                  height: '60%',
+                  borderRight: `4px solid ${ACCENT_COLOR}`,
+                  borderTop: `4px solid ${ACCENT_COLOR}`,
+                  borderBottom: `4px solid ${ACCENT_COLOR}`,
+                  borderTopRightRadius: '8px',
+                  borderBottomRightRadius: '8px',
+                  position: 'absolute',
+                  right: '0',
+                }}
+              />
+            </Box>
           </Box>
-
-          {/* Lado derecho: Formulario de registro */}
-          <Box
+          
+          <Typography
+            component="h1"
             sx={{
-              flex: { xs: '1', md: '0.6' },
-              backgroundColor: 'rgba(30, 30, 30, 0.85)',
-              backdropFilter: 'blur(5px)',
-              p: { xs: 3, md: 4 },
-              display: 'flex',
-              flexDirection: 'column'
+              fontWeight: 700,
+              textAlign: 'center',
+              fontSize: { xs: '3rem', sm: '3.8rem', md: '4.5rem' },
+              letterSpacing: '0.03em',
+              lineHeight: 1.1,
+              fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+              color: ACCENT_COLOR,
             }}
           >
-            {/* Título del formulario */}
-            <Typography variant="h5" align="center" sx={{ mb: 2, color: theme.palette.primary.main, fontWeight: 'bold' }}>
-              Registro de Nueva Cuenta
-            </Typography>
+            FactTech
+          </Typography>
+        </Box>
+        
+        {/* Copyright integrado en el panel izquierdo - ahora absoluto al fondo */}
+        <Typography
+          variant="body2"
+          align="center"
+          sx={{
+            color: 'rgba(255,255,255,0.6)',
+            fontSize: '0.75rem',
+            position: 'absolute',
+            bottom: '20px',
+            left: 0,
+            right: 0,
+          }}
+        >
+          &copy; {new Date().getFullYear()} FactTech. Todos los derechos reservados.
+        </Typography>
+      </Box>
 
-            {/* Alerta de error */}
-            {error && (
-              <Alert severity="error" sx={{ mb: 2, width: '100%', backgroundColor: 'rgba(30, 30, 30, 0.85)' }}>
-                {error}
-              </Alert>
-            )}
+      {/* Lado derecho: Formulario de registro - COPIADO EXACTAMENTE DEL LOGIN */}
+      <Box
+        sx={{
+          flex: { xs: '1 1 auto', md: '0.5' },
+          background: RIGHT_PANEL_GRADIENT, // Usando el degradado solicitado
+          p: { xs: 3, sm: 4, md: 5 },
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          overflowY: 'auto',
+          height: '100%', // Siempre 100% en todas las pantallas
+        }}
+      >
+        {/* Contenedor interno para el formulario */}
+        <Box sx={{ 
+          width: '100%', 
+          maxWidth: '450px',
+        }}>
+          <Typography variant="h5" align="center" sx={{ mb: 1, color: '#00334e', fontWeight: 'bold', fontSize: { xs: '1.3rem', sm: '1.5rem' } }}>
+            Registro de Nueva Cuenta
+          </Typography>
 
-            {/* Stepper (Indicador de pasos) */}
-            <Stepper activeStep={activeStep} sx={{ mb: 4, width: '100%' }}>
-              {steps.map((label, index) => (
-                <Step key={label}>
-                  <StepLabel
-                     StepIconProps={{
-                        style: { color: activeStep === index ? theme.palette.primary.main : (activeStep > index ? theme.palette.success.main : theme.palette.text.disabled) }
-                     }}
-                     sx={{
-                        '& .MuiStepLabel-label': {
-                            color: activeStep >= index ? theme.palette.text.primary : theme.palette.text.secondary,
-                            '&.Mui-active': { fontWeight: 'bold' },
-                            '&.Mui-completed': { fontWeight: 'normal'}
-                        }
-                    }}
-                  >
-                    {label}
-                  </StepLabel>
-                </Step>
-              ))}
-            </Stepper>
+          {/* Alerta de error */}
+          {error && (
+            <Alert 
+              severity="error" 
+              sx={{ 
+                mb: 2, 
+                width: '100%', 
+                backgroundColor: 'rgba(255, 205, 210, 0.9)',
+                color: '#b71c1c',
+                border: '1px solid #ef9a9a'
+              }}
+            >
+              {error}
+            </Alert>
+          )}
 
-            {/* Formulario */}
-            <Box component="form" onSubmit={handleSubmit} noValidate sx={{ width: '100%' }}>
-              {activeStep === 0 ? (
-                // --- PASO 1: DATOS EMPRESA ---
-                <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <TextField required fullWidth id="name" label="Nombre de la Empresa" name="name" value={companyData.name} onChange={handleCompanyChange} InputProps={{ startAdornment: (<InputAdornment position="start"><BusinessIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField required fullWidth id="rif" label="RIF / Identificación Fiscal" name="rif" value={companyData.rif} onChange={handleCompanyChange} InputProps={{ startAdornment: (<InputAdornment position="start"><BadgeIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField required fullWidth id="email-company" label="Correo Electrónico de la Empresa" name="email" type="email" value={companyData.email} onChange={handleCompanyChange} InputProps={{ startAdornment: (<InputAdornment position="start"><EmailIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField fullWidth id="address" label="Dirección" name="address" value={companyData.address} onChange={handleCompanyChange} InputProps={{ startAdornment: (<InputAdornment position="start"><HomeIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField fullWidth id="city" label="Ciudad" name="city" value={companyData.city} onChange={handleCompanyChange} InputProps={{ startAdornment: (<InputAdornment position="start"><HomeIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField fullWidth id="state" label="Estado/Provincia" name="state" value={companyData.state} onChange={handleCompanyChange} InputProps={{ startAdornment: (<InputAdornment position="start"><HomeIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField fullWidth id="phone" label="Teléfono" name="phone" value={companyData.phone} onChange={handleCompanyChange} InputProps={{ startAdornment: (<InputAdornment position="start"><PhoneIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <FormControl fullWidth>
-                      <InputLabel id="timezone-label">Zona Horaria</InputLabel>
+          {/* Stepper (Indicador de pasos) */}
+          <Stepper 
+            activeStep={activeStep} 
+            sx={{ 
+              mb: 3,
+              width: '100%',
+              '& .MuiStepIcon-root': {
+                color: '#00334e',
+              },
+              '& .MuiStepIcon-root.Mui-active': {
+                color: '#0288d1',
+              },
+              '& .MuiStepIcon-root.Mui-completed': {
+                color: '#00695c',
+              },
+              '& .MuiStepLabel-label': {
+                color: '#00334e',
+                fontWeight: 500,
+                fontSize: '0.9rem'
+              }
+            }}
+          >
+            {steps.map((label) => (
+              <Step key={label}>
+                <StepLabel>{label}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
+
+          {/* Formulario */}
+          <Box component="form" onSubmit={handleSubmit} noValidate sx={{ width: '100%' }}>
+            {activeStep === 0 ? (
+              // --- PASO 1: DATOS EMPRESA ---
+              <Grid container spacing={2}>
+                {renderTextField("name", "Nombre de la Empresa", "name", companyData.name, handleCompanyChange, <BusinessIcon sx={{ color: '#00334e' }} />, true)}
+                {renderTextField("rif", "RIF / Identificación Fiscal", "rif", companyData.rif, handleCompanyChange, <BadgeIcon sx={{ color: '#00334e' }} />, true, "text", true, 12, 6)}
+                {renderTextField("email-company", "Email de la Empresa", "email", companyData.email, handleCompanyChange, <EmailIcon sx={{ color: '#00334e' }} />, true, "email", true, 12, 6)}
+                {renderTextField("address", "Dirección", "address", companyData.address, handleCompanyChange, <HomeIcon sx={{ color: '#00334e' }} />)}
+                {renderTextField("city", "Ciudad", "city", companyData.city, handleCompanyChange, <HomeIcon sx={{ color: '#00334e' }} />, false, "text", true, 12, 6)}
+                {renderTextField("state", "Estado/Provincia", "state", companyData.state, handleCompanyChange, <HomeIcon sx={{ color: '#00334e' }} />, false, "text", true, 12, 6)}
+                {renderTextField("phone", "Teléfono", "phone", companyData.phone, handleCompanyChange, <PhoneIcon sx={{ color: '#00334e' }} />)}
+                
+                <Grid item xs={12}>
+                  <Box sx={{ position: 'relative', mb: 2 }}>
+                    <Typography 
+                      sx={{ 
+                        position: 'absolute',
+                        top: '-8px',
+                        left: '0',
+                        fontSize: '0.8rem',
+                        fontWeight: 500,
+                        color: '#00334e',
+                        mb: 1,
+                        zIndex: 1
+                      }}
+                    >
+                      Zona Horaria
+                    </Typography>
+                    <FormControl 
+                      fullWidth
+                      sx={{
+                        mt: 2 
+                      }}
+                    >
                       <Select
-                        labelId="timezone-label"
                         id="timezone"
                         name="timezone"
                         value={companyData.timezone}
                         onChange={handleCompanyChange}
-                        label="Zona Horaria"
-                        IconComponent={(props) => (
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <AccessTimeIcon sx={{ mr: 1, color: theme.palette.text.secondary }} />
-                            <ArrowDropDownIcon {...props} />
-                          </Box>
-                        )}
+                        displayEmpty
+                        sx={{
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                          borderRadius: '8px',
+                          height: '53px',
+                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#00334e',
+                            borderWidth: '2px',
+                          },
+                        }}
+                        startAdornment={<AccessTimeIcon sx={{ mr: 1, color: '#00334e' }} />}
                       >
                         {commonTimezones.map((tz) => (
                           <MenuItem key={tz.value} value={tz.value}>
@@ -258,86 +460,92 @@ const Register = () => {
                         ))}
                       </Select>
                     </FormControl>
-                  </Grid>
+                  </Box>
                 </Grid>
-              ) : (
-                // --- PASO 2: DATOS USUARIO ---
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
-                    <TextField required fullWidth id="firstName" label="Nombre" name="firstName" value={userData.firstName} onChange={handleUserChange} InputProps={{ startAdornment: (<InputAdornment position="start"><PersonIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField required fullWidth id="lastName" label="Apellido" name="lastName" value={userData.lastName} onChange={handleUserChange} InputProps={{ startAdornment: (<InputAdornment position="start"><PersonIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField required fullWidth id="email-user" label="Correo Electrónico del Usuario" name="email" type="email" value={userData.email} onChange={handleUserChange} InputProps={{ startAdornment: (<InputAdornment position="start"><EmailIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField required fullWidth id="password" label="Contraseña" name="password" type="password" value={userData.password} onChange={handleUserChange} InputProps={{ startAdornment: (<InputAdornment position="start"><LockIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField required fullWidth id="confirmPassword" label="Confirmar Contraseña" name="confirmPassword" type="password" value={userData.confirmPassword} onChange={handleUserChange} InputProps={{ startAdornment: (<InputAdornment position="start"><LockIcon sx={{ color: theme.palette.text.secondary }} /></InputAdornment>), }} />
-                  </Grid>
-                </Grid>
-              )}
+              </Grid>
+            ) : (
+              // --- PASO 2: DATOS USUARIO ---
+              <Grid container spacing={2}>
+                {renderTextField("firstName", "Nombre", "firstName", userData.firstName, handleUserChange, <PersonIcon sx={{ color: '#00334e' }} />, true, "text", true, 12, 6)}
+                {renderTextField("lastName", "Apellido", "lastName", userData.lastName, handleUserChange, <PersonIcon sx={{ color: '#00334e' }} />, true, "text", true, 12, 6)}
+                {renderTextField("email-user", "Email del Usuario", "email", userData.email, handleUserChange, <EmailIcon sx={{ color: '#00334e' }} />, true, "email")}
+                {renderTextField("password", "Contraseña", "password", userData.password, handleUserChange, <LockIcon sx={{ color: '#00334e' }} />, true, "password")}
+                {renderTextField("confirmPassword", "Confirmar Contraseña", "confirmPassword", userData.confirmPassword, handleUserChange, <LockIcon sx={{ color: '#00334e' }} />, true, "password")}
+              </Grid>
+            )}
 
-              {/* Botones de navegación del Stepper */}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-                <Button
-                  disabled={activeStep === 0 || loading}
-                  onClick={handleBack}
-                  variant="outlined"
-                  type="button"
-                  sx={{ borderColor: theme.palette.text.secondary, color: theme.palette.text.secondary }}
-                >
-                  Atrás
-                </Button>
-                <Button
-                  type={activeStep === steps.length - 1 ? 'submit' : 'button'}
-                  variant="contained"
-                  disabled={loading}
-                  onClick={activeStep === steps.length - 1 ? undefined : handleNext}
-                  sx={{
-                    background: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
-                    color: theme.palette.primary.contrastText,
-                    transition: 'opacity 0.3s ease',
-                    '&:hover': { opacity: 0.9 },
-                    '&.Mui-disabled': {
-                      background: theme.palette.action.disabledBackground,
-                      color: theme.palette.action.disabled,
-                      cursor: 'not-allowed',
-                      pointerEvents: 'auto',
-                    }
-                  }}
-                >
-                  {loading ? <CircularProgress size={24} color="inherit" /> :
-                    (activeStep === steps.length - 1 ? 'Registrar Cuenta' : 'Siguiente')}
-                </Button>
-              </Box>
-            </Box>
-
-            {/* Enlace para ir a Login */}
-            <Box sx={{ mt: 4, textAlign: 'center' }}>
-              <Link component={RouterLink} to="/auth/login" variant="body2">
-                ¿Ya tienes una cuenta? Inicia sesión
-              </Link>
+            {/* Botones de navegación del Stepper */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2, mb: 1 }}>
+              <Button
+                disabled={activeStep === 0 || loading}
+                onClick={handleBack}
+                variant="outlined"
+                type="button"
+                sx={{ 
+                  borderColor: '#00334e', 
+                  color: '#00334e',
+                  '&:hover': {
+                    borderColor: '#002233',
+                    backgroundColor: 'rgba(0, 51, 78, 0.04)',
+                  },
+                  py: 0.5,
+                  minHeight: '32px'
+                }}
+              >
+                Atrás
+              </Button>
+              <Button
+                type={activeStep === steps.length - 1 ? 'submit' : 'button'}
+                variant="contained"
+                disabled={loading}
+                onClick={activeStep === steps.length - 1 ? undefined : handleNext}
+                sx={{
+                  backgroundColor: '#0288d1',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  borderRadius: '8px',
+                  textTransform: 'none',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                  '&:hover': {
+                    backgroundColor: '#0277bd',
+                    boxShadow: '0 6px 10px rgba(0,0,0,0.15)',
+                  },
+                  '&.Mui-disabled': {
+                    backgroundColor: 'rgba(0,0,0,0.12)',
+                    color: 'rgba(0,0,0,0.26)',
+                  },
+                  py: 0.5,
+                  minHeight: '32px'
+                }}
+              >
+                {loading ? <CircularProgress size={24} color="inherit" /> :
+                  (activeStep === steps.length - 1 ? 'Registrar Cuenta' : 'Siguiente')}
+              </Button>
             </Box>
           </Box>
-        </Paper>
-      </Box>
 
-      <Typography
-        variant="body2"
-        align="center"
-        sx={{
-          width: '100%',
-          color: theme.palette.text.secondary,
-          pt: 4,
-          pb: 2,
-        }}
-      >
-        &copy; {new Date().getFullYear()} FactTech. Todos los derechos reservados.
-      </Typography>
+          {/* Enlace para ir a Login */}
+          <Box sx={{ mt: 2, textAlign: 'center' }}>
+            <Link 
+              component={RouterLink} 
+              to="/auth/login" 
+              variant="body2"
+              sx={{ 
+                color: '#00334e', 
+                fontWeight: 500,
+                fontSize: '0.85rem',
+                textDecoration: 'none',
+                '&:hover': { 
+                  color: '#002233', 
+                  textDecoration: 'underline' 
+                } 
+              }}
+            >
+              ¿Ya tienes una cuenta? Inicia sesión
+            </Link>
+          </Box>
+        </Box>
+      </Box>
     </Box>
   );
 };
