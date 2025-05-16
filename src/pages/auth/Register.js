@@ -4,7 +4,7 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, TextField, Button,
   Link, Grid, CircularProgress, Alert, Stepper, Step, StepLabel,
-  useTheme, InputAdornment, FormControl, Select, MenuItem
+  useTheme, InputAdornment, FormControl, Select, MenuItem, useMediaQuery
 } from '@mui/material';
 // Importa los iconos necesarios
 import EmailIcon from '@mui/icons-material/Email';
@@ -23,8 +23,8 @@ import { detectBrowserTimezone, commonTimezones } from '../../utils/dateUtils';
 const LEFT_PANEL_BACKGROUND = '#0A0318'; // Azul muy oscuro / casi negro (ajustado a más oscuro)
 // Ahora usamos un degradado en lugar de un color sólido para el panel derecho
 const RIGHT_PANEL_GRADIENT = 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)';
-// const TEXT_ON_DARK_BACKGROUND = '#FFFFFF'; // No usado, pero lo mantenemos comentado por si acaso
-const ACCENT_COLOR = '#40E0D0'; // Color turquesa para acentos
+// Color turquesa para acentos
+const ACCENT_COLOR = '#40E0D0';
 
 // Pasos del registro
 const steps = ['Información de la Empresa', 'Información del Usuario'];
@@ -49,8 +49,8 @@ const Register = () => {
   // --- Hooks ---
   const { register } = useAuth();
   const navigate = useNavigate();
-  // eslint-disable-next-line no-unused-vars
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // --- Handlers ---
   const handleCompanyChange = (e) => {
@@ -180,30 +180,28 @@ const Register = () => {
   };
 
   return (
-    // USANDO EXACTAMENTE LA MISMA ESTRUCTURA QUE EN LOGIN
     <Box
       sx={{
         display: 'flex',
         flexDirection: { xs: 'column', md: 'row' },
-        height: '100vh', // Cambiado minHeight por height para asegurar que cubra exactamente toda la pantalla
+        height: '100vh',
         width: '100vw',
         overflow: 'hidden',
-        backgroundColor: LEFT_PANEL_BACKGROUND, // Fondo del container principal para evitar espacios negros
+        backgroundColor: LEFT_PANEL_BACKGROUND,
       }}
     >
       {/* Lado izquierdo: Logo con fondo oscuro */}
       <Box
         sx={{
-          flex: { xs: 'none', md: '0.5' }, 
+          flex: { xs: 'none', md: '0.5' },
           backgroundColor: LEFT_PANEL_BACKGROUND,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'center', // Esto ya centra verticalmente, pero lo mantenemos explícito
-          padding: { xs: 4, sm: 5, md: 6 },
-          height: { xs: '100%', md: '100%' }, 
-          minHeight: { xs: '320px', sm: '350px' },
-          position: 'relative', // Para posicionar el copyright absoluto
+          justifyContent: 'center',
+          padding: { xs: 3, md: 6 },
+          height: { xs: '220px', md: '100%' },
+          position: 'relative',
         }}
       >
         {/* Contenedor para centrar el logo y texto */}
@@ -213,15 +211,15 @@ const Register = () => {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            height: '100%', // Esto hace que el contenido ocupe todo el espacio disponible
+            height: '100%',
             width: '100%',
           }}
         >
           <Box
             sx={{
-              mb: 3,
-              width: { xs: '140px', sm: '180px', md: '220px' },
-              height: { xs: '140px', sm: '180px', md: '220px' },
+              mb: { xs: 1, md: 3 },
+              width: { xs: '100px', md: '220px' },
+              height: { xs: '100px', md: '220px' },
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -259,9 +257,9 @@ const Register = () => {
                     key={i}
                     sx={{
                       width: '70%',
-                      height: '6px',
+                      height: { xs: '4px', md: '6px' },
                       backgroundColor: ACCENT_COLOR,
-                      my: 0.5,
+                      my: { xs: 0.3, md: 0.5 },
                       borderRadius: '2px',
                     }}
                   />
@@ -305,7 +303,7 @@ const Register = () => {
             sx={{
               fontWeight: 700,
               textAlign: 'center',
-              fontSize: { xs: '3rem', sm: '3.8rem', md: '4.5rem' },
+              fontSize: { xs: '2rem', md: '4.5rem' },
               letterSpacing: '0.03em',
               lineHeight: 1.1,
               fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
@@ -316,35 +314,42 @@ const Register = () => {
           </Typography>
         </Box>
         
-        {/* Copyright integrado en el panel izquierdo - ahora absoluto al fondo */}
+        {/* Copyright - invisible en móvil, visible en escritorio */}
         <Typography
           variant="body2"
           align="center"
           sx={{
             color: 'rgba(255,255,255,0.6)',
-            fontSize: '0.75rem',
+            fontSize: '0.7rem',
             position: 'absolute',
-            bottom: '20px',
+            bottom: { xs: '5px', md: '20px' },
             left: 0,
             right: 0,
+            display: { xs: 'none', sm: 'block' } // Oculto en móvil
           }}
         >
           &copy; {new Date().getFullYear()} FactTech. Todos los derechos reservados.
         </Typography>
       </Box>
 
-      {/* Lado derecho: Formulario de registro - COPIADO EXACTAMENTE DEL LOGIN */}
+      {/* Lado derecho: Formulario de registro */}
       <Box
         sx={{
           flex: { xs: '1 1 auto', md: '0.5' },
-          background: RIGHT_PANEL_GRADIENT, // Usando el degradado solicitado
-          p: { xs: 3, sm: 4, md: 5 },
+          background: RIGHT_PANEL_GRADIENT,
+          p: { xs: 2.5, md: 5 },
+          paddingTop: { xs: 4, md: 5 },
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center',
+          justifyContent: { xs: 'flex-start', md: 'center' },
           alignItems: 'center',
           overflowY: 'auto',
-          height: '100%', // Siempre 100% en todas las pantallas
+          height: { xs: 'calc(100vh - 220px)', md: '100%' },
+          borderTopLeftRadius: { xs: '24px', md: 0 },
+          borderTopRightRadius: { xs: '24px', md: 0 },
+          marginTop: { xs: '-24px', md: 0 },
+          position: 'relative',
+          zIndex: 10,
         }}
       >
         {/* Contenedor interno para el formulario */}
@@ -352,7 +357,16 @@ const Register = () => {
           width: '100%', 
           maxWidth: '450px',
         }}>
-          <Typography variant="h5" align="center" sx={{ mb: 1, color: '#00334e', fontWeight: 'bold', fontSize: { xs: '1.3rem', sm: '1.5rem' } }}>
+          <Typography 
+            variant="h5" 
+            align="center" 
+            sx={{ 
+              mb: 1, 
+              color: '#00334e', 
+              fontWeight: 'bold', 
+              fontSize: { xs: '1.3rem', sm: '1.5rem' } 
+            }}
+          >
             Registro de Nueva Cuenta
           </Typography>
 
@@ -365,7 +379,11 @@ const Register = () => {
                 width: '100%', 
                 backgroundColor: 'rgba(255, 205, 210, 0.9)',
                 color: '#b71c1c',
-                border: '1px solid #ef9a9a'
+                border: '1px solid #ef9a9a',
+                fontSize: { xs: '0.8rem', md: '0.875rem' },
+                '& .MuiAlert-icon': {
+                  color: '#b71c1c',
+                }
               }}
             >
               {error}
@@ -390,7 +408,7 @@ const Register = () => {
               '& .MuiStepLabel-label': {
                 color: '#00334e',
                 fontWeight: 500,
-                fontSize: '0.9rem'
+                fontSize: { xs: '0.8rem', md: '0.9rem' }
               }
             }}
           >
@@ -446,13 +464,42 @@ const Register = () => {
                           backgroundColor: 'rgba(255, 255, 255, 0.9)',
                           borderRadius: '8px',
                           height: '53px',
+                          color: 'black !important', // Garantiza que el texto sea negro y visible
+                          '& .MuiSelect-select': {
+                            color: 'black !important', // Garantiza que el texto seleccionado sea negro
+                            fontWeight: 'medium',
+                            padding: '0 14px'
+                          },
                           '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
                             borderColor: '#00334e',
                             borderWidth: '2px',
                           },
                         }}
                         startAdornment={<AccessTimeIcon sx={{ mr: 1, color: '#00334e' }} />}
+                        // Renderiza el valor seleccionado con formato personalizado
+                        renderValue={(selected) => {
+                          const selectedOption = commonTimezones.find(tz => tz.value === selected);
+                          return (
+                            <Typography 
+                              component="span" 
+                              sx={{ 
+                                color: 'black !important',
+                                WebkitTextFillColor: 'black !important', // Forzar color de texto en Safari/iOS
+                                fontWeight: 'normal',
+                                display: 'block',
+                                width: '100%'
+                              }}
+                            >
+                              {selectedOption ? selectedOption.label : ''}
+                            </Typography>
+                          );
+                        }}
                       >
+                        {commonTimezones.map((tz) => (
+                          <MenuItem key={tz.value} value={tz.value}>
+                            {tz.label}
+                          </MenuItem>
+                        ))}
                         {commonTimezones.map((tz) => (
                           <MenuItem key={tz.value} value={tz.value}>
                             {tz.label}
@@ -545,6 +592,23 @@ const Register = () => {
             </Link>
           </Box>
         </Box>
+
+        {/* Copyright para móvil al final del formulario */}
+        {isMobile && (
+          <Typography
+            variant="body2"
+            align="center"
+            sx={{
+              color: 'rgba(0,51,78,0.6)',
+              fontSize: '0.65rem',
+              mt: 'auto',
+              pt: 2,
+              width: '100%'
+            }}
+          >
+            &copy; {new Date().getFullYear()} FactTech. Todos los derechos reservados.
+          </Typography>
+        )}
       </Box>
     </Box>
   );
