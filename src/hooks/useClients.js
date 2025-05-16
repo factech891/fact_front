@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { clientsApi } from '../services/api';
+import { clientsApi, authApi } from '../services/api';
 
 function useClients() {
   const [clients, setClients] = useState([]);
@@ -35,30 +35,21 @@ function useClients() {
     }
   };
 
-  // Función para obtener companyId usando la API existente
+  // Función para obtener companyId usando el servicio de authApi
   const getCompanyId = async () => {
     try {
-      // Usar la variable de entorno REACT_APP_API_URL para construir la URL
-      const API_URL = process.env.REACT_APP_API_URL || 'https://fact-back-drx3.onrender.com/api';
+      console.log('Intentando obtener datos de usuario y compañía...');
+      const userData = await authApi.getMe();
       
-      const response = await fetch(`${API_URL}/auth/me`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      console.log('Datos de usuario obtenidos:', userData);
       
-      if (!response.ok) {
-        throw new Error('No se pudo obtener información del usuario');
-      }
-      
-      const data = await response.json();
-      
-      if (!data.success || !data.company || !data.company.id) {
+      if (!userData.success || !userData.company || !userData.company.id) {
+        console.error('Respuesta inválida de authApi.getMe():', userData);
         throw new Error('No se encontró información de la empresa');
       }
       
-      console.log('CompanyId obtenido:', data.company.id);
-      return data.company.id;
+      console.log('CompanyId obtenido:', userData.company.id);
+      return userData.company.id;
     } catch (error) {
       console.error('Error al obtener companyId:', error);
       throw error;

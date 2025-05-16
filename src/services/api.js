@@ -324,3 +324,13 @@ export const companyApi = {
     return handleResponse(response);
   }
 };
+
+// Servicios para Autenticación
+export const authApi = {
+  getMe: async () => {
+    const response = await fetch(`${API_BASE_URL}/auth/me`, {
+      headers: getAuthHeaders()
+    });
+    return handleResponse(response);
+  }
+};
